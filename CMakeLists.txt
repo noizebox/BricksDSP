@@ -29,7 +29,9 @@ set(COMPILATION_UNITS src/main.cpp)
 
 # Enumerate all the headers separately so that CLion can index them
 
-set(EXTRA_CLION_SOURCES include/public_header.h)
+set(EXTRA_CLION_SOURCES include/public_header.h
+                        src/dsp_brick.h
+                        src/utility_bricks.h)
 
 set(SOURCE_FILES "${COMPILATION_UNITS}" "${EXTRA_CLION_SOURCES}")
 
