@@ -1,5 +1,4 @@
 
-#include "public_header.h"
 #include "utility_bricks.h"
 #include "envelope_bricks.h"
 

@@ -73,7 +73,7 @@ public:
             float gain = *_gains[i];
             for (unsigned s = 0; s < _audio_buffer.size(); ++s)
             {
-                _audio_buffer[s] += _audio_ins[i][s] * gain;
+                _audio_buffer[s] += (*_audio_ins[i])[s] * gain;
             }
         }
     }

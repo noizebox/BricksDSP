@@ -63,7 +63,7 @@ void ADSREnvelopeBrick::render()
             }
             break;
         }
-    sample = _level;
+        sample = _level;
     }
 }
 
