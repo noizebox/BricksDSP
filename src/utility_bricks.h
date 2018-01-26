@@ -4,24 +4,22 @@
 #include "dsp_brick.h"
 namespace bricks {
 
+/* Generic gain control of audio signal */
 class VcaBrick : public DspBrick
 {
 public:
-    enum ControlInputs
+    enum AudioOutputs
     {
-        GAIN = 0,
-        MAX_CONTROL_INPUTS,
+        VCA_OUT = 0,
+        MAX_AUDIO_OUTS,
     };
 
-    VcaBrick(const ControlPort gain, const AudioPort audio_in) : _gain_port(gain),
+    VcaBrick(ControlPort gain, AudioPort audio_in) : _gain_port(gain),
                                                      _audio_in(audio_in) {}
-    ControlPort control_output(int /*n*/) override
-    {
-        assert(false);
-    }
+
     AudioPort audio_output(int n) override
     {
-        assert(n < MAX_CONTROL_INPUTS);
+        assert(n < MAX_AUDIO_OUTS);
         return &_audio_buffer;
     }
 
@@ -32,7 +30,6 @@ public:
         {
             _audio_buffer[s] = (*_audio_in)[s] * gain;
         }
-        (*_audio_in)[0] = 1.0f;
     }
 
 private:
@@ -41,8 +38,51 @@ private:
     AudioBuffer _audio_buffer;
 };
 
+/* General n to 1 audio mixer with individual gain controls for each input
+ * Instantiation example:
+ * AudioMixerBrick<2> mixer({gain1_, gain_2}, {audio_in_1, audio_in_2}); */
 
+template <size_t channel_count>
+class AudioMixerBrick : public DspBrick
+{
+public:
+    enum AudioOutputs
+    {
+        MIX_OUT = 0,
+        MAX_AUDIO_OUTS,
+    };
 
+    AudioMixerBrick(std::array<ControlPort, channel_count> gains,
+                    std::array<AudioPort, channel_count> audio_ins) : _gains(gains),
+                                                                      _audio_ins(audio_ins) {}
+
+    AudioPort audio_output(int n) override
+    {
+        assert(n < MAX_AUDIO_OUTS);
+        return &_audio_buffer;
+    }
+
+    void render() override
+    {
+        for (auto& s : _audio_buffer)
+        {
+            s = 0.0f;
+        }
+        for (unsigned i = 0; i < channel_count; ++i)
+        {
+            float gain = *_gains[i];
+            for (unsigned s = 0; s < _audio_buffer.size(); ++s)
+            {
+                _audio_buffer[s] += _audio_ins[i][s] * gain;
+            }
+        }
+    }
+
+private:
+    std::array<ControlPort, channel_count> _gains;
+    std::array<AudioPort, channel_count> _audio_ins;
+    AudioBuffer _audio_buffer;
+};
 
 
 }// namespace bricks

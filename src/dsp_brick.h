@@ -16,6 +16,9 @@ typedef std::array<float, PROC_BLOCK_SIZE> AudioBuffer;
 typedef AudioBuffer* AudioPort;
 typedef float* ControlPort;
 
+/* Kind of a hack currently */
+constexpr float SAMPLERATE = 44100;
+
 
 /* The basic building block of DspBricks.
  * Each derived brick module should implement a constructor that takes its

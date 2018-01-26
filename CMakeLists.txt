@@ -25,13 +25,15 @@ set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${PROJECT_LINK_FLAGS}")
 #  Source Files  #
 ##################
 
-set(COMPILATION_UNITS src/main.cpp)
+set(COMPILATION_UNITS src/main.cpp
+                      src/envelope_bricks.cpp)
 
 # Enumerate all the headers separately so that CLion can index them
 
 set(EXTRA_CLION_SOURCES include/public_header.h
                         src/dsp_brick.h
-                        src/utility_bricks.h)
+                        src/utility_bricks.h
+                        src/envelope_bricks.h)
 
 set(SOURCE_FILES "${COMPILATION_UNITS}" "${EXTRA_CLION_SOURCES}")
 
