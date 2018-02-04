@@ -26,6 +26,7 @@ TEST_F(AdsrEnvelopeTest, OperationalTest)
     _test_module.gate(true);
     _test_module.render();
     auto out_buffer = _test_module.audio_output(ADSREnvelopeBrick::ENV_OUT);
+
     /* Test that it is rising */
     float prev = 0.0f;
     for (auto& next : *out_buffer)

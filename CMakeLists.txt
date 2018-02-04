@@ -6,7 +6,7 @@ project(bricks_dsp)
 ####################
 
 # Global flags
-set(PROJECT_CXX_FLAGS "-Wall -Wextra -std=c++14 -fno-rtti")
+set(PROJECT_CXX_FLAGS "-Wall -Wextra -std=c++17 -fno-rtti")
 set(PROJECT_LINK_FLAGS "")
 
 # Platform specific stuff
@@ -30,8 +30,7 @@ set(COMPILATION_UNITS src/main.cpp
 
 # Enumerate all the headers separately so that CLion can index them
 
-set(EXTRA_CLION_SOURCES include/public_header.h
-                        src/dsp_brick.h
+set(EXTRA_CLION_SOURCES src/dsp_brick.h
                         src/utility_bricks.h
                         src/envelope_bricks.h)
 

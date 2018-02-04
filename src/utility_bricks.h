@@ -1,6 +1,8 @@
 #ifndef BRICKS_DSP_UTILITY_BRICKS_H
 #define BRICKS_DSP_UTILITY_BRICKS_H
 
+#include <cassert>
+
 #include "dsp_brick.h"
 namespace bricks {
 
@@ -52,9 +54,10 @@ public:
         MAX_AUDIO_OUTS,
     };
 
+    // TODO - Make a nice variadic template constructor here
     AudioMixerBrick(std::array<ControlPort, channel_count> gains,
-                    std::array<AudioPort, channel_count> audio_ins) : _gains(gains),
-                                                                      _audio_ins(audio_ins) {}
+                    std::array<AudioPort, channel_count> audio_ins) : _gains{gains},
+                                                                      _audio_ins{audio_ins} {}
 
     AudioPort audio_output(int n) override
     {
@@ -83,7 +86,6 @@ private:
     std::array<AudioPort, channel_count> _audio_ins;
     AudioBuffer _audio_buffer;
 };
-
 
 }// namespace bricks
 

@@ -20,13 +20,15 @@ typedef float* ControlPort;
 constexpr float SAMPLERATE = 44100;
 
 
-/* The basic building block of DspBricks.
+/*
+ * The basic building block of DspBricks.
  * Each derived brick module should implement a constructor that takes its
  * audio and control ports as inputs and maps them to internal placeholders.
  * The signal chain is then configured at construction and fixed for the
  * lifetime of the bricks.
  * The Brick is required to provide storage for output ports, floats for
- * control ports and AudioBuffers for audio ports */
+ * control ports and AudioBuffers for audio ports
+ */
 
 class DspBrick
 {
