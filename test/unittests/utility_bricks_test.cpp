@@ -21,7 +21,14 @@ TEST_F(VcaBrickTest, OperationalTest)
     fill_buffer(_buffer, 0.5f);
     _gain = 2.0f;
     _test_module.render();
-    assert_buffer(*_test_module.audio_output(VcaBrick::VCA_OUT), 1.0f);
+    auto out_buffer = _test_module.audio_output(VcaBrick::VCA_OUT);
+    float last = 0;
+    for (auto& sample : *out_buffer)
+    {
+        ASSERT_LT(last, sample);
+        last = sample;
+    }
+    ASSERT_EQ(1.0f, last);
 }
 
 class AudioMixerBrickTest : public ::testing::Test

@@ -5,7 +5,7 @@ namespace bricks {
 
 constexpr float SHORTEST_ENVELOPE_TIME = 1.0e-5f;
 
-void ADSREnvelopeBrick::gate(bool gate)
+void AudioRateADSRBrick::gate(bool gate)
 {
     if (gate) /* If the envelope is running, it's simply restarted here */
     {
@@ -17,7 +17,7 @@ void ADSREnvelopeBrick::gate(bool gate)
     }
 }
 
-void ADSREnvelopeBrick::render()
+void AudioRateADSRBrick::render()
 {
     float attack_factor = std::max(1 / (SAMPLERATE * *_controls[ATTACK]), SHORTEST_ENVELOPE_TIME);
     float decay_factor = std::max((1.0f - *_controls[SUSTAIN]) / (SAMPLERATE * *_controls[DECAY]), SHORTEST_ENVELOPE_TIME);
@@ -67,4 +67,68 @@ void ADSREnvelopeBrick::render()
     }
 }
 
+void ADSREnvelopeBrick::gate(bool gate)
+{
+    if (gate) /* If the envelope is running, it's simply restarted here */
+    {
+        _state = EnvelopeState::ATTACK;
+        _level = 0.0f;
+    } else /* Gate off - go to release phase */
+    {
+        _state = EnvelopeState::RELEASE;
+    }
+}
+
+void ADSREnvelopeBrick::render()
+{
+    switch (_state)
+    {
+        case EnvelopeState::OFF:
+            break;
+
+        case EnvelopeState::ATTACK:
+        {
+            float attack_time = *_controls[ATTACK];
+            _level += attack_time > 0 ? PROC_BLOCK_SIZE / (SAMPLERATE * attack_time) : 1.0f;
+            if (_level >= 1)
+            {
+                _state = EnvelopeState::DECAY;
+                _level = 1.0f;
+            }
+            break;
+        }
+
+        case EnvelopeState::DECAY:
+        {
+            float decay_time = *_controls[DECAY];
+            float sustain_level = *_controls[SUSTAIN];
+            _level -= decay_time > 0 ? sustain_level * PROC_BLOCK_SIZE / (SAMPLERATE * decay_time) : 0;
+            if (_level <= sustain_level)
+            {
+                _state = EnvelopeState::SUSTAIN;
+                _level = sustain_level;
+            }
+            break;
+        }
+
+        case EnvelopeState::SUSTAIN:
+        {
+            _level = *_controls[SUSTAIN];
+            break;
+        }
+
+        case EnvelopeState::RELEASE:
+        {
+            float release_time = *_controls[RELEASE];
+            float sustain_level = *_controls[SUSTAIN];
+            _level -= release_time > 0 ? sustain_level * PROC_BLOCK_SIZE / (SAMPLERATE * release_time) : 0;
+            if (_level <= 0.0f)
+            {
+                _state = EnvelopeState::OFF;
+                _level = 0.0f;
+            }
+            break;
+        }
+    }
+}
 } // namespace bricks

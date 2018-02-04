@@ -47,8 +47,8 @@ protected:
 };
 
 
-typedef LinearInterpolator<DSP_BRICKS_BLOCK_SIZE> ControlSmootherLinear;
-typedef OnePoleLag<DSP_BRICKS_BLOCK_SIZE> ControlSmootherLag;
+typedef LinearInterpolator<PROC_BLOCK_SIZE> ControlSmootherLinear;
+typedef OnePoleLag<PROC_BLOCK_SIZE> ControlSmootherLag;
 
 
 } // namespace bricks

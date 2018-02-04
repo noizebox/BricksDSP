@@ -27,10 +27,10 @@ public:
 
     void render() override
     {
-        float gain = *_gain_port;
+        _gain_lag.set(*_gain_port);
         for (unsigned s = 0; s < _audio_buffer.size(); ++s)
         {
-            _audio_buffer[s] = (*_audio_in)[s] * gain;
+            _audio_buffer[s] = (*_audio_in)[s] * _gain_lag.get();
         }
     }
 
@@ -38,6 +38,7 @@ private:
     ControlPort _gain_port;
     AudioPort   _audio_in;
     AudioBuffer _audio_buffer;
+    ControlSmootherLinear _gain_lag;
 };
 
 /* General n to 1 audio mixer with individual gain controls for each input
