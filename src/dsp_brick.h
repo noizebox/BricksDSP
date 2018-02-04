@@ -4,6 +4,8 @@
 #include <array>
 #include <cassert>
 
+#include "utils.h"
+
 #ifndef DSP_BRICKS_BLOCK_SIZE
 #define DSP_BRICKS_BLOCK_SIZE   32
 #endif
@@ -43,6 +45,12 @@ public:
 protected:
     DspBrick() = default;
 };
-}
+
+
+typedef LinearInterpolator<DSP_BRICKS_BLOCK_SIZE> ControlSmootherLinear;
+typedef OnePoleLag<DSP_BRICKS_BLOCK_SIZE> ControlSmootherLag;
+
+
+} // namespace bricks
 
 #endif //BRICKS_DSP_DSP_BRICK_H
