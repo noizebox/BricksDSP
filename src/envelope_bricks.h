@@ -26,10 +26,10 @@ public:
     AudioRateADSRBrick(ControlPort attack, ControlPort decay,
                        ControlPort sustain, ControlPort release) : _controls{attack, decay, sustain, release} {}
 
-    AudioPort audio_output(int n) override
+    const AudioBuffer& audio_output(int n) override
     {
         assert(n < MAX_AUDIO_OUTS);
-        return &_envelope;
+        return _envelope;
     }
 
     /* Not part of the general interface. Analogous to the gate signal on an analog
@@ -77,10 +77,10 @@ public:
     ADSREnvelopeBrick(ControlPort attack, ControlPort decay,
                       ControlPort sustain, ControlPort release) : _controls{attack, decay, sustain, release} {}
 
-    ControlPort control_output(int n) override
+    const float& control_output(int n) override
     {
         assert(n < MAX_CONTROL_OUTS);
-        return &_level;
+        return _level;
     }
 
     /* Not part of the general interface. Analogous to the gate signal on an analog

@@ -16,29 +16,29 @@ public:
         MAX_AUDIO_OUTS,
     };
 
-    VcaBrick(ControlPort gain, AudioPort audio_in) : _gain_port(gain),
-                                                     _audio_in(audio_in) {}
+    VcaBrick(const float& gain, const AudioBuffer& audio_in) : _gain_port(gain),
+                                                              _audio_in(audio_in) {}
 
-    AudioPort audio_output(int n) override
+    const AudioBuffer& audio_output(int n) override
     {
         assert(n < MAX_AUDIO_OUTS);
-        return &_audio_buffer;
+        return _audio_buffer;
     }
 
     void render() override
     {
-        _gain_lag.set(*_gain_port);
+        _gain_lag.set(_gain_port);
         for (unsigned s = 0; s < _audio_buffer.size(); ++s)
         {
-            _audio_buffer[s] = (*_audio_in)[s] * _gain_lag.get();
+            _audio_buffer[s] = _audio_in[s] * _gain_lag.get();
         }
     }
 
 private:
-    ControlPort _gain_port;
-    AudioPort   _audio_in;
-    AudioBuffer _audio_buffer;
-    ControlSmootherLinear _gain_lag;
+    const float&            _gain_port;
+    const AudioBuffer&      _audio_in;
+    AudioBuffer             _audio_buffer;
+    ControlSmootherLinear   _gain_lag;
 };
 
 /* General n to 1 audio mixer with individual gain controls for each input
@@ -60,10 +60,10 @@ public:
                     std::array<AudioPort, channel_count> audio_ins) : _gains{gains},
                                                                       _audio_ins{audio_ins} {}
 
-    AudioPort audio_output(int n) override
+    const AudioBuffer& audio_output(int n) override
     {
         assert(n < MAX_AUDIO_OUTS);
-        return &_audio_buffer;
+        return _audio_buffer;
     }
 
     void render() override
@@ -74,10 +74,11 @@ public:
         }
         for (unsigned i = 0; i < channel_count; ++i)
         {
-            float gain = *_gains[i];
+            float gain = _gains[i].value();
+            auto& audio_in = _audio_ins[i].buffer();
             for (unsigned s = 0; s < _audio_buffer.size(); ++s)
             {
-                _audio_buffer[s] += (*_audio_ins[i])[s] * gain;
+                _audio_buffer[s] += audio_in[s] * gain;
             }
         }
     }

@@ -7,6 +7,6 @@
 
 void fill_buffer(bricks::AudioBuffer& buffer, float value);
 
-void assert_buffer(bricks::AudioBuffer& buffer, float value);
+void assert_buffer(const bricks::AudioBuffer& buffer, float value);
 
 #endif //BRICKS_DSP_TEST_UTILS_H

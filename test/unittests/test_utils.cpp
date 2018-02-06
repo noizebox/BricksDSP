@@ -9,7 +9,7 @@ void fill_buffer(bricks::AudioBuffer& buffer, float value)
 }
 
 
-void assert_buffer(bricks::AudioBuffer& buffer, float value)
+void assert_buffer(const bricks::AudioBuffer& buffer, float value)
 {
     for (const auto& sample : buffer)
     {

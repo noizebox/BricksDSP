@@ -14,7 +14,7 @@ protected:
     float       _decay;
     float       _sustain;
     float       _release;
-    AudioRateADSRBrick    _test_module{&_attack, &_decay, &_sustain, &_release};
+    AudioRateADSRBrick    _test_module{_attack, _decay, _sustain, _release};
 };
 
 TEST_F(AudioRateAdsrEnvelopeTest, OperationalTest)
@@ -25,11 +25,11 @@ TEST_F(AudioRateAdsrEnvelopeTest, OperationalTest)
     _release = 0.2f;
     _test_module.gate(true);
     _test_module.render();
-    auto out_buffer = _test_module.audio_output(AudioRateADSRBrick::ENV_OUT);
+    auto& out_buffer = _test_module.audio_output(AudioRateADSRBrick::ENV_OUT);
 
     /* Test that it is rising */
     float prev = 0.0f;
-    for (auto& next : *out_buffer)
+    for (auto& next : out_buffer)
     {
         ASSERT_GT(next, prev);
         prev = next;
@@ -40,7 +40,7 @@ TEST_F(AudioRateAdsrEnvelopeTest, OperationalTest)
 
     /* Test that it is falling */
     prev = 1.0f;
-    for (auto& next : *out_buffer)
+    for (auto& next : out_buffer)
     {
         ASSERT_LT(next, prev);
         prev = next;
@@ -56,7 +56,7 @@ protected:
     float       _decay;
     float       _sustain;
     float       _release;
-    ADSREnvelopeBrick    _test_module{&_attack, &_decay, &_sustain, &_release};
+    ADSREnvelopeBrick    _test_module{_attack, _decay, _sustain, _release};
 };
 
 TEST_F(AdsrEnvelopeTest, OperationalTest)
@@ -67,21 +67,21 @@ TEST_F(AdsrEnvelopeTest, OperationalTest)
     _release = 0.2f;
     _test_module.gate(true);
 
-    ControlPort out = _test_module.control_output(ADSREnvelopeBrick::ENV_OUT);
+    ControlPort out(_test_module.control_output(ADSREnvelopeBrick::ENV_OUT));
     _test_module.render();
 
     /* Test that it is rising */
-    ASSERT_GT(*out, 0.0f);
+    ASSERT_GT(out.value(), 0.0f);
 
     _attack = 0.0f;
     _test_module.render();
-    float sustain_level = *out;
+    float sustain_level = out.value();
     _test_module.gate(false);
     _test_module.render();
 
     ASSERT_EQ(1.0f, sustain_level);
-    ASSERT_LT(*out, 1.0f);
-    ASSERT_GT(*out, 0.0f);
+    ASSERT_LT(out.value(), 1.0f);
+    ASSERT_GT(out.value(), 0.0f);
 
     /* Test that it is falling */
 

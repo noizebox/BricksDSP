@@ -17,10 +17,37 @@ constexpr size_t PROC_BLOCK_SIZE = DSP_BRICKS_BLOCK_SIZE;
 constexpr float DEFAULT_SAMPLERATE = 44100;
 
 typedef std::array<float, PROC_BLOCK_SIZE> AudioBuffer;
-typedef AudioBuffer* AudioPort;
-typedef float* ControlPort;
 
+/* Thin wrappers around control and audio ports */
+class ControlPort
+{
+public:
+    ControlPort() = delete;
 
+    explicit ControlPort(const float*data) : _data(data) {}
+
+    ControlPort(const float& data) : _data(&data) {}
+
+    float value() const {return *_data;}
+
+private:
+    const float*_data;
+};
+
+class AudioPort
+{
+public:
+    AudioPort() = delete;
+
+    explicit AudioPort(const AudioBuffer* data) : _data(data) {}
+
+    AudioPort(const AudioBuffer& data) : _data(&data) {}
+
+    const AudioBuffer& buffer() const {return *_data;}
+
+private:
+    const AudioBuffer* _data;
+};
 
 /*
  * The basic building block of DspBricks.
@@ -37,9 +64,9 @@ class DspBrick
 public:
     virtual ~DspBrick() = default;
 
-    virtual ControlPort control_output(int /*n*/) {assert(false);}
+    virtual const float& control_output(int /*n*/) {assert(false);}
 
-    virtual AudioPort audio_output(int /*n*/) {assert(false);}
+    virtual const AudioBuffer& audio_output(int /*n*/) {assert(false);}
 
     virtual void render() = 0;
 
