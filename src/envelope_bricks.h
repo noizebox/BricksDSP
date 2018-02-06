@@ -80,7 +80,7 @@ public:
     ControlPort control_output(int n) override
     {
         assert(n < MAX_CONTROL_OUTS);
-        return &_envelope;
+        return &_level;
     }
 
     /* Not part of the general interface. Analogous to the gate signal on an analog
@@ -101,7 +101,6 @@ private:
     };
 
     std::array<ControlPort, MAX_CONTROL_INPUTS> _controls;
-    float _envelope{0.0f};
     EnvelopeState _state{EnvelopeState::OFF};
     float _level{0.0f};
 };

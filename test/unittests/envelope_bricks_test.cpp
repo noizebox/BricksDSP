@@ -69,12 +69,19 @@ TEST_F(AdsrEnvelopeTest, OperationalTest)
 
     ControlPort out = _test_module.control_output(ADSREnvelopeBrick::ENV_OUT);
     _test_module.render();
-    ASSERT_GT(0.0f, *out);
-    /* Test that it is rising */
 
+    /* Test that it is rising */
+    ASSERT_GT(*out, 0.0f);
+
+    _attack = 0.0f;
     _test_module.render();
+    float sustain_level = *out;
     _test_module.gate(false);
     _test_module.render();
+
+    ASSERT_EQ(1.0f, sustain_level);
+    ASSERT_LT(*out, 1.0f);
+    ASSERT_GT(*out, 0.0f);
 
     /* Test that it is falling */
 

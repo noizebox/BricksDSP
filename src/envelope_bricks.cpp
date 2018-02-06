@@ -81,6 +81,7 @@ void ADSREnvelopeBrick::gate(bool gate)
 
 void ADSREnvelopeBrick::render()
 {
+    float level = _level;
     switch (_state)
     {
         case EnvelopeState::OFF:
@@ -89,11 +90,11 @@ void ADSREnvelopeBrick::render()
         case EnvelopeState::ATTACK:
         {
             float attack_time = *_controls[ATTACK];
-            _level += attack_time > 0 ? PROC_BLOCK_SIZE / (SAMPLERATE * attack_time) : 1.0f;
-            if (_level >= 1)
+            level += attack_time > 0 ? PROC_BLOCK_SIZE / (SAMPLERATE * attack_time) : 1.0f;
+            if (level >= 1)
             {
                 _state = EnvelopeState::DECAY;
-                _level = 1.0f;
+                level = 1.0f;
             }
             break;
         }
@@ -102,18 +103,18 @@ void ADSREnvelopeBrick::render()
         {
             float decay_time = *_controls[DECAY];
             float sustain_level = *_controls[SUSTAIN];
-            _level -= decay_time > 0 ? sustain_level * PROC_BLOCK_SIZE / (SAMPLERATE * decay_time) : 0;
-            if (_level <= sustain_level)
+            level -= decay_time > 0 ? sustain_level * PROC_BLOCK_SIZE / (SAMPLERATE * decay_time) : 0;
+            if (level <= sustain_level)
             {
                 _state = EnvelopeState::SUSTAIN;
-                _level = sustain_level;
+                level = sustain_level;
             }
             break;
         }
 
         case EnvelopeState::SUSTAIN:
         {
-            _level = *_controls[SUSTAIN];
+            level = *_controls[SUSTAIN];
             break;
         }
 
@@ -121,14 +122,15 @@ void ADSREnvelopeBrick::render()
         {
             float release_time = *_controls[RELEASE];
             float sustain_level = *_controls[SUSTAIN];
-            _level -= release_time > 0 ? sustain_level * PROC_BLOCK_SIZE / (SAMPLERATE * release_time) : 0;
-            if (_level <= 0.0f)
+            level -= release_time > 0 ? sustain_level * PROC_BLOCK_SIZE / (SAMPLERATE * release_time) : 0;
+            if (level <= 0.0f)
             {
                 _state = EnvelopeState::OFF;
-                _level = 0.0f;
+                level = 0.0f;
             }
             break;
         }
     }
+    _level = level;
 }
 } // namespace bricks
