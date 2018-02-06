@@ -14,12 +14,12 @@ namespace bricks {
 
 constexpr size_t PROC_BLOCK_SIZE = DSP_BRICKS_BLOCK_SIZE;
 
+constexpr float DEFAULT_SAMPLERATE = 44100;
+
 typedef std::array<float, PROC_BLOCK_SIZE> AudioBuffer;
 typedef AudioBuffer* AudioPort;
 typedef float* ControlPort;
 
-/* Kind of a hack currently */
-constexpr float SAMPLERATE = 44100;
 
 
 /*
@@ -38,12 +38,16 @@ public:
     virtual ~DspBrick() = default;
 
     virtual ControlPort control_output(int /*n*/) {assert(false);}
+
     virtual AudioPort audio_output(int /*n*/) {assert(false);}
 
     virtual void render() = 0;
 
+    virtual void set_samplerate(float samplerate) {_samplerate = samplerate;}
+
 protected:
     DspBrick() = default;
+    float _samplerate{DEFAULT_SAMPLERATE};
 };
 
 

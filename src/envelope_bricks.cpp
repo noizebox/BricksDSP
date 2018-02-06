@@ -19,10 +19,10 @@ void AudioRateADSRBrick::gate(bool gate)
 
 void AudioRateADSRBrick::render()
 {
-    float attack_factor = std::max(1 / (SAMPLERATE * *_controls[ATTACK]), SHORTEST_ENVELOPE_TIME);
-    float decay_factor = std::max((1.0f - *_controls[SUSTAIN]) / (SAMPLERATE * *_controls[DECAY]), SHORTEST_ENVELOPE_TIME);
+    float attack_factor = std::max(1 / (_samplerate * *_controls[ATTACK]), SHORTEST_ENVELOPE_TIME);
+    float decay_factor = std::max((1.0f - *_controls[SUSTAIN]) / (_samplerate * *_controls[DECAY]), SHORTEST_ENVELOPE_TIME);
     float sustain_level = *_controls[SUSTAIN];
-    float release_factor = std::max(*_controls[SUSTAIN] / (SAMPLERATE * *_controls[RELEASE]), SHORTEST_ENVELOPE_TIME);
+    float release_factor = std::max(*_controls[SUSTAIN] / (_samplerate * *_controls[RELEASE]), SHORTEST_ENVELOPE_TIME);
     // TODO - Perhaps the release factor needs scaling if the envelope goes direcly to release from attack or decay, see Apollo code
 
     for (auto& sample : _envelope)
@@ -90,7 +90,7 @@ void ADSREnvelopeBrick::render()
         case EnvelopeState::ATTACK:
         {
             float attack_time = *_controls[ATTACK];
-            level += attack_time > 0 ? PROC_BLOCK_SIZE / (SAMPLERATE * attack_time) : 1.0f;
+            level += attack_time > 0 ? PROC_BLOCK_SIZE / (_samplerate * attack_time) : 1.0f;
             if (level >= 1)
             {
                 _state = EnvelopeState::DECAY;
@@ -103,7 +103,7 @@ void ADSREnvelopeBrick::render()
         {
             float decay_time = *_controls[DECAY];
             float sustain_level = *_controls[SUSTAIN];
-            level -= decay_time > 0 ? sustain_level * PROC_BLOCK_SIZE / (SAMPLERATE * decay_time) : 0;
+            level -= decay_time > 0 ? sustain_level * PROC_BLOCK_SIZE / (_samplerate * decay_time) : 0;
             if (level <= sustain_level)
             {
                 _state = EnvelopeState::SUSTAIN;
@@ -122,7 +122,7 @@ void ADSREnvelopeBrick::render()
         {
             float release_time = *_controls[RELEASE];
             float sustain_level = *_controls[SUSTAIN];
-            level -= release_time > 0 ? sustain_level * PROC_BLOCK_SIZE / (SAMPLERATE * release_time) : 0;
+            level -= release_time > 0 ? sustain_level * PROC_BLOCK_SIZE / (_samplerate * release_time) : 0;
             if (level <= 0.0f)
             {
                 _state = EnvelopeState::OFF;
