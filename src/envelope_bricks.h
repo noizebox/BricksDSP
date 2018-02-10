@@ -37,6 +37,8 @@ public:
      * and setting it to false will start the release phase. */
     void gate(bool gate);
 
+    bool finished() {return _state == EnvelopeState::OFF;}
+
     void render() override;
 
 private:
@@ -51,8 +53,8 @@ private:
 
     std::array<ControlPort, MAX_CONTROL_INPUTS> _controls;
     AudioBuffer _envelope;
-    EnvelopeState _state;
-    float _level;
+    EnvelopeState _state{EnvelopeState::OFF};
+    float _level{0};
 };
 
 /* Control rate linear ADSR envelope */
@@ -87,6 +89,8 @@ public:
      * envelope. Setting gate to true will start the envelope in the attack phase
      * and setting it to false will start the release phase. */
     void gate(bool gate);
+
+    bool finished() {return _state == EnvelopeState::OFF;}
 
     void render() override;
 

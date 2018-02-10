@@ -15,7 +15,6 @@ inline int control_to_range(float v, int min_range, int max_range)
     return std::round(v * (max_range - min_range) - min_range);
 }
 
-
 /* Linear interpolations over N samples */
 template <size_t length>
 class LinearInterpolator

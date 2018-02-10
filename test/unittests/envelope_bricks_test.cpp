@@ -23,9 +23,12 @@ TEST_F(AudioRateAdsrEnvelopeTest, OperationalTest)
     _decay = 0.1f;
     _sustain = 1.0f;
     _release = 0.2f;
+    ASSERT_TRUE(_test_module.finished());
+
     _test_module.gate(true);
     _test_module.render();
     auto& out_buffer = _test_module.audio_output(AudioRateADSRBrick::ENV_OUT);
+    ASSERT_FALSE(_test_module.finished());
 
     /* Test that it is rising */
     float prev = 0.0f;
@@ -65,6 +68,7 @@ TEST_F(AdsrEnvelopeTest, OperationalTest)
     _decay = 0.1f;
     _sustain = 1.0f;
     _release = 0.2f;
+    ASSERT_TRUE(_test_module.finished());
     _test_module.gate(true);
 
     ControlPort out(_test_module.control_output(ADSREnvelopeBrick::ENV_OUT));
@@ -72,12 +76,14 @@ TEST_F(AdsrEnvelopeTest, OperationalTest)
 
     /* Test that it is rising */
     ASSERT_GT(out.value(), 0.0f);
+    ASSERT_FALSE(_test_module.finished());
 
     _attack = 0.0f;
     _test_module.render();
     float sustain_level = out.value();
     _test_module.gate(false);
     _test_module.render();
+    ASSERT_FALSE(_test_module.finished());
 
     ASSERT_EQ(1.0f, sustain_level);
     ASSERT_LT(out.value(), 1.0f);
