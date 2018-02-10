@@ -25,8 +25,7 @@ set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${PROJECT_LINK_FLAGS}")
 #  Source Files  #
 ##################
 
-set(COMPILATION_UNITS src/main.cpp
-                      src/envelope_bricks.cpp
+set(COMPILATION_UNITS src/envelope_bricks.cpp
                       src/oscillator_bricks.cpp)
 
 # Enumerate all the headers separately so that CLion can index them
@@ -73,12 +72,13 @@ endif()
 #############################################
 
 add_subdirectory(test)
+add_subdirectory(examples EXCLUDE_FROM_ALL)
 
 ####################
 #  Target Objects  #
 ####################
 
-add_executable(bricks_dsp ${SOURCE_FILES})
+add_library(bricks_dsp ${SOURCE_FILES})
 
 # Explicitly add external statically linked dependencies here,
 # example:
