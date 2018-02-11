@@ -5,14 +5,25 @@
 
 namespace bricks {
 
+/* Map a float i range [0, 1] to true or false */
 inline bool control_to_bool(float v)
 {
     return v > 0.5f;
 }
 
+/* Map a float in range [0, 1] to a given, linear, integer range */
 inline int control_to_range(float v, int min_range, int max_range)
 {
     return std::round(v * (max_range - min_range) - min_range);
+}
+
+/* Map a midi note number to a float in the range [0, 1] where 0.0 is
+ * 20 hz and scales with 0.1 / octave */
+inline float note_to_control(int midi_note)
+{
+    constexpr float SEMITONES_IN_RANGE = 120.0f;
+    constexpr float SHIFT_FACTOR = 15.486822;
+    return (midi_note - SHIFT_FACTOR) / SEMITONES_IN_RANGE;
 }
 
 /* Linear interpolations over N samples */

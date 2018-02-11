@@ -6,6 +6,22 @@
 
 using namespace bricks;
 
+TEST(NoteToControl, TestOperation)
+{
+    /* 69 = A4 = 440 Hz */
+    float control = note_to_control(69);
+    float freq = 20 * powf(2, control * 10);
+    EXPECT_NEAR(440.0f, freq, 0.0005f);
+
+    /* 36 = C2 = 65.406 Hz */
+    float control2 = note_to_control(36);
+    freq = 20 * powf(2, control2 * 10);
+    EXPECT_NEAR(65.406, freq, 0.0005f);
+
+    /* Test 0.1 / octave */
+    EXPECT_FLOAT_EQ((69 - 36) / 120.0f, control - control2);
+}
+
 
 TEST(LinearInterpolatorTest, TestOperation)
 {
