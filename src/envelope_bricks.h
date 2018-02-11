@@ -110,6 +110,44 @@ private:
 };
 
 
+/* Control rate LFO  */
+class LfoBrick : public DspBrick
+{
+public:
+    enum class Waveform
+    {
+        SAW,
+        PULSE,
+        TRIANGLE,
+        SINE
+    };
+
+    enum ControlOutputs
+    {
+        LFO_OUT = 0,
+        MAX_CONTROL_OUTS,
+    };
+
+    LfoBrick(ControlPort rate) : _rate_port(rate) {}
+
+    const float& control_output(int n) override
+    {
+        assert(n < MAX_CONTROL_OUTS);
+        return _level;
+    }
+
+    void set_waveform(Waveform waveform) {_waveform = waveform;}
+
+    void render() override;
+
+private:
+    ControlPort    _rate_port;
+    float          _phase{0};
+    float          _level{0};
+    Waveform       _waveform{Waveform::TRIANGLE};
+    int            _tri_dir{1};
+};
+
 }// namespace bricks
 
 #endif //BRICKS_DSP_ENVELOPE_BRICKS_H

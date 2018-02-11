@@ -20,6 +20,10 @@ using namespace bricks;
 class Voice
 {
 public:
+    Voice()
+    {
+        _osc.set_waveform(OscillatorBrick::Waveform::PULSE);
+    }
 
     const AudioBuffer& render()
     {
@@ -28,7 +32,7 @@ public:
             brick->render();
         }
         /* Parameter modulation */
-        _pitch += 0.0001f;
+        _rate += 0.0001f;
         return _amp.audio_output(VcaBrick::VCA_OUT);
     }
 
@@ -40,14 +44,16 @@ private:
     float _decay{0.5f};
     float _sustain{0.3f};
     float _release{1.0f};
+    float _rate{0.1f};
     float _pitch{0.0f}; /* in 0.1 / octave on a range from 20 to 20kHz */
 
+    LfoBrick          _lfo{_rate};
     ADSREnvelopeBrick _env{_attack, _decay, _sustain, _release};
-    OscillatorBrick   _osc{_pitch};
+    OscillatorBrick   _osc{_lfo.control_output(LfoBrick::LFO_OUT)};
     VcaBrick          _amp{_env.control_output(ADSREnvelopeBrick::ENV_OUT), _osc.audio_output(OscillatorBrick::OSC_OUT)};
 
     /* The order of creation automatically becomes a valid process order */
-    std::vector<DspBrick*> _audio_graph{&_env, &_osc, &_amp};
+    std::vector<DspBrick*> _audio_graph{&_lfo, &_env, &_osc, &_amp};
 };
 
 

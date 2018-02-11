@@ -5,10 +5,10 @@
 
 using namespace bricks;
 
-class AudioRateAdsrEnvelopeTest : public ::testing::Test
+class AudioRateAdsrEnvelopeBrickTest : public ::testing::Test
 {
 protected:
-    AudioRateAdsrEnvelopeTest() {}
+    AudioRateAdsrEnvelopeBrickTest() {}
 
     float       _attack;
     float       _decay;
@@ -17,7 +17,7 @@ protected:
     AudioRateADSRBrick    _test_module{_attack, _decay, _sustain, _release};
 };
 
-TEST_F(AudioRateAdsrEnvelopeTest, OperationalTest)
+TEST_F(AudioRateAdsrEnvelopeBrickTest, OperationalTest)
 {
     _attack = 0.1f;
     _decay = 0.1f;
@@ -50,10 +50,10 @@ TEST_F(AudioRateAdsrEnvelopeTest, OperationalTest)
     }
 }
 
-class AdsrEnvelopeTest : public ::testing::Test
+class AdsrEnvelopeBrickTest : public ::testing::Test
 {
 protected:
-    AdsrEnvelopeTest() {}
+    AdsrEnvelopeBrickTest() {}
 
     float       _attack;
     float       _decay;
@@ -62,7 +62,7 @@ protected:
     ADSREnvelopeBrick    _test_module{_attack, _decay, _sustain, _release};
 };
 
-TEST_F(AdsrEnvelopeTest, OperationalTest)
+TEST_F(AdsrEnvelopeBrickTest, OperationalTest)
 {
     _attack = 0.1f;
     _decay = 0.1f;
@@ -93,3 +93,37 @@ TEST_F(AdsrEnvelopeTest, OperationalTest)
 
 }
 
+class LfoBrickTest : public ::testing::Test
+{
+protected:
+    LfoBrickTest() {}
+
+    float       _rate;
+    LfoBrick    _test_module{_rate};
+};
+
+TEST_F(LfoBrickTest, OperationalTest)
+{
+    _rate = 0.1;
+    _test_module.set_waveform(LfoBrick::Waveform::PULSE);
+
+    ControlPort out(_test_module.control_output(LfoBrick::LFO_OUT));
+    _test_module.render();
+
+    /* Test that it is high */
+    ASSERT_FLOAT_EQ(std::abs(out.value()), 0.5f);
+
+    /* Test that it is within the required range */
+    _test_module.set_waveform(LfoBrick::Waveform::SAW);
+    _test_module.render();
+    ASSERT_LT(out.value(), 0.5f);
+    ASSERT_GT(out.value(), -0.5f);
+
+    _test_module.set_waveform(LfoBrick::Waveform::TRIANGLE);
+    _test_module.render();
+    _test_module.render();
+    _test_module.render();
+
+    ASSERT_LT(out.value(), 0.5f);
+    ASSERT_GT(out.value(), -0.5f);
+}

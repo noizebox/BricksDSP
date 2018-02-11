@@ -5,6 +5,8 @@ namespace bricks {
 
 constexpr float SHORTEST_ENVELOPE_TIME = 1.0e-5f;
 
+constexpr float LOWEST_LFO_SPEED = 0.05f;
+
 void AudioRateADSRBrick::gate(bool gate)
 {
     if (gate) /* If the envelope is running, it's simply restarted here */
@@ -133,4 +135,38 @@ void ADSREnvelopeBrick::render()
     }
     _level = level;
 }
+
+void LfoBrick::render()
+{
+    float base_freq = LOWEST_LFO_SPEED * powf(2.0f, _rate_port.value() * 10.0f);
+    float phase_inc = base_freq * PROC_BLOCK_SIZE / _samplerate;
+    float phase = _phase;
+    switch (_waveform)
+    {
+        case Waveform::SAW:
+            phase += phase_inc;
+            if (phase > 0.5)
+                phase -= 1;
+            _level = phase;
+            break;
+
+        case Waveform::PULSE:
+            phase += phase_inc;
+            if (phase > 0.5)
+                phase -= 1;
+            _level = std::signbit(phase) ? 0.5f : -0.5f;
+            break;
+
+        case Waveform::SINE:
+        case Waveform::TRIANGLE:
+            phase += phase_inc * _tri_dir * 2.0f;
+            if (std::abs(phase) > 0.5)
+            {
+                _tri_dir = _tri_dir * -1;
+            }
+            _level = phase;
+    }
+    _phase = phase;
+}
+
 } // namespace bricks

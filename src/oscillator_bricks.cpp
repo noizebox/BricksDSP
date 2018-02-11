@@ -8,7 +8,7 @@ constexpr float OSC_BASE_FREQ = 20.0f;
 
 void OscillatorBrick::render()
 {
-    float base_freq = OSC_BASE_FREQ * powf(2, _pitch_port.value() * 10);
+    float base_freq = OSC_BASE_FREQ * powf(2.0f, _pitch_port.value() * 10.0f);
     float phase_inc = base_freq / _samplerate;
     float phase = _phase;
     switch (_waveform)
