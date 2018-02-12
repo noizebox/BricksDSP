@@ -63,12 +63,12 @@ public:
     const AudioBuffer& audio_output(int n) override
     {
         assert(n < MAX_AUDIO_OUTS);
-        return _audio_buffer;
+        return _output_buffer;
     }
 
     void render() override
     {
-        for (auto& s : _audio_buffer)
+        for (auto& s : _output_buffer)
         {
             s = 0.0f;
         }
@@ -76,9 +76,9 @@ public:
         {
             float gain = _gains[i].value();
             auto& audio_in = _audio_ins[i].buffer();
-            for (unsigned s = 0; s < _audio_buffer.size(); ++s)
+            for (unsigned s = 0; s < _output_buffer.size(); ++s)
             {
-                _audio_buffer[s] += audio_in[s] * gain;
+                _output_buffer[s] += audio_in[s] * gain;
             }
         }
     }
@@ -86,7 +86,87 @@ public:
 private:
     std::array<ControlPort, channel_count> _gains;
     std::array<AudioPort, channel_count> _audio_ins;
-    AudioBuffer _audio_buffer;
+    AudioBuffer _output_buffer;
+};
+
+/* General n to 1 audio mixer without gain controls */
+template <size_t channel_count>
+class AudioSummerBrick : public DspBrick
+{
+public:
+    enum AudioOutputs
+    {
+        SUM_OUT = 0,
+        MAX_CONTROL_OUTS,
+    };
+    template <class ...T>
+    explicit AudioSummerBrick(T&... inputs) : _inputs{AudioPort(inputs)...}
+    {
+        static_assert(sizeof...(inputs) == channel_count);
+    }
+
+    const AudioBuffer& audio_output(int n) override
+    {
+        assert(n < MAX_CONTROL_OUTS);
+        return _output_buffer;
+    }
+
+    void render() override
+    {
+        for (auto& s : _output_buffer)
+        {
+            s = 0.0f;
+        }
+        for (auto& input : _inputs)
+        {
+            auto& in_buffer = input.buffer();
+            for (unsigned s = 0; s < _output_buffer.size(); ++s)
+            {
+                _output_buffer[s] += in_buffer[s];
+            }
+        }
+    }
+
+private:
+    std::array<AudioPort, channel_count> _inputs;
+    AudioBuffer _output_buffer;
+};
+
+
+/* General n to 1 control signal mixer without gain controls */
+template <size_t channel_count>
+class ControlSummerBrick : public DspBrick
+{
+public:
+    enum ControlOutputs
+    {
+        SUM_OUT = 0,
+        MAX_CONTROL_OUTS,
+    };
+    template <class ...T>
+    explicit ControlSummerBrick(T&... inputs) : _inputs{ControlPort(inputs)...}
+    {
+        static_assert(sizeof...(inputs) == channel_count);
+    }
+
+    const float& control_output(int n) override
+    {
+        assert(n < MAX_CONTROL_OUTS);
+        return _output;
+    }
+
+    void render() override
+    {
+        _output = 0.0f;
+        for (auto& input : _inputs)
+        {
+            _output += input.value();
+        }
+    }
+
+private:
+    std::array<ControlPort, channel_count> _inputs;
+    float _output{0};
 };
 
 }// namespace bricks

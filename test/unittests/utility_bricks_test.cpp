@@ -52,3 +52,46 @@ TEST_F(AudioMixerBrickTest, OperationalTest)
     _test_module.render();
     assert_buffer(_test_module.audio_output(AudioMixerBrick<2>::MIX_OUT), 1.0f);
 }
+
+class AudioSummerBrickTest : public ::testing::Test
+{
+protected:
+    AudioSummerBrickTest() {}
+
+    AudioBuffer _in_1;
+    AudioBuffer _in_2;
+
+    AudioSummerBrick<2> _test_module{_in_1, _in_2};
+};
+
+TEST_F(AudioSummerBrickTest, OperationalTest)
+{
+    fill_buffer(_in_1,  0.2f);
+    fill_buffer(_in_2,  0.3f);
+    _test_module.render();
+
+    auto& out = _test_module.audio_output(ControlSummerBrick<2>::SUM_OUT);
+    assert_buffer(out, 0.5f);
+}
+
+class ControlSummerBrickTest : public ::testing::Test
+{
+protected:
+    ControlSummerBrickTest() {}
+
+    float       _in_1;
+    float       _in_2;
+
+    ControlSummerBrick<2>  _test_module{_in_1, _in_2};
+};
+
+TEST_F(ControlSummerBrickTest, OperationalTest)
+{
+    _in_1 = 0.2f;
+    _in_2 = 0.3f;
+    _test_module.render();
+
+    ASSERT_FLOAT_EQ(0.2f, _test_module._inputs[0].value());
+    auto& out = _test_module.control_output(ControlSummerBrick<2>::SUM_OUT);
+    ASSERT_EQ(0.5f, out);
+}
