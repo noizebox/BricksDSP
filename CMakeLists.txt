@@ -9,10 +9,6 @@ project(bricks_dsp)
 set(PROJECT_CXX_FLAGS "-Wall -Wextra -std=c++17 -fno-rtti")
 set(PROJECT_LINK_FLAGS "")
 
-# Platform specific stuff
-if (APPLE)
-    set(PROJECT_LINK_FLAGS "${PROJECT_LINK_FLAGS} -framework IOKit -framework CoreFoundation")
-endif()
 
 # Build optimization flags
 set(CMAKE_CXX_FLAGS_RELEASE "-DNDEBUG -O3")
@@ -26,13 +22,15 @@ set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${PROJECT_LINK_FLAGS}")
 ##################
 
 set(COMPILATION_UNITS src/envelope_bricks.cpp
+                      src/filter_bricks.cpp
                       src/oscillator_bricks.cpp)
 
-# Enumerate all the headers separately so that CLion can index them
+# Include heades separately, mostly for CLion convenience
 
 set(EXTRA_CLION_SOURCES src/dsp_brick.h
                         src/utility_bricks.h
                         src/envelope_bricks.h
+                        src/filter_bricks.h
                         src/oscillator_bricks.h)
 
 set(SOURCE_FILES "${COMPILATION_UNITS}" "${EXTRA_CLION_SOURCES}")
@@ -44,28 +42,9 @@ set(SOURCE_FILES "${COMPILATION_UNITS}" "${EXTRA_CLION_SOURCES}")
 set(INCLUDE_DIRS "${PROJECT_SOURCE_DIR}/src"
                  "${PROJECT_SOURCE_DIR}/include")
 
-# /usr/local doesn't get added by default in Mac OS X
-if (APPLE)
-    set(INCLUDE_DIRS "${INCLUDE_DIRS}" /usr/local/include)
-endif()
 
 include_directories(${INCLUDE_DIRS})
 
-#################################
-#  Statically linked libraries  #
-#################################
-
-# Eventually define here the CMake var
-# LINK_LIBRARIES
-# to point to statically linked libraries,
-# example:
-
-# set(LINK_LIBRARIES "${PROJECT_SOURCE_DIR}/third-party/install/static_library/lib/libstaticlibrary.a"
-#                    pthread)
- 
-if (APPLE)
-    link_directories(/usr/local/lib)
-endif()
 
 #############################################
 #  Subdirectory projects                    #
@@ -80,7 +59,3 @@ add_subdirectory(examples EXCLUDE_FROM_ALL)
 
 add_library(bricks_dsp ${SOURCE_FILES})
 
-# Explicitly add external statically linked dependencies here,
-# example:
-# add_dependencies(bricks_dsp static_library)
-# target_link_libraries(bricks_dsp "${LINK_LIBRARIES}")

@@ -16,6 +16,7 @@ SET(TEST_FILES  unittests/test_utils.cpp
                 unittests/utility_bricks_test.cpp
                 unittests/utilities_test.cpp
                 unittests/envelope_bricks_test.cpp
+                unittests/filter_brick_test.cpp
                 unittests/oscillator_bricks_test.cpp)
 
 

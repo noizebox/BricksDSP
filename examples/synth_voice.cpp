@@ -7,6 +7,7 @@
 #include "envelope_bricks.h"
 #include "oscillator_bricks.h"
 #include "utility_bricks.h"
+#include "filter_bricks.h"
 
 constexpr float EXAMPLE_SAMPLERATE = 44100;
 constexpr char EXAMPLE_FILE_NAME[] = "./example.wav";
@@ -22,7 +23,7 @@ class Voice
 public:
     Voice()
     {
-        _osc.set_waveform(OscillatorBrick::Waveform::PULSE);
+        _osc.set_waveform(OscillatorBrick::Waveform::SAW);
     }
 
     const AudioBuffer& render()
@@ -32,7 +33,7 @@ public:
             brick->render();
         }
         /* Parameter modulation */
-        _rate += 0.0001f;
+        _cutoff -= 0.00015;
         return _amp.audio_output(VcaBrick::VCA_OUT);
     }
 
@@ -40,20 +41,23 @@ public:
     void note_off() {_env.gate(false);}
 
 private:
-    float _attack{0.1f};
+    float _attack{.5f};
     float _decay{0.5f};
-    float _sustain{0.3f};
+    float _sustain{0.8f};
     float _release{1.0f};
-    float _rate{0.1f};
-    float _pitch{0.0f}; /* in 0.1 / octave on a range from 20 to 20kHz */
+    float _rate{0.3f};
+    float _pitch{0.15f}; /* in 0.1 / octave on a range from 20 to 20kHz */
+    float _cutoff{0.98};
+    float _res{0.0f};
 
-    LfoBrick          _lfo{_rate};
-    ADSREnvelopeBrick _env{_attack, _decay, _sustain, _release};
-    OscillatorBrick   _osc{_lfo.control_output(LfoBrick::LFO_OUT)};
-    VcaBrick          _amp{_env.control_output(ADSREnvelopeBrick::ENV_OUT), _osc.audio_output(OscillatorBrick::OSC_OUT)};
+    LfoBrick                _lfo{_rate};
+    ADSREnvelopeBrick       _env{_attack, _decay, _sustain, _release};
+    OscillatorBrick         _osc{_pitch};
+    BiquadFilterBrick       _filt{_cutoff, _res, _osc.audio_output(OscillatorBrick::OSC_OUT)};
+    VcaBrick                _amp{_env.control_output(ADSREnvelopeBrick::ENV_OUT), _filt.audio_output(BiquadFilterBrick::FILTER_OUT)};
 
     /* The order of creation automatically becomes a valid process order */
-    std::vector<DspBrick*> _audio_graph{&_lfo, &_env, &_osc, &_amp};
+    std::vector<DspBrick*> _audio_graph{&_lfo, &_env, &_osc, &_filt, &_amp};
 };
 
 

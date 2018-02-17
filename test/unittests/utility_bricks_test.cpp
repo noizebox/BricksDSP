@@ -47,10 +47,10 @@ TEST_F(AudioMixerBrickTest, OperationalTest)
 {
     fill_buffer(_buffer_1, 0.5f);
     fill_buffer(_buffer_2, 0.25f);
-    _gain_1 = 0.5f;
-    _gain_2 = 3.0f;
+    _gain_1 = 1.0f;
+    _gain_2 = 1.0f;
     _test_module.render();
-    assert_buffer(_test_module.audio_output(AudioMixerBrick<2>::MIX_OUT), 1.0f);
+    assert_buffer(_test_module.audio_output(AudioMixerBrick<2>::MIX_OUT), 0.75f);
 }
 
 class AudioSummerBrickTest : public ::testing::Test

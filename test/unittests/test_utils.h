@@ -5,7 +5,11 @@
 #ifndef BRICKS_DSP_TEST_UTILS_H
 #define BRICKS_DSP_TEST_UTILS_H
 
+
+
 void fill_buffer(bricks::AudioBuffer& buffer, float value);
+
+void make_test_sq_wave(bricks::AudioBuffer& buffer);
 
 void assert_buffer(const bricks::AudioBuffer& buffer, float value);
 
