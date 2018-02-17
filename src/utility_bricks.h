@@ -27,7 +27,7 @@ public:
 
     void render() override
     {
-        _gain_lag.set(_gain_port);
+        _gain_lag.set(to_db_aprox(_gain_port));
         for (unsigned s = 0; s < _audio_buffer.size(); ++s)
         {
             _audio_buffer[s] = _audio_in[s] * _gain_lag.get();
@@ -74,7 +74,7 @@ public:
         }
         for (unsigned i = 0; i < channel_count; ++i)
         {
-            float gain = _gains[i].value();
+            float gain = to_db_aprox(_gains[i].value());
             auto& audio_in = _audio_ins[i].buffer();
             for (unsigned s = 0; s < _output_buffer.size(); ++s)
             {

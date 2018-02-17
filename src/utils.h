@@ -26,6 +26,21 @@ inline float note_to_control(int midi_note)
     return (midi_note - SHIFT_FACTOR) / SEMITONES_IN_RANGE;
 }
 
+/* Proper mapping from a linear range to a 60 dB exponential response */
+inline float to_db(float lin)
+{
+    constexpr float DB_RANGE = -60.0f;
+    return powf(10, (1.0f - lin) * DB_RANGE / 20.0f);
+}
+
+/* For vcas and audio controls, x³ is a pretty good approximation of a
+ * 30 dB exponential response */
+inline float to_db_aprox(float lin)
+{
+    return lin * lin * lin;
+}
+
+
 /* Linear interpolations over N samples */
 template <size_t length>
 class LinearInterpolator

@@ -28,7 +28,7 @@ TEST_F(VcaBrickTest, OperationalTest)
         ASSERT_LT(last, sample);
         last = sample;
     }
-    ASSERT_EQ(1.0f, last);
+    ASSERT_EQ(4.0f, last);
 }
 
 class AudioMixerBrickTest : public ::testing::Test
