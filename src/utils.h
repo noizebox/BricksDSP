@@ -46,7 +46,7 @@ template <size_t length>
 class LinearInterpolator
 {
 public:
-    void set(float target) {_step = (target - _lag) / length;}
+    void set(float target) {_step = (target - _lag) / static_cast<float>(length);}
 
     float get() {return _lag += _step;};
 

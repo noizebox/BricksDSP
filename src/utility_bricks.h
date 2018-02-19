@@ -169,6 +169,43 @@ private:
     float _output{0};
 };
 
+
+/* General n to 1 control signal multiplier */
+template <size_t channel_count>
+class ControlMultiplierBrick : public DspBrick
+{
+public:
+    enum ControlOutputs
+    {
+        MULT_OUT = 0,
+        MAX_CONTROL_OUTS,
+    };
+    template <class ...T>
+    explicit ControlMultiplierBrick(T&... inputs) : _inputs{ControlPort(inputs)...}
+    {
+        static_assert(sizeof...(inputs) == channel_count);
+    }
+
+    const float& control_output(int n) override
+    {
+        assert(n < MAX_CONTROL_OUTS);
+        return _output;
+    }
+
+    void render() override
+    {
+        _output = 1.0f;
+        for (auto& input : _inputs)
+        {
+            _output *= input.value();
+        }
+    }
+
+private:
+    std::array<ControlPort, channel_count> _inputs;
+    float _output{0};
+};
+
 }// namespace bricks
 
 #endif //BRICKS_DSP_UTILITY_BRICKS_H

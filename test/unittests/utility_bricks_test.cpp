@@ -93,5 +93,28 @@ TEST_F(ControlSummerBrickTest, OperationalTest)
 
     ASSERT_FLOAT_EQ(0.2f, _test_module._inputs[0].value());
     auto& out = _test_module.control_output(ControlSummerBrick<2>::SUM_OUT);
-    ASSERT_EQ(0.5f, out);
+    ASSERT_FLOAT_EQ(0.5f, out);
+}
+
+class ControlMultiplierBrickTest : public ::testing::Test
+{
+protected:
+    ControlMultiplierBrickTest() {}
+
+    float       _in_1;
+    float       _in_2;
+    float       _in_3;
+
+    ControlMultiplierBrick<3>  _test_module{_in_1, _in_2, _in_3};
+};
+
+TEST_F(ControlMultiplierBrickTest, OperationalTest)
+{
+    _in_1 = 0.5f;
+    _in_2 = 0.5f;
+    _in_3 = 1.0f;
+    _test_module.render();
+
+    auto& out = _test_module.control_output(ControlMultiplierBrick<3>::MULT_OUT);
+    ASSERT_FLOAT_EQ(0.25f, out);
 }
