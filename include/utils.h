@@ -5,7 +5,7 @@
 
 namespace bricks {
 
-/* Map a float i range [0, 1] to true or false */
+/* Map a float in range [0, 1] to true or false */
 inline bool control_to_bool(float v)
 {
     return v > 0.5f;

@@ -27,11 +27,11 @@ set(COMPILATION_UNITS src/envelope_bricks.cpp
 
 # Include heades separately, mostly for CLion convenience
 
-set(EXTRA_CLION_SOURCES src/dsp_brick.h
-                        src/utility_bricks.h
-                        src/envelope_bricks.h
-                        src/filter_bricks.h
-                        src/oscillator_bricks.h)
+set(EXTRA_CLION_SOURCES include/dsp_brick.h
+        include/utility_bricks.h
+        include/envelope_bricks.h
+        include/filter_bricks.h
+        include/oscillator_bricks.h)
 
 set(SOURCE_FILES "${COMPILATION_UNITS}" "${EXTRA_CLION_SOURCES}")
 
