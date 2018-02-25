@@ -50,12 +50,16 @@ include_directories(${INCLUDE_DIRS})
 #  Subdirectory projects                    #
 #############################################
 
-add_subdirectory(test)
+if(${BRICKS_DSP_BUILD_WITHOUT_TESTS})
+else()
+    add_subdirectory(test)
+endif()
+
 add_subdirectory(examples EXCLUDE_FROM_ALL)
 
 ####################
 #  Target Objects  #
 ####################
 
-add_library(bricks_dsp ${SOURCE_FILES})
+add_library(bricks_dsp STATIC ${SOURCE_FILES})
 
