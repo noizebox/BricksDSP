@@ -23,6 +23,7 @@ set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${PROJECT_LINK_FLAGS}")
 
 set(COMPILATION_UNITS src/envelope_bricks.cpp
                       src/filter_bricks.cpp
+                      src/modulator_bricks.cpp
                       src/oscillator_bricks.cpp)
 
 # Include heades separately, mostly for CLion convenience
@@ -31,6 +32,7 @@ set(EXTRA_CLION_SOURCES include/dsp_brick.h
         include/utility_bricks.h
         include/envelope_bricks.h
         include/filter_bricks.h
+        include/modulator_bricks.h
         include/oscillator_bricks.h)
 
 set(SOURCE_FILES "${COMPILATION_UNITS}" "${EXTRA_CLION_SOURCES}")
