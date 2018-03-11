@@ -13,7 +13,7 @@ For efficiency and simplicity BricksDsp uses a fixed block size that is set at c
 Signals
 -------------------
 To stay with common modular concepts and for compatibility with common plugin formats control inputs are assumed to be normalised to a [0, 1] range and [-1, 1] for bipolar inputs. No clipping is done internally however. Nominal audio levels should also be within [1, -1]
-Logarithmic pitch inputs for oscillators, filters, etc, should adhere to 0.1 per octave, essentially the 10 modular standard in 1:10 scale. 
+Logarithmic pitch inputs for oscillators, filters, etc, should adhere to 0.1 per octave, essentially the 1v/oct modular standard in 1:10 scale. 
 
 Build instructions
 -------------------

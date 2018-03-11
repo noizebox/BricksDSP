@@ -24,29 +24,25 @@ class ControlPort
 public:
     ControlPort() = delete;
 
-    explicit ControlPort(const float*data) : _data(data) {}
+    ControlPort(const float& data) : _data(data) {}
 
-    ControlPort(const float& data) : _data(&data) {}
-
-    float value() const {return *_data;}
+    float value() const {return _data;}
 
 private:
-    const float*_data;
+    const float& _data;
 };
 
 class AudioPort
 {
 public:
     AudioPort() = delete;
+    
+    AudioPort(const AudioBuffer& data) : _data(data) {}
 
-    explicit AudioPort(const AudioBuffer* data) : _data(data) {}
-
-    AudioPort(const AudioBuffer& data) : _data(&data) {}
-
-    const AudioBuffer& buffer() const {return *_data;}
+    const AudioBuffer& buffer() const {return _data;}
 
 private:
-    const AudioBuffer* _data;
+    const AudioBuffer& _data;
 };
 
 /*
