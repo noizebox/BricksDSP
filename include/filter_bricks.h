@@ -45,6 +45,43 @@ protected:
     AudioBuffer     _audio_out;
 };
 
+/* Standard Biquad with non-modulated filter parameters */
+class FixedFilterBrick : public DspBrick
+{
+public:
+    enum ControlInputs
+    {
+        MAX_CONTROL_INPUTS = 0,
+    };
+
+    enum AudioOutputs
+    {
+        FILTER_OUT = 0,
+        MAX_AUDIO_OUTS,
+    };
+
+    FixedFilterBrick(AudioPort audio_in) : _audio_in(audio_in) {}
+
+    const AudioBuffer& audio_output(int n) override
+    {
+        assert(n < MAX_AUDIO_OUTS);
+        return _audio_out;
+    }
+
+    void render() override;
+
+    void set_lowpass(float cutoff, float q);
+
+
+protected:
+
+    AudioPort            _audio_in;
+    std::array<float, 5> _coeff{0,0,0,0,0};
+    std::array<float, 2> _reg{0,0};
+    AudioBuffer          _audio_out;
+};
+
+
 }// namespace bricks
 
 #endif //BRICKS_DSP_FILTER_BRICKS_H

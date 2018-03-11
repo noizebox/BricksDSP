@@ -15,7 +15,7 @@ void make_test_sq_wave(bricks::AudioBuffer& buffer)
     int i = 0;
     for (auto& sample : buffer)
     {
-        sample = (++i > 2) - 0.5f;
+        sample = (++i > 3) - 0.5f;
         i = i % 6;
     }
 }

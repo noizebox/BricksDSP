@@ -36,7 +36,7 @@ class AudioPort
 {
 public:
     AudioPort() = delete;
-    
+
     AudioPort(const AudioBuffer& data) : _data(data) {}
 
     const AudioBuffer& buffer() const {return _data;}
