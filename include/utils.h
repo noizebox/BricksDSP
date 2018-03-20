@@ -40,6 +40,20 @@ inline float to_db_aprox(float lin)
     return lin * lin * lin;
 }
 
+/* clamp/clip a value between min and max. With -ffast-math this seems to
+ * compile to branchless and very efficent code for use on an audio buffer */
+inline float clamp(float x, float min, float max)
+{
+    if (x > max)
+    {
+        x = max;
+    }
+    if (x < min)
+    {
+        x = min;
+    }
+    return x;
+}
 
 /* Linear interpolations over N samples */
 template <size_t length>

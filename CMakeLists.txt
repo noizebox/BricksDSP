@@ -6,7 +6,7 @@ project(bricks_dsp)
 ####################
 
 # Global flags
-set(PROJECT_CXX_FLAGS "-Wall -Wextra -std=c++17 -fno-rtti")
+set(PROJECT_CXX_FLAGS "-Wall -Wextra -std=c++17 -fno-rtti -ffast-math")
 set(PROJECT_LINK_FLAGS "")
 
 
