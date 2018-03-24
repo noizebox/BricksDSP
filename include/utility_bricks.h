@@ -28,6 +28,11 @@ public:
     void render() override
     {
         _gain_lag.set(to_db_aprox(_gain_port));
+        AudioBuffer gain;
+        for (auto& sample : gain)
+        {
+            sample = _gain_lag.get();
+        }
         for (unsigned s = 0; s < _audio_buffer.size(); ++s)
         {
             _audio_buffer[s] = _audio_in[s] * _gain_lag.get();
