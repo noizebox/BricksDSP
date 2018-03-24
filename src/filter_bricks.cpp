@@ -72,10 +72,11 @@ void SVFFilterBrick::render()
     const AudioBuffer& in = _audio_in.buffer();
     float freq = 20 * powf(2.0f, _cutoff_ctrl.value() * 10.0f);
     float k = 2 - 2 * _res_ctrl.value();
-    _g_slew.set(std::tan(static_cast<float>(M_PI) * freq / _samplerate));
+    _g_lag.set(std::tan(static_cast<float>(M_PI) * freq / _samplerate));
+    AudioBuffer g_lag = _g_lag.get_all();
     for (unsigned int i = 0; i < PROC_BLOCK_SIZE; ++i)
     {
-        float g = _g_slew.get();
+        float g = g_lag[i];
         float a1 = 1 / (1 + g * (g + k));
         float a2 = g * a1;
         float a3 = g * a2;

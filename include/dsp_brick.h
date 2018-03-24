@@ -24,12 +24,12 @@ class ControlPort
 public:
     ControlPort() = delete;
 
-    ControlPort(const float& data) : _data(data) {}
+    ControlPort(const float& data) : _data(&data) {}
 
-    float value() const {return _data;}
+    float value() const {return *_data;}
 
 private:
-    const float& _data;
+    const float* _data;
 };
 
 class AudioPort

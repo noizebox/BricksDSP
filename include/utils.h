@@ -64,6 +64,16 @@ public:
 
     float get() {return _lag += _step;};
 
+    std::array<float, length> get_all()
+    {
+        std::array<float, length> values;
+        for (auto& v : values)
+        {
+            v = this->get();
+        }
+        return values;
+    };
+
 private:
     float _lag{0};
     float _step{0};
@@ -77,6 +87,16 @@ public:
     void set(float target) {_target = target;}
 
     float get() {return _lag = COEFF_B0 * _target + COEFF_A0 * _lag;}
+
+    std::array<float, length> get_all()
+    {
+        std::array<float, length> values;
+        for (auto& v : values)
+        {
+            v = this->get();
+        }
+        return values;
+    };
 
 private:
 // TODO - Room for tweaking.

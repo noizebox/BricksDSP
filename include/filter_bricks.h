@@ -80,7 +80,7 @@ protected:
     AudioPort       _audio_in;
     AudioBuffer     _audio_out;
     std::array<float ,2> _reg{0,0};
-    ControlSmootherLinear _g_slew;
+    ControlSmootherLinear _g_lag;
 };
 
 /* Standard Biquad with non-modulated filter parameters */

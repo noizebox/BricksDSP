@@ -17,7 +17,7 @@ public:
     };
 
     VcaBrick(const float& gain, const AudioBuffer& audio_in) : _gain_port(gain),
-                                                              _audio_in(audio_in) {}
+                                                               _audio_in(audio_in) {}
 
     const AudioBuffer& audio_output(int n) override
     {
@@ -27,20 +27,16 @@ public:
 
     void render() override
     {
-        _gain_lag.set(to_db_aprox(_gain_port));
-        AudioBuffer gain;
-        for (auto& sample : gain)
-        {
-            sample = _gain_lag.get();
-        }
+        _gain_lag.set(to_db_aprox(_gain_port.value()));
+        AudioBuffer gain = _gain_lag.get_all();
         for (unsigned s = 0; s < _audio_buffer.size(); ++s)
         {
-            _audio_buffer[s] = _audio_in[s] * _gain_lag.get();
+            _audio_buffer[s] = _audio_in[s] * gain[s];
         }
     }
 
 private:
-    const float&            _gain_port;
+    ControlPort             _gain_port;
     const AudioBuffer&      _audio_in;
     AudioBuffer             _audio_buffer;
     ControlSmootherLinear   _gain_lag;
