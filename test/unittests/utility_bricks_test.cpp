@@ -49,6 +49,8 @@ TEST_F(AudioMixerBrickTest, OperationalTest)
     fill_buffer(_buffer_2, 0.25f);
     _gain_1 = 1.0f;
     _gain_2 = 1.0f;
+    /* Render twice so that levels stabilise */
+    _test_module.render();
     _test_module.render();
     assert_buffer(_test_module.audio_output(AudioMixerBrick<2>::MIX_OUT), 0.75f);
 }
@@ -70,9 +72,56 @@ TEST_F(AudioSummerBrickTest, OperationalTest)
     fill_buffer(_in_2,  0.3f);
     _test_module.render();
 
-    auto& out = _test_module.audio_output(ControlSummerBrick<2>::SUM_OUT);
+    auto& out = _test_module.audio_output(AudioSummerBrick<2>::SUM_OUT);
     assert_buffer(out, 0.5f);
 }
+
+class AudioMultiplierBrickTest : public ::testing::Test
+{
+protected:
+    AudioMultiplierBrickTest() {}
+
+    AudioBuffer _in_1;
+    AudioBuffer _in_2;
+
+    AudioMultiplierBrick<2> _test_module{_in_1, _in_2};
+};
+
+TEST_F(AudioMultiplierBrickTest, OperationalTest)
+{
+    fill_buffer(_in_1,  0.5f);
+    fill_buffer(_in_2,  0.3f);
+    _test_module.render();
+
+    auto& out = _test_module.audio_output(AudioMultiplierBrick<2>::MULT_OUT);
+    assert_buffer(out, 0.15f);
+}
+
+class ControlMixerBrickTest : public ::testing::Test
+{
+protected:
+    ControlMixerBrickTest() {}
+
+    float       _in_1;
+    float       _in_2;
+    float       _gain_1;
+    float       _gain_2;
+
+    ControlMixerBrick<2>  _test_module{_gain_1, _gain_2,_in_1, _in_2};
+};
+
+TEST_F(ControlMixerBrickTest, OperationalTest)
+{
+    _in_1 = 0.2f;
+    _in_2 = 0.3f;
+    _gain_1 = 1.0f;
+    _gain_2 = 2.0f;
+    _test_module.render();
+
+    auto& out = _test_module.control_output(ControlMixerBrick<2>::MIX_OUT);
+    ASSERT_FLOAT_EQ(0.8f, out);
+}
+
 
 class ControlSummerBrickTest : public ::testing::Test
 {

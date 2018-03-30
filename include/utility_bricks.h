@@ -75,17 +75,19 @@ public:
         }
         for (unsigned i = 0; i < channel_count; ++i)
         {
-            float gain = to_db_aprox(_gains[i].value());
+            _gain_lags[i].set(to_db_aprox(_gains[i].value()));
+            AudioBuffer gain = _gain_lags[i].get_all();
             auto& audio_in = _audio_ins[i].buffer();
             for (unsigned s = 0; s < _output_buffer.size(); ++s)
             {
-                _output_buffer[s] += audio_in[s] * gain;
+                _output_buffer[s] += audio_in[s] * gain[i];
             }
         }
     }
 
 private:
     std::array<ControlPort, channel_count> _gains;
+    std::array<ControlSmootherLinear, channel_count> _gain_lags;
     std::array<AudioPort, channel_count> _audio_ins;
     AudioBuffer _output_buffer;
 };
@@ -131,6 +133,85 @@ public:
 private:
     std::array<AudioPort, channel_count> _inputs;
     AudioBuffer _output_buffer;
+};
+
+/* Audio rate multiplier */
+template <size_t channel_count>
+class AudioMultiplierBrick : public DspBrick
+{
+public:
+    enum AudioOutputs
+    {
+        MULT_OUT = 0,
+        MAX_CONTROL_OUTS,
+    };
+    template <class ...T>
+    explicit AudioMultiplierBrick(T&... inputs) : _inputs{AudioPort(inputs)...}
+    {
+        static_assert(sizeof...(inputs) == channel_count);
+    }
+
+    const AudioBuffer& audio_output(int n) override
+    {
+        assert(n < MAX_CONTROL_OUTS);
+        return _output_buffer;
+    }
+
+    void render() override
+    {
+        for (auto& s : _output_buffer)
+        {
+            s = 1.0f;
+        }
+        for (auto& input : _inputs)
+        {
+            auto& in_buffer = input.buffer();
+            for (unsigned s = 0; s < _output_buffer.size(); ++s)
+            {
+                _output_buffer[s] *= in_buffer[s];
+            }
+        }
+    }
+
+private:
+    std::array<AudioPort, channel_count> _inputs;
+    AudioBuffer _output_buffer;
+};
+
+/* General n to 1 control signal mixer, linear gain control */
+template <size_t channel_count>
+class ControlMixerBrick : public DspBrick
+{
+public:
+    enum ControlOutputs
+    {
+        MIX_OUT = 0,
+        MAX_CONTROL_OUTS,
+    };
+    template <class ...T>
+    explicit ControlMixerBrick(T&... inputs) : _inputs{ControlPort(inputs)...}
+    {
+        static_assert(sizeof...(inputs) == channel_count * 2);
+    }
+
+    const float& control_output(int n) override
+    {
+        assert(n < MAX_CONTROL_OUTS);
+        return _output;
+    }
+
+    void render() override
+    {
+        _output = 0.0f;
+        for (unsigned int i = 0; i < channel_count; ++i)
+        {
+            _output += _inputs[i].value() * _inputs[i + channel_count].value();
+        }
+    }
+
+private:
+    std::array<ControlPort, channel_count * 2> _inputs;
+    float _output{0};
 };
 
 
