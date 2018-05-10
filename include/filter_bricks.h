@@ -4,6 +4,8 @@
 #include "dsp_brick.h"
 namespace bricks {
 
+constexpr float DEFAULT_Q = 1 / sqrtf(2.0f);
+
 /* Standard Biquad */
 class BiquadFilterBrick : public DspBrick
 {
@@ -33,15 +35,11 @@ public:
     void render() override;
 
 protected:
-    virtual void _calc_coefficients();
-
     ControlPort     _cutoff_ctrl;
     ControlPort     _res_ctrl;
     AudioPort       _audio_in;
     std::array<ControlSmootherLinear, 5> _coeff;
-    std::array<float, 2> _in{0,0};
-    std::array<float, 2> _out{0,0};
-
+    std::array<float ,2> _reg{0,0};
     AudioBuffer     _audio_out;
 };
 
@@ -108,11 +106,13 @@ public:
 
     void render() override;
 
-    void set_lowpass(float cutoff, float q);
-
+    void set_lowpass(float freq, float q = DEFAULT_Q);
+    void set_highpass(float freq, float q = DEFAULT_Q);
+    void set_bandpass(float freq, float q = DEFAULT_Q);
+    void set_peaking(float freq, float gain, float q = DEFAULT_Q);
+    void set_allpass(float freq, float q = DEFAULT_Q);
 
 protected:
-
     AudioPort            _audio_in;
     std::array<float, 5> _coeff{0,0,0,0,0};
     std::array<float, 2> _reg{0,0};
