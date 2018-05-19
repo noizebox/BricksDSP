@@ -167,3 +167,27 @@ TEST_F(ControlMultiplierBrickTest, OperationalTest)
     auto& out = _test_module.control_output(ControlMultiplierBrick<3>::MULT_OUT);
     ASSERT_FLOAT_EQ(0.25f, out);
 }
+
+TEST(MetaControlBrickTest, OperationalTest)
+{
+    float a = 1;
+    float b = 2;
+    MetaControlBrick<2, 4, true> module_under_test(a, b);
+    module_under_test.set_component(0, {1,1,1,1}, 0.5f);
+    module_under_test.set_component(1, {0,-1,2,0}, 0.25f);
+    module_under_test.set_output_clamp(0, 5);
+    module_under_test.render();
+    EXPECT_FLOAT_EQ(0.5f, module_under_test.control_output(0));
+    EXPECT_FLOAT_EQ(0.0f, module_under_test.control_output(1));
+    EXPECT_FLOAT_EQ(1.5f, module_under_test.control_output(2));
+    EXPECT_FLOAT_EQ(0.5f, module_under_test.control_output(3));
+
+    a = 0;
+    b = 4;
+    module_under_test.set_output_clamp(0, 1);
+    module_under_test.render();
+    EXPECT_FLOAT_EQ(0.0f, module_under_test.control_output(0));
+    EXPECT_FLOAT_EQ(0.0f, module_under_test.control_output(1));
+    EXPECT_FLOAT_EQ(1.0f, module_under_test.control_output(2));
+    EXPECT_FLOAT_EQ(0.0f, module_under_test.control_output(3));
+}

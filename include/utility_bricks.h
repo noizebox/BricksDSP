@@ -288,6 +288,67 @@ private:
     float _output{0};
 };
 
+/* N to M control signal linear combinator. Useful för creating meta controllers/parameters */
+template <size_t input_count, size_t output_count, bool clamp_output>
+class MetaControlBrick : public DspBrick
+{
+    using Matrix = std::array<std::array<float, output_count>, input_count>;
+public:
+    template <class ...T>
+    explicit MetaControlBrick(T&... inputs) : _inputs{ControlPort(inputs)...}
+    {
+        static_assert(sizeof...(inputs) == input_count);
+    }
+
+    const float& control_output(int n) override
+    {
+        assert(n < output_count);
+        return _outputs[n];
+    }
+
+    void set_component(int input, std::array<float, output_count> component, float weight = 1.0f)
+    {
+        assert(input < input_count);
+        for (auto& v : component)
+        {
+            v *= weight;
+        }
+        _components[input] = component;
+    }
+
+    void set_output_clamp(float min, float max)
+    {
+        _clamp_min = min;
+        _clamp_max = max;
+    }
+
+    void render() override
+    {
+        _outputs.fill(0.0f);
+        for (unsigned int i = 0; i < input_count; ++i)
+        {
+            float input = _inputs[i].value();
+            for (unsigned int j = 0; j < output_count; ++j)
+            {
+                _outputs[j] += input * _components[i][j];
+            }
+        }
+        if (clamp_output)
+        {
+            for (auto& v :_outputs)
+            {
+                v = clamp(v, _clamp_min, _clamp_max);
+            }
+        }
+    }
+
+private:
+    std::array<ControlPort, input_count> _inputs;
+    std::array<float, output_count> _outputs;
+    Matrix _components;
+    float _clamp_min{0.0f};
+    float _clamp_max{1.1f};
+};
 }// namespace bricks
 
 #endif //BRICKS_DSP_UTILITY_BRICKS_H
