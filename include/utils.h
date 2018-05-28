@@ -35,12 +35,13 @@ inline float to_db(float lin)
 
 /* For vcas and audio controls, x³ is a pretty good approximation of a
  * 30 dB exponential response */
-inline float to_db_aprox(float lin)
+inline float to_db_approx(float lin)
 {
     return lin * lin * lin;
 }
 
-/* clamp/clip a value between min and max. With -ffast-math this seems to
+
+/* clamp/c  lip a value between min and max. With -ffast-math this seems to
  * compile to branchless and very efficent code for use on an audio buffer */
 inline float clamp(float x, float min, float max)
 {

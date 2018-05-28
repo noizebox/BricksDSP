@@ -67,10 +67,10 @@ int main ()
     float _pwm = 0.5;
     float _gain = 0.0f;
     //float pwm = 0.0;
-    WtOscillatorBrick       _osc{_pitch};
-    VcaBrick                _mod{_fm_mod, _osc.audio_output(OscillatorBrick::OSC_OUT)};
-    WtModOscillatorBrick    _mod_osc{_pitch2, _pwm, _dummy, _mod.audio_output(VcaBrick::VCA_OUT)};
-    VcaBrick                _vol{_gain, _mod_osc.audio_output(WtModOscillatorBrick::OSC_OUT)};
+    WtOscillatorBrick           _osc{_pitch};
+    VcaBrick<Response::LINEAR>  _mod{_fm_mod, _osc.audio_output(OscillatorBrick::OSC_OUT)};
+    WtModOscillatorBrick        _mod_osc{_pitch2, _pwm, _dummy, _mod.audio_output(VcaBrick<Response::LINEAR>::VCA_OUT)};
+    VcaBrick<Response::LINEAR>  _vol{_gain, _mod_osc.audio_output(WtModOscillatorBrick::OSC_OUT)};
     _mod_osc.set_waveform(WtModOscillatorBrick::Waveform::PULSE);
 
     const AudioBuffer& out = _vol.audio_output(0);

@@ -13,7 +13,7 @@ protected:
 
     AudioBuffer _buffer;
     float       _gain;
-    VcaBrick    _test_module{_gain, _buffer};
+    VcaBrick<Response::LOG>  _test_module{_gain, _buffer};
 };
 
 TEST_F(VcaBrickTest, OperationalTest)
@@ -21,7 +21,7 @@ TEST_F(VcaBrickTest, OperationalTest)
     fill_buffer(_buffer, 0.5f);
     _gain = 2.0f;
     _test_module.render();
-    auto& out_buffer = _test_module.audio_output(VcaBrick::VCA_OUT);
+    auto& out_buffer = _test_module.audio_output(VcaBrick<Response::LOG>::VCA_OUT);
     float last = 0;
     for (auto& sample : out_buffer)
     {

@@ -32,8 +32,8 @@ public:
             brick->render();
         }
         /* Parameter modulation */
-        _cutoff -= 0.00015;
-        return _amp.audio_output(VcaBrick::VCA_OUT);
+        _cutoff -= 0.00001;
+        return _amp.audio_output(VcaBrick<Response::LINEAR>::VCA_OUT);
     }
 
     void note_on() {_env.gate(true);}
@@ -57,7 +57,7 @@ private:
     SVFFilterBrick              _filt{_cutoff, _res, _osc.audio_output(OscillatorBrick::OSC_OUT)};
     SaturationBrick             _dist{CLIP_LEVEL, _filt.audio_output(BiquadFilterBrick::FILTER_OUT)};
     ControlMultiplierBrick<2>   _amp_level{VOLUME, _env.control_output(ADSREnvelopeBrick::ENV_OUT)};
-    VcaBrick                    _amp{_amp_level.control_output(ControlMultiplierBrick<2>::MULT_OUT), _dist.audio_output(BiquadFilterBrick::FILTER_OUT)};
+    VcaBrick<Response::LOG>     _amp{_amp_level.control_output(ControlMultiplierBrick<2>::MULT_OUT), _dist.audio_output(BiquadFilterBrick::FILTER_OUT)};
 
     /* The order of creation automatically becomes a valid process order */
     std::vector<DspBrick*> _audio_graph{&_lfo, &_env, &_osc, &_filt, &_dist, &_amp_level, &_amp};
@@ -87,7 +87,7 @@ int main ()
     {
         const auto& buffer = voice.render();
         sf_writef_float(output_file, buffer.data(), DSP_BRICKS_BLOCK_SIZE);
-        if (samplecount > max_samples * 0.75)
+        if (samplecount > max_samples * 0.66)
         {
             voice.note_off();
         }

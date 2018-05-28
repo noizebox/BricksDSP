@@ -4,7 +4,7 @@
 #include "dsp_brick.h"
 namespace bricks {
 
-/* Standard Biquad */
+/* Tanh clipping */
 class SaturationBrick : public DspBrick
 {
 public:

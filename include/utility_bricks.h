@@ -6,7 +6,14 @@
 #include "dsp_brick.h"
 namespace bricks {
 
+enum class Response
+{
+    LINEAR,
+    LOG
+};
+
 /* Generic gain control of audio signal */
+template <Response slope>
 class VcaBrick : public DspBrick
 {
 public:
@@ -27,7 +34,14 @@ public:
 
     void render() override
     {
-        _gain_lag.set(to_db_aprox(_gain_port.value()));
+        if constexpr (slope == Response::LINEAR)
+        {
+            _gain_lag.set(_gain_port.value());
+        }
+        else if (slope == Response::LOG)
+        {
+            _gain_lag.set(to_db_approx(_gain_port.value()));
+        }
         AudioBuffer gain = _gain_lag.get_all();
         for (unsigned s = 0; s < _audio_buffer.size(); ++s)
         {
@@ -75,7 +89,7 @@ public:
         }
         for (unsigned i = 0; i < channel_count; ++i)
         {
-            _gain_lags[i].set(to_db_aprox(_gains[i].value()));
+            _gain_lags[i].set(to_db_approx(_gains[i].value()));
             AudioBuffer gain = _gain_lags[i].get_all();
             auto& audio_in = _audio_ins[i].buffer();
             for (unsigned s = 0; s < _output_buffer.size(); ++s)
@@ -289,7 +303,7 @@ private:
 };
 
 /* N to M control signal linear combinator. Useful för creating meta controllers/parameters */
-template <size_t input_count, size_t output_count, bool clamp_output>
+template <size_t input_count, size_t output_count, bool clamp_output = true>
 class MetaControlBrick : public DspBrick
 {
     using Matrix = std::array<std::array<float, output_count>, input_count>;
@@ -333,7 +347,7 @@ public:
                 _outputs[j] += input * _components[i][j];
             }
         }
-        if (clamp_output)
+        if constexpr(clamp_output)
         {
             for (auto& v :_outputs)
             {
@@ -347,7 +361,7 @@ private:
     std::array<float, output_count> _outputs;
     Matrix _components;
     float _clamp_min{0.0f};
-    float _clamp_max{1.1f};
+    float _clamp_max{1.0f};
 };
 }// namespace bricks
 
