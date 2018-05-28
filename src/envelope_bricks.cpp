@@ -69,7 +69,7 @@ void AudioRateADSRBrick::render()
     }
 }
 
-void ADSREnvelopeBrick::gate(bool gate)
+void LinearADSREnvelopeBrick::gate(bool gate)
 {
     if (gate) /* If the envelope is running, it's simply restarted here */
     {
@@ -81,7 +81,7 @@ void ADSREnvelopeBrick::gate(bool gate)
     }
 }
 
-void ADSREnvelopeBrick::render()
+void LinearADSREnvelopeBrick::render()
 {
     float level = _level;
     switch (_state)
@@ -136,6 +136,69 @@ void ADSREnvelopeBrick::render()
     _level = level;
 }
 
+void AudioADSREnvelopeBrick::gate(bool gate)
+{
+    if (gate) /* If the envelope is running, it's simply restarted here */
+    {
+        _state = EnvelopeState::ATTACK;
+        _level = 0.0f;
+    } else /* Gate off - go to release phase */
+    {
+        _state = EnvelopeState::RELEASE;
+    }
+}
+
+constexpr float ENVELOPE_EPS = 0.00001f;
+
+void AudioADSREnvelopeBrick::render()
+{
+    switch (_state)
+    {
+        case EnvelopeState::OFF:
+            break;
+
+        case EnvelopeState::ATTACK:
+        {
+            float attack_time = _attack.value();
+            _level += attack_time > 0 ? PROC_BLOCK_SIZE / (_samplerate * attack_time) : 1.0f;
+            if (_level >= 1)
+            {
+                _state = EnvelopeState::DECAY;
+                _level = 1.0f;
+            }
+            break;
+        }
+
+        case EnvelopeState::DECAY:
+        {
+            float decay_rate = _decay.value();
+            float sustain_level = _sustain.value();
+            sustain_level *= sustain_level;
+            /* 1 - 1/x is a quick approximation of e^(-1 / x) for small values of x */
+            float b0 = PROC_BLOCK_SIZE / (_samplerate * decay_rate);
+            float a0 = 1.0f - b0;
+            _level = _level * a0 + b0 * sustain_level;
+            /* Note, as decay approaces sustain level asymptotically, we don't actually
+             * have to move to the sustain phase */
+            break;
+        }
+        case EnvelopeState::RELEASE:
+        {
+            float release_rate = _release.value();
+            float a0 = 1.0f - PROC_BLOCK_SIZE / (_samplerate * release_rate);
+            _level = _level * a0;
+            if (_level < ENVELOPE_EPS)
+            {
+                _state = EnvelopeState::OFF;
+                _level = 0.0f;
+            }
+            break;
+        }
+        default:
+            __builtin_unreachable();
+    }
+}
+
 void LfoBrick::render()
 {
     float base_freq = LOWEST_LFO_SPEED * powf(2.0f, _rate_port.value() * 10.0f);
@@ -168,5 +231,4 @@ void LfoBrick::render()
     }
     _phase = phase;
 }
-
 } // namespace bricks

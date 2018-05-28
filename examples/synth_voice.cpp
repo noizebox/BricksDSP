@@ -15,7 +15,7 @@ using namespace bricks;
 /* Short example of how to combine a few bricks into a synth voice and
  * rendering a few seconds of audio to disk */
 constexpr float CLIP_LEVEL = 1.4f;
-constexpr float VOLUME = 0.7f;
+constexpr float VOLUME = 0.8f;
 
 class Voice
 {
@@ -40,24 +40,24 @@ public:
     void note_off() {_env.gate(false);}
 
 private:
-    float _attack{.5f};
-    float _decay{0.5f};
-    float _sustain{0.8f};
-    float _release{1.0f};
+    float _attack{.7f};
+    float _decay{0.3f};
+    float _sustain{0.3f};
+    float _release{0.6f};
     float _rate{0.3f};
-    float _pitch{0.15f}; /* in 0.1 / octave on a range from 20 to 20kHz */
-    float _cutoff{0.9};
-    float _res{0.7f};
+    float _pitch{0.35f}; /* in 0.1 / octave on a range from 20 to 20kHz */
+    float _cutoff{0.6};
+    float _res{0.9f};
     float _clip{0.5f};
 
 
     LfoBrick                    _lfo{_rate};
-    ADSREnvelopeBrick           _env{_attack, _decay, _sustain, _release};
+    AudioADSREnvelopeBrick      _env{_attack, _decay, _sustain, _release};
     WtOscillatorBrick           _osc{_pitch};
     SVFFilterBrick              _filt{_cutoff, _res, _osc.audio_output(OscillatorBrick::OSC_OUT)};
     SaturationBrick             _dist{CLIP_LEVEL, _filt.audio_output(BiquadFilterBrick::FILTER_OUT)};
-    ControlMultiplierBrick<2>   _amp_level{VOLUME, _env.control_output(ADSREnvelopeBrick::ENV_OUT)};
-    VcaBrick<Response::LOG>     _amp{_amp_level.control_output(ControlMultiplierBrick<2>::MULT_OUT), _dist.audio_output(BiquadFilterBrick::FILTER_OUT)};
+    ControlMultiplierBrick<2>   _amp_level{VOLUME, _env.control_output(LinearADSREnvelopeBrick::ENV_OUT)};
+    VcaBrick<Response::LINEAR>  _amp{_amp_level.control_output(ControlMultiplierBrick<2>::MULT_OUT), _dist.audio_output(BiquadFilterBrick::FILTER_OUT)};
 
     /* The order of creation automatically becomes a valid process order */
     std::vector<DspBrick*> _audio_graph{&_lfo, &_env, &_osc, &_filt, &_dist, &_amp_level, &_amp};

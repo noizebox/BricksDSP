@@ -59,7 +59,7 @@ protected:
     float       _decay;
     float       _sustain;
     float       _release;
-    ADSREnvelopeBrick    _test_module{_attack, _decay, _sustain, _release};
+    LinearADSREnvelopeBrick    _test_module{_attack, _decay, _sustain, _release};
 };
 
 TEST_F(AdsrEnvelopeBrickTest, OperationalTest)
@@ -71,7 +71,7 @@ TEST_F(AdsrEnvelopeBrickTest, OperationalTest)
     ASSERT_TRUE(_test_module.finished());
     _test_module.gate(true);
 
-    ControlPort out(_test_module.control_output(ADSREnvelopeBrick::ENV_OUT));
+    ControlPort out(_test_module.control_output(LinearADSREnvelopeBrick::ENV_OUT));
     _test_module.render();
 
     /* Test that it is rising */

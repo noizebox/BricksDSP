@@ -57,8 +57,8 @@ private:
     float _level{0};
 };
 
-/* Control rate linear ADSR envelope */
-class ADSREnvelopeBrick : public DspBrick
+/* Control rate linear ADSR envelope with linear slopes */
+class LinearADSREnvelopeBrick : public DspBrick
 {
 public:
     enum ControlInputs
@@ -76,7 +76,7 @@ public:
         MAX_CONTROL_OUTS,
     };
 
-    ADSREnvelopeBrick(ControlPort attack, ControlPort decay,
+    LinearADSREnvelopeBrick(ControlPort attack, ControlPort decay,
                       ControlPort sustain, ControlPort release) : _controls{attack, decay, sustain, release} {}
 
     const float& control_output(int n) override
@@ -105,6 +105,56 @@ private:
     };
 
     std::array<ControlPort, MAX_CONTROL_INPUTS> _controls;
+    EnvelopeState _state{EnvelopeState::OFF};
+    float _level{0.0f};
+};
+
+/* ADSR Envelope intended for audio control with linear attack phase and
+ * exponentially falling decay and release phases */
+class AudioADSREnvelopeBrick : public DspBrick
+{
+public:
+    enum ControlOuts
+    {
+        ENV_OUT = 0,
+        MAX_CONTROL_OUTS,
+    };
+
+    AudioADSREnvelopeBrick(ControlPort attack, ControlPort decay,
+                      ControlPort sustain, ControlPort release) : _attack(attack),
+                                                                  _decay(decay),
+                                                                  _sustain(sustain),
+                                                                  _release(release) {}
+
+    const float& control_output(int n) override
+    {
+        assert(n < MAX_CONTROL_OUTS);
+        return _level;
+    }
+
+    /* Not part of the general interface. Analogous to the gate signal on an analog
+     * envelope. Setting gate to true will start the envelope in the attack phase
+     * and setting it to false will start the release phase. */
+    void gate(bool gate);
+
+    bool finished() {return _state == EnvelopeState::OFF;}
+
+    void render() override;
+
+private:
+    enum class EnvelopeState
+    {
+        OFF,
+        ATTACK,
+        DECAY,
+        SUSTAIN,
+        RELEASE,
+    };
+
+    ControlPort _attack;
+    ControlPort _decay;
+    ControlPort _sustain;
+    ControlPort _release;
     EnvelopeState _state{EnvelopeState::OFF};
     float _level{0.0f};
 };
