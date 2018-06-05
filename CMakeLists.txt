@@ -27,7 +27,8 @@ set(EXTRA_CLION_SOURCES include/dsp_brick.h
         include/envelope_bricks.h
         include/filter_bricks.h
         include/modulator_bricks.h
-        include/oscillator_bricks.h)
+        include/oscillator_bricks.h
+        src/aligned_array.h)
 
 set(SOURCE_FILES "${COMPILATION_UNITS}" "${EXTRA_CLION_SOURCES}")
 
