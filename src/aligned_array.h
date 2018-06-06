@@ -35,12 +35,12 @@ public:
     AlignedArray::const_iterator begin() const {return _data;}
     AlignedArray::const_iterator end() const {return _data + length;}
 
-    value_type operator [](int i) const
+    value_type operator [](size_t i) const
     {
         assert(i < length);
         return _data[i];
     }
-    value_type& operator [](int i)
+    value_type& operator [](size_t i)
     {
         assert(i < length);
         return _data[i];

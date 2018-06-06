@@ -40,7 +40,7 @@ protected:
     AudioBuffer _buffer_2;
     float       _gain_1;
     float       _gain_2;
-    AudioMixerBrick<2>   _test_module{{_gain_1, _gain_2}, {_buffer_1, _buffer_2}};
+    AudioMixerBrick<2, Response::LOG>  _test_module{{_gain_1, _gain_2}, {_buffer_1, _buffer_2}};
 };
 
 TEST_F(AudioMixerBrickTest, OperationalTest)
@@ -52,7 +52,7 @@ TEST_F(AudioMixerBrickTest, OperationalTest)
     /* Render twice so that levels stabilise */
     _test_module.render();
     _test_module.render();
-    assert_buffer(_test_module.audio_output(AudioMixerBrick<2>::MIX_OUT), 0.75f);
+    assert_buffer(_test_module.audio_output(AudioMixerBrick<2, Response::LOG>::MIX_OUT), 0.75f);
 }
 
 class AudioSummerBrickTest : public ::testing::Test

@@ -126,7 +126,7 @@ public:
                                                                   _sustain(sustain),
                                                                   _release(release) {}
 
-    const float& control_output(int n) override
+    const float& control_output([[maybe_uninitialised]] int n) override
     {
         assert(n < MAX_CONTROL_OUTS);
         return _level;
@@ -147,7 +147,6 @@ private:
         OFF,
         ATTACK,
         DECAY,
-        SUSTAIN,
         RELEASE,
     };
 

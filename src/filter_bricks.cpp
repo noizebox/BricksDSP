@@ -1,6 +1,5 @@
 #include <cmath>
 
-#include <iostream>
 #include "filter_bricks.h"
 
 namespace bricks {
@@ -102,7 +101,6 @@ inline std::array<float, 5> calc_allpass(float freq, float q, float samplerate)
     float w0_sin = std::sin(w0);
     float alpha = w0_sin / q;
     float norm = 1.0f / (1.0f + alpha);
-    float b0 = (1.0f - alpha) * norm;
 
     coeff[A1] = -2.0f * w0_cos * norm;
     coeff[A2] = (1 - alpha) * norm;
@@ -117,7 +115,7 @@ void BiquadFilterBrick::render()
     float freq = 20 * powf(2.0f, _cutoff_ctrl.value() * 10.0f);
     float res =  0.6f + 5.0f *_res_ctrl.value();
     auto updated_coeff = calc_lowpass(freq, res, _samplerate);
-    for (int i = 0; i < _coeff.size(); ++i)
+    for (size_t i = 0; i < _coeff.size(); ++i)
     {
         _coeff[i].set(updated_coeff[i]);
     }
@@ -126,7 +124,7 @@ void BiquadFilterBrick::render()
     for (unsigned int i = 0; i < PROC_BLOCK_SIZE; ++i)
     {
         std::array<float, 5> coeff;
-        for (int c = 0; c < coeff.size(); ++c)
+        for (size_t c = 0; c < coeff.size(); ++c)
         {
             coeff[c] = _coeff[c].get();
         }

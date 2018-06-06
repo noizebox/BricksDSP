@@ -5,9 +5,10 @@
 #include <cassert>
 
 #include "utils.h"
+#include "aligned_array.h"
 
 #ifndef DSP_BRICKS_BLOCK_SIZE
-#define DSP_BRICKS_BLOCK_SIZE   32
+#define DSP_BRICKS_BLOCK_SIZE 32
 #endif
 
 namespace bricks {
@@ -16,7 +17,8 @@ constexpr size_t PROC_BLOCK_SIZE = DSP_BRICKS_BLOCK_SIZE;
 
 constexpr float DEFAULT_SAMPLERATE = 44100;
 
-typedef std::array<float, PROC_BLOCK_SIZE> AudioBuffer;
+//typedef std::array<float, PROC_BLOCK_SIZE> AudioBuffer;
+typedef AlignedArray<float, PROC_BLOCK_SIZE> AudioBuffer;
 
 /* Thin wrappers around control and audio ports */
 class ControlPort

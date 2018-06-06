@@ -3,6 +3,8 @@
 
 #include <cmath>
 
+#include "aligned_array.h"
+
 namespace bricks {
 
 /* Map a float in range [0, 1] to true or false */
@@ -41,7 +43,7 @@ inline float to_db_approx(float lin)
 }
 
 
-/* clamp/c  lip a value between min and max. With -ffast-math this seems to
+/* clamp/clip a value between min and max. With -ffast-math this seems to
  * compile to branchless and very efficent code for use on an audio buffer */
 inline float clamp(float x, float min, float max)
 {
@@ -65,9 +67,9 @@ public:
 
     float get() {return _lag += _step;};
 
-    std::array<float, length> get_all()
+    AlignedArray<float, length> get_all()
     {
-        std::array<float, length> values;
+        AlignedArray<float, length> values;
         for (auto& v : values)
         {
             v = this->get();
@@ -89,9 +91,9 @@ public:
 
     float get() {return _lag = COEFF_B0 * _target + COEFF_A0 * _lag;}
 
-    std::array<float, length> get_all()
+    AlignedArray<float, length> get_all()
     {
-        std::array<float, length> values;
+        AlignedArray<float, length> values;
         for (auto& v : values)
         {
             v = this->get();

@@ -13,7 +13,7 @@ enum class Response
 };
 
 /* Generic gain control of audio signal */
-template <Response slope>
+template <Response response>
 class VcaBrick : public DspBrick
 {
 public:
@@ -34,16 +34,16 @@ public:
 
     void render() override
     {
-        if constexpr (slope == Response::LINEAR)
+        if constexpr (response == Response::LINEAR)
         {
             _gain_lag.set(_gain_port.value());
         }
-        else if (slope == Response::LOG)
+        else if (response == Response::LOG)
         {
             _gain_lag.set(to_db_approx(_gain_port.value()));
         }
         AudioBuffer gain = _gain_lag.get_all();
-        for (unsigned s = 0; s < _audio_buffer.size(); ++s)
+        for (size_t s = 0; s < _audio_buffer.size(); ++s)
         {
             _audio_buffer[s] = _audio_in[s] * gain[s];
         }
@@ -60,7 +60,7 @@ private:
  * Instantiation example:
  * AudioMixerBrick<2> mixer({gain1_, gain_2}, {audio_in_1, audio_in_2}); */
 
-template <size_t channel_count>
+template <size_t channel_count, Response response>
 class AudioMixerBrick : public DspBrick
 {
 public:
@@ -89,10 +89,18 @@ public:
         }
         for (unsigned i = 0; i < channel_count; ++i)
         {
-            _gain_lags[i].set(to_db_approx(_gains[i].value()));
+            if constexpr (response == Response::LINEAR)
+            {
+                _gain_lags[i].set(_gains[i].value());
+            }
+            else if (response == Response::LOG)
+            {
+                _gain_lags[i].set(to_db_approx(_gains[i].value()));
+            }
+
             AudioBuffer gain = _gain_lags[i].get_all();
             auto& audio_in = _audio_ins[i].buffer();
-            for (unsigned s = 0; s < _output_buffer.size(); ++s)
+            for (size_t s = 0; s < _output_buffer.size(); ++s)
             {
                 _output_buffer[s] += audio_in[s] * gain[i];
             }
@@ -316,13 +324,13 @@ public:
 
     const float& control_output(int n) override
     {
-        assert(n < output_count);
+        assert(static_cast<size_t>(n) < output_count);
         return _outputs[n];
     }
 
     void set_component(int input, std::array<float, output_count> component, float weight = 1.0f)
     {
-        assert(input < input_count);
+        assert(static_cast<size_t>(input) < input_count);
         for (auto& v : component)
         {
             v *= weight;

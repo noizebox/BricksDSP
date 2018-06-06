@@ -178,8 +178,8 @@ void AudioADSREnvelopeBrick::render()
             float b0 = PROC_BLOCK_SIZE / (_samplerate * decay_rate);
             float a0 = 1.0f - b0;
             _level = _level * a0 + b0 * sustain_level;
-            /* Note, as decay approaces sustain level asymptotically, we don't actually
-             * have to move to the sustain phase */
+            /* Note, as decay approaches the sustain level asymptotically,
+             * we don't actually have to move to the sustain phase */
             break;
         }
         case EnvelopeState::RELEASE:
@@ -194,8 +194,6 @@ void AudioADSREnvelopeBrick::render()
             }
             break;
         }
-        default:
-            __builtin_unreachable();
     }
 }
 
