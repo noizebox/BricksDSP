@@ -6,7 +6,13 @@ project(bricks_dsp)
 ####################
 
 # Global flags
-set(PROJECT_CXX_FLAGS "-Wall -Wextra -std=c++17 -fno-rtti -ffast-math -march=native")
+if(CMAKE_COMPILER_IS_GNUCC)
+    set(CMAKE_CXX_FLAGS "-Wall -std=c++14 -fno-rtti")
+elsif(MSVC)
+	set(CMAKE_CXX_FLAGS "-Wall" "/std:c++17")
+endif()
+
+#set(PROJECT_CXX_FLAGS "-std=c++17 -fno-rtti -ffast-math -march=native")
 set(PROJECT_LINK_FLAGS "")
 
 
@@ -16,6 +22,10 @@ set(CMAKE_CXX_FLAGS_DEBUG   "-DDEBUG -O0 -g")
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${PROJECT_CXX_FLAGS}")
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${PROJECT_LINK_FLAGS}")
+
+if(MSVC)
+    add_definitions(/D _USE_MATH_DEFINES)
+endif()
 
 ##################
 #  Source Files  #

@@ -60,9 +60,9 @@ class DspBrick
 public:
     virtual ~DspBrick() = default;
 
-    virtual const float& control_output(int /*n*/) {assert(false);}
+    virtual const float& control_output(int /*n*/) { assert(false); float a;  return a; }
 
-    virtual const AudioBuffer& audio_output(int /*n*/) {assert(false);}
+    virtual const AudioBuffer& audio_output(int /*n*/) { assert(false); AudioBuffer a; return a; }
 
     virtual void render() = 0;
 
