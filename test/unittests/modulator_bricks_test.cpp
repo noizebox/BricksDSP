@@ -38,3 +38,25 @@ TEST_F(AudioSaturationBrickTest, OperationTest)
         ASSERT_GT(sample, -0.3f);
     }
 }
+
+class ModulatedDelayBrickTest : public ::testing::Test
+{
+protected:
+    ModulatedDelayBrickTest() {}
+
+    void SetUp()
+    {
+        fill_buffer(_buffer, 1.0f);
+    }
+
+    AudioBuffer          _buffer;
+    float                _delay_time;
+    ModulatedDelayBrick  _test_module{_delay_time, _buffer, 1};
+    const AudioBuffer&   _out_buffer{_test_module.audio_output(ModulatedDelayBrick::DELAY_OUT)};
+};
+
+TEST_F(ModulatedDelayBrickTest, OperationTest)
+{
+    _test_module.render();
+    assert_buffer(_out_buffer, 0.0f);
+}
