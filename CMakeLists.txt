@@ -5,7 +5,16 @@ project(bricks_dsp)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-set(PROJECT_CXX_FLAGS "-Wall -fno-rtti -ffast-math -march=native -g")
+# Global flags
+if(CMAKE_COMPILER_IS_GNUCC)
+    set(CMAKE_CXX_FLAGS "-Wall -std=c++17 -fno-rtti -ffast-math -march=native")
+    add_definitions(-DLINUX)
+elseif(MSVC)
+	set(CMAKE_CXX_FLAGS "-Wall" "/std:c++17")
+    add_definitions(/D WINDOWS)
+    add_definitions(/D _USE_MATH_DEFINES)
+endif()
+
 set(PROJECT_LINK_FLAGS "")
 
 # Build optimization flags
@@ -15,7 +24,14 @@ set(CMAKE_CXX_FLAGS_DEBUG   "-DDEBUG -O0 -g")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${PROJECT_CXX_FLAGS}")
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${PROJECT_LINK_FLAGS}")
 
-# Sources
+if(MSVC)
+    add_definitions(/D _USE_MATH_DEFINES)
+endif()
+
+##################
+#  Source Files  #
+##################
+
 set(COMPILATION_UNITS src/envelope_bricks.cpp
                       src/filter_bricks.cpp
                       src/modulator_bricks.cpp

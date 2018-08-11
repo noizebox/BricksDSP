@@ -127,7 +127,9 @@ public:
     template <class ...T>
     explicit AudioSummerBrick(T&... inputs) : _inputs{AudioPort(inputs)...}
     {
+#ifdef LINUX
         static_assert(sizeof...(inputs) == channel_count);
+#endif
     }
 
     const AudioBuffer& audio_output(int n) override
@@ -250,7 +252,9 @@ public:
     template <class ...T>
     explicit ControlSummerBrick(T&... inputs) : _inputs{ControlPort(inputs)...}
     {
+#ifdef LINUX
         static_assert(sizeof...(inputs) == channel_count);
+#endif
     }
 
     const float& control_output(int n) override
@@ -287,7 +291,9 @@ public:
     template <class ...T>
     explicit ControlMultiplierBrick(T&... inputs) : _inputs{ControlPort(inputs)...}
     {
+#ifdef LINUX
         static_assert(sizeof...(inputs) == channel_count);
+#endif
     }
 
     const float& control_output(int n) override

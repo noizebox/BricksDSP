@@ -104,8 +104,14 @@ public:
 private:
 // TODO - Room for tweaking.
 static constexpr float TIMECONSTANTS_PER_BLOCK = 2.5;
+#ifdef LINUX
 static constexpr float COEFF_A0 = std::exp(-1.0f * TIMECONSTANTS_PER_BLOCK / length);
 static constexpr float COEFF_B0 = 1 - COEFF_A0;
+#endif
+#ifdef WINDOWS
+static const float COEFF_A0 = std::exp(-1.0f * TIMECONSTANTS_PER_BLOCK / length);
+static const float COEFF_B0 = 1 - COEFF_A0;
+#endif
 
     float _target{0};
     float _lag{0};
