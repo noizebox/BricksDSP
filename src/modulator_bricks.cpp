@@ -14,7 +14,6 @@ void SaturationBrick::render()
         x = clamp(x, -3.0f, 3.0f);
         _audio_out[i] = comp * x * (27.0f + x * x) / (27.0f + 9.0f * x * x);
     }
-
 }
 
 void UnitDelayBrick::render()

@@ -18,10 +18,12 @@ enum REGISTERS
     Z2,
 };
 
+using Coefficients = std::array<float, 5>;
+
 /* Coefficient generation from http://www.musicdsp.org/files/Audio-EQ-Cookbook.txt */
-inline std::array<float, 5> calc_lowpass(float freq, float q, float samplerate)
+inline Coefficients calc_lowpass(float freq, float q, float samplerate)
 {
-    std::array<float, 5> coeff;
+    Coefficients coeff;
     float w0 = 2.0f * static_cast<float>(M_PI) * freq / samplerate;
     float w0_cos = std::cos(w0);
     float w0_sin = std::sin(w0);
@@ -37,9 +39,9 @@ inline std::array<float, 5> calc_lowpass(float freq, float q, float samplerate)
     return coeff;
 };
 
-inline std::array<float, 5> calc_highpass(float freq, float q, float samplerate)
+inline Coefficients calc_highpass(float freq, float q, float samplerate)
 {
-    std::array<float, 5> coeff;
+    Coefficients coeff;
     float w0 = 2.0f * static_cast<float>(M_PI) * freq / samplerate;
     float w0_cos = std::cos(w0);
     float w0_sin = std::sin(w0);
@@ -55,9 +57,9 @@ inline std::array<float, 5> calc_highpass(float freq, float q, float samplerate)
     return coeff;
 };
 
-inline std::array<float, 5> calc_bandpass(float freq, float q, float samplerate)
+inline Coefficients calc_bandpass(float freq, float q, float samplerate)
 {
-    std::array<float, 5> coeff;
+    Coefficients coeff;
     float w0 = 2.0f * static_cast<float>(M_PI) * freq / samplerate;
     float w0_cos = std::cos(w0);
     float w0_sin = std::sin(w0);
@@ -73,10 +75,29 @@ inline std::array<float, 5> calc_bandpass(float freq, float q, float samplerate)
     return coeff;
 };
 
-/* freq in Hz, gain in dB */
-inline std::array<float, 5> calc_peaking(float freq, float gain, float q,  float samplerate)
+inline Coefficients calc_allpass(float freq, float q, float samplerate)
 {
-    std::array<float, 5> coeff;
+    Coefficients coeff;
+    float w0 = 2.0f * static_cast<float>(M_PI) * freq / samplerate;
+    float w0_cos = std::cos(w0);
+    float w0_sin = std::sin(w0);
+    float alpha = w0_sin / q;
+    float norm = 1.0f / (1.0f + alpha);
+    float a1 =  -2.0f * w0_cos * norm;
+    float b0 = (1.0f - alpha) * norm;
+
+    coeff[A1] = a1;
+    coeff[A2] = b0;
+    coeff[B0] = b0;
+    coeff[B1] = a1;
+    coeff[B2] = 1.0f;
+    return coeff;
+};
+
+/* freq in Hz, gain in dB */
+inline Coefficients calc_peaking(float freq, float gain, float q,  float samplerate)
+{
+    Coefficients coeff;
     float A = powf(10.0f, gain / 40.0f) ;
     float w0 = 2.0f * static_cast<float>(M_PI) * freq / samplerate;
     float w0_cos = std::cos(w0);
@@ -93,37 +114,95 @@ inline std::array<float, 5> calc_peaking(float freq, float gain, float q,  float
     return coeff;
 };
 
-inline std::array<float, 5> calc_allpass(float freq, float q, float samplerate)
+inline Coefficients calc_lowshelf(float freq, float gain, float slope, float samplerate)
 {
-    std::array<float, 5> coeff;
+    Coefficients coeff;
+    float A = powf(10.0f, gain / 40.0f);
     float w0 = 2.0f * static_cast<float>(M_PI) * freq / samplerate;
     float w0_cos = std::cos(w0);
     float w0_sin = std::sin(w0);
-    float alpha = w0_sin / q;
-    float norm = 1.0f / (1.0f + alpha);
+    float A2_sqrt_alpha = 2.0f * w0_sin * std::sqrt((A * A + 1.0f) * (1.0f / slope - 1.0f) + 2.0f * A);
+    float A_inc_cos_w0 = (A + 1.0f) * w0_cos;
+    float A_dec_cos_w0 = (A - 1.0f) * w0_cos;
+    float norm = 1.0f / ((A + 1.0f) + A_dec_cos_w0 + A2_sqrt_alpha);
 
-    coeff[A1] = -2.0f * w0_cos * norm;
-    coeff[A2] = (1 - alpha) * norm;
-    coeff[B0] = (1 - alpha) * norm;
-    coeff[B1] = -2.0f * w0_cos * norm;
-    coeff[B2] = 1.0f;
+    coeff[A1] = -2.0f * (A - 1.0f + A_inc_cos_w0) * norm;
+    coeff[A2] = (A + 1.0f + A_dec_cos_w0 - A2_sqrt_alpha) * norm;
+    coeff[B0] = A * (A + 1.0f - A_dec_cos_w0 + A2_sqrt_alpha) * norm;
+    coeff[B1] = 2.0f * A * (A - 1.0f - A_inc_cos_w0) * norm;
+    coeff[B2] = A * (A + 1.0f - A_dec_cos_w0 - A2_sqrt_alpha) * norm;
+    return coeff;
+};
+
+inline Coefficients calc_highshelf(float freq, float gain, float slope, float samplerate)
+{
+    Coefficients coeff;
+    float A = powf(10.0f, gain / 40.0f);
+    float w0 = 2.0f * static_cast<float>(M_PI) * freq / samplerate;
+    float w0_cos = std::cos(w0);
+    float w0_sin = std::sin(w0);
+    float A2_sqrt_alpha = 2.0f * w0_sin * std::sqrt((A * A + 1.0f) * (1.0f / slope - 1.0f) + 2.0f * A);
+    float A_inc_cos_w0 = (A + 1.0f) * w0_cos;
+    float A_dec_cos_w0 = (A - 1.0f) * w0_cos;
+    float norm = 1.0f / ((A + 1.0f) - A_dec_cos_w0 + A2_sqrt_alpha);
+
+    coeff[A1] = 2.0f * (A - 1.0f - A_inc_cos_w0) * norm;
+    coeff[A2] = (A + 1.0f - A_dec_cos_w0 - A2_sqrt_alpha) * norm;
+    coeff[B0] = A * (A + 1.0f + A_dec_cos_w0 + A2_sqrt_alpha) * norm;
+    coeff[B1] = -2.0f * A * (A - 1.0f + A_inc_cos_w0) * norm;
+    coeff[B2] = A * (A + 1.0f + A_dec_cos_w0 - A2_sqrt_alpha) * norm;
     return coeff;
 };
 
 void BiquadFilterBrick::render()
 {
     float freq = 20 * powf(2.0f, _cutoff_ctrl.value() * 10.0f);
-    float res =  0.6f + 5.0f *_res_ctrl.value();
-    auto updated_coeff = calc_lowpass(freq, res, _samplerate);
+    //std::cout << "Frec: " << freq << ",.. " << _cutoff_ctrl.value() << std::endl;
+    float res = _res_q_ctrl.value();
+    float gain = _gain_ctrl.value() * 15.0f; // 15dB -/+ range for peaking and shelving modes
+    Coefficients new_coeff;
+    switch (_mode)
+    {
+        case Mode::LOWPASS:
+            res =  0.6f + 5.0f * res;
+            new_coeff = calc_lowpass(freq, res, _samplerate);
+            break;
+
+        case Mode::HIGHPASS:
+            res =  0.6f + 5.0f * res;
+            new_coeff = calc_highpass(freq, res, _samplerate);
+            break;
+
+        case Mode::BANDPASS:
+            new_coeff = calc_bandpass(freq, res, _samplerate);
+            break;
+
+        case Mode::ALLPASS:
+            new_coeff = calc_allpass(freq, res, _samplerate);
+            break;
+
+        case Mode::PEAKING:
+            new_coeff = calc_peaking(freq, res, gain,_samplerate);
+            break;
+
+        case Mode::LOW_SHELF:
+            new_coeff = calc_lowshelf(freq, res, gain,_samplerate);
+            break;
+
+        case Mode::HIGH_SHELF:
+            new_coeff = calc_highshelf(freq, res, gain,_samplerate);
+            break;
+
+    }
     for (size_t i = 0; i < _coeff.size(); ++i)
     {
-        _coeff[i].set(updated_coeff[i]);
+        _coeff[i].set(new_coeff[i]);
     }
 
     const AudioBuffer& in = _audio_in.buffer();
     for (unsigned int i = 0; i < PROC_BLOCK_SIZE; ++i)
     {
-        std::array<float, 5> coeff;
+        Coefficients coeff;
         for (size_t c = 0; c < coeff.size(); ++c)
         {
             coeff[c] = _coeff[c].get();
@@ -170,34 +249,67 @@ void FixedFilterBrick::render()
     }
 }
 
-void FixedFilterBrick::set_lowpass(float freq, float q)
+void FixedFilterBrick::set_lowpass(float freq, float q, bool clear)
 {
     _coeff = calc_lowpass(freq, q, _samplerate);
-    _reg = {0, 0};
+    if (clear)
+    {
+        _reg = {0, 0};
+    }
 }
 
-void FixedFilterBrick::set_highpass(float freq, float q)
+void FixedFilterBrick::set_highpass(float freq, float q, bool clear)
 {
     _coeff = calc_highpass(freq, q, _samplerate);
-    _reg = {0, 0};
+    if (clear)
+    {
+        reset();
+    }
 }
 
-void FixedFilterBrick::set_bandpass(float freq, float q)
+void FixedFilterBrick::set_bandpass(float freq, float q, bool clear)
 {
     _coeff = calc_bandpass(freq, q, _samplerate);
-    _reg = {0, 0};
+    if (clear)
+    {
+        reset();
+    }
 }
 
-void FixedFilterBrick::set_peaking(float freq, float gain, float q)
+void FixedFilterBrick::set_peaking(float freq, float gain, float q, bool clear)
 {
     _coeff = calc_peaking(freq, gain, q, _samplerate);
-    _reg = {0, 0};
+    if (clear)
+    {
+        reset();
+    }
 }
 
-void FixedFilterBrick::set_allpass(float freq, float q)
+void FixedFilterBrick::set_allpass(float freq, float q, bool clear)
 {
     _coeff = calc_allpass(freq, q, _samplerate);
-    _reg = {0, 0};
+    if (clear)
+    {
+        reset();
+    }
+}
+
+void FixedFilterBrick::set_lowshelf(float freq, float gain, float q, bool clear)
+{
+    _coeff = calc_lowshelf(freq, gain, q, _samplerate);
+    if (clear)
+    {
+        reset();
+    }
+}
+
+void FixedFilterBrick::set_highshelf(float freq, float gain, float q, bool clear)
+{
+    _coeff = calc_highshelf(freq, gain, q, _samplerate);
+    if (clear)
+    {
+        reset();
+    }
 }
 
 

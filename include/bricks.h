@@ -4,6 +4,7 @@
 #include "dsp_brick.h"
 #include "envelope_bricks.h"
 #include "filter_bricks.h"
+#include "modulator_bricks.h"
 #include "oscillator_bricks.h"
 #include "utility_bricks.h"
 

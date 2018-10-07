@@ -12,7 +12,8 @@ protected:
     AudioBuffer         _buffer;
     float               _freq;
     float               _res;
-    BiquadFilterBrick   _test_module{_freq, _res, _buffer};
+    float               _gain;
+    BiquadFilterBrick   _test_module{_freq, _res, _gain, _buffer};
 };
 
 TEST_F(BiquadBrickTest, OperationalTest)
@@ -51,6 +52,38 @@ protected:
 TEST_F(FixedFilterBrickTest, LowpassTest)
 {
     _test_module.set_lowpass(1000, 0.7);
+    _test_module.render();
+    float sum = 0;
+    for (auto sample : _out_buffer)
+    {
+        sum += std::abs(sample);
+    }
+    /* Basic sanity check, filter does not run amok or output zeroes */
+    sum /= PROC_BLOCK_SIZE;
+    ASSERT_LT(sum, 1.0f);
+    ASSERT_GT(sum, 0.01f);
+}
+
+
+TEST_F(FixedFilterBrickTest, HighpassTest)
+{
+    _test_module.set_highpass(1000, 0.7);
+    _test_module.render();
+    float sum = 0;
+    for (auto sample : _out_buffer)
+    {
+        sum += std::abs(sample);
+    }
+    /* Basic sanity check, filter does not run amok or output zeroes */
+    sum /= PROC_BLOCK_SIZE;
+    ASSERT_LT(sum, 1.0f);
+    ASSERT_GT(sum, 0.01f);
+}
+
+
+TEST_F(FixedFilterBrickTest, AllpassTest)
+{
+    _test_module.set_allpass(1000, 0.7);
     _test_module.render();
     float sum = 0;
     for (auto sample : _out_buffer)

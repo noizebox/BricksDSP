@@ -7,7 +7,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Global flags
 if(CMAKE_COMPILER_IS_GNUCC)
-    set(CMAKE_CXX_FLAGS "-Wall -std=c++17 -fno-rtti -ffast-math -march=native")
+    set(CMAKE_CXX_FLAGS "-Wall -std=c++17 -fno-rtti -ffast-math -march=native -fPIC")
     add_definitions(-DLINUX)
 elseif(MSVC)
 	set(CMAKE_CXX_FLAGS "-Wall" "/std:c++17")
