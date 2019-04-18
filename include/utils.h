@@ -70,13 +70,15 @@ public:
     AlignedArray<float, length> get_all()
     {
         AlignedArray<float, length> values;
-        for (auto& v : values)
+        for (int i = 0; i < length; ++i)
         {
-            v = this->get();
+            values[i] = _lag + i * _step;
         }
+        _lag = _step * length;
         return values;
     };
 
+    float step() {return _step;}
 private:
     float _lag{0};
     float _step{0};
