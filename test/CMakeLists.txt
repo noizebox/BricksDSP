@@ -1,30 +1,20 @@
-# Build gtest
 add_subdirectory(gtest)
 enable_testing()
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DDISABLE_LOGGING")
-
 # Test sources
-SET(TEST_FILES  unittests/test_utils.cpp
-                unittests/utility_bricks_test.cpp
-                unittests/utilities_test.cpp
-                unittests/envelope_bricks_test.cpp
-                unittests/filter_brick_test.cpp
-                unittests/oscillator_bricks_test.cpp
-                unittests/modulator_bricks_test.cpp)
+SET(TEST_SOURCES  unittests/test_utils.cpp
+                  unittests/utility_bricks_test.cpp
+                  unittests/utilities_test.cpp
+                  unittests/envelope_bricks_test.cpp
+                  unittests/filter_brick_test.cpp
+                  unittests/oscillator_bricks_test.cpp
+                  unittests/modulator_bricks_test.cpp)
 
-set(INCLUDE_DIRS "${INCLUDE_DIRS}"
-                 ${PROJECT_SOURCE_DIR}/test/gtest/include)
+add_executable(unit_tests ${TEST_SOURCES})
 
-include_directories(${INCLUDE_DIRS})
-
-set(LINK_LIBRARIES "${LINK_LIBRARIES}"
-                   gtest
-                   gtest_main)
-
-add_executable(unit_tests ${TEST_FILES})
-
-target_link_libraries(unit_tests "${LINK_LIBRARIES}")
+target_include_directories(unit_tests PRIVATE ${PROJECT_SOURCE_DIR}/src)
+target_include_directories(unit_tests PRIVATE ${PROJECT_SOURCE_DIR}/include/bricks_dsp)
+target_link_libraries(unit_tests bricks_dsp gtest gtest_main)
 add_test(unit_tests unit_tests)
 
 # Target for running the tests

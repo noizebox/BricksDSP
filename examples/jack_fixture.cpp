@@ -8,7 +8,7 @@
 
 #define DSP_BRICKS_BLOCK_SIZE 32
 
-#include "bricks.h"
+#include "bricks_dsp/bricks.h"
 
 constexpr int EXAMPLE_SAMPLERATE = 44100;
 constexpr int MAX_CC_VALUE = 127;

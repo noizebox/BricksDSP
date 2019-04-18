@@ -1,7 +1,7 @@
 #include "gtest/gtest.h"
 #define private public
 
-#include "utility_bricks.h"
+#include "bricks_dsp/utility_bricks.h"
 #include "test_utils.h"
 
 using namespace bricks;
@@ -22,7 +22,7 @@ TEST_F(VcaBrickTest, OperationalTest)
     _gain = 2.0f;
     _test_module.render();
     auto& out_buffer = _test_module.audio_output(VcaBrick<Response::LOG>::VCA_OUT);
-    float last = 0;
+    float last = -1;
     for (auto& sample : out_buffer)
     {
         ASSERT_LT(last, sample);

@@ -2,9 +2,8 @@
 #include <iostream>
 
 #include <sndfile.h>
-#include <modulator_bricks.h>
 
-#include "bricks.h"
+#include "bricks_dsp/bricks.h"
 
 constexpr float EXAMPLE_SAMPLERATE = 44100;
 constexpr char EXAMPLE_FILE_NAME[] = "./example.wav";

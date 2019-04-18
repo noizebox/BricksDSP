@@ -1,5 +1,6 @@
 #include <cmath>
 
+#include "bricks_dsp/bricks.h"
 #include "test_utils.h"
 
 void fill_buffer(bricks::AudioBuffer& buffer, float value)

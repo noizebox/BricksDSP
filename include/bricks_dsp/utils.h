@@ -70,9 +70,9 @@ public:
     AlignedArray<float, length> get_all()
     {
         AlignedArray<float, length> values;
-        for (int i = 0; i < length; ++i)
+        for (int i = 0; i < static_cast<int>(length); ++i)
         {
-            values[i] = _lag + i * _step;
+            values[i] = _lag + (i + 1) * _step;
         }
         _lag = _step * length;
         return values;

@@ -74,7 +74,7 @@ void ModulatedDelayBrick::render()
     float readout_speed =  rec_time / current_time;
     _delay_time_lag.set(readout_speed);
 
-    for (int i = 0; i < PROC_BLOCK_SIZE; ++i)
+    for (unsigned int i = 0; i < PROC_BLOCK_SIZE; ++i)
     {
         _play_head += _delay_time_lag.get();
         while (_play_head > _play_wraparound)

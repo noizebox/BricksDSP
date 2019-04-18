@@ -1,8 +1,8 @@
 #include "gtest/gtest.h"
 #define private public
 
-#include "dsp_brick.h"
-#include "utils.h"
+#include "bricks_dsp/dsp_brick.h"
+#include "bricks_dsp/utils.h"
 
 using namespace bricks;
 

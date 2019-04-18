@@ -1,6 +1,6 @@
 #include "gtest/gtest.h"
 
-#include "dsp_brick.h"
+#include "bricks_dsp/dsp_brick.h"
 
 #ifndef BRICKS_DSP_TEST_UTILS_H
 #define BRICKS_DSP_TEST_UTILS_H
