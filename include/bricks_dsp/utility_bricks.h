@@ -54,13 +54,14 @@ private:
     const AudioBuffer&      _audio_in;
     AudioBuffer             _audio_buffer;
     ControlSmootherLinear   _gain_lag;
+    float                   _prev_gain{0};
 };
 
 /* General n to 1 audio mixer with individual gain controls for each input
  * Instantiation example:
  * AudioMixerBrick<2> mixer({gain1_, gain_2}, {audio_in_1, audio_in_2}); */
 
-template <size_t channel_count, Response response>
+template <int channel_count, Response response>
 class AudioMixerBrick : public DspBrick
 {
 public:
@@ -87,7 +88,7 @@ public:
         {
             s = 0.0f;
         }
-        for (unsigned i = 0; i < channel_count; ++i)
+        for (int i = 0; i < channel_count; ++i)
         {
             if constexpr (response == Response::LINEAR)
             {
@@ -100,7 +101,7 @@ public:
 
             AudioBuffer gain = _gain_lags[i].get_all();
             auto& audio_in = _audio_ins[i].buffer();
-            for (size_t s = 0; s < _output_buffer.size(); ++s)
+            for (int s = 0; s < _output_buffer.size(); ++s)
             {
                 _output_buffer[s] += audio_in[s] * gain[i];
             }
@@ -115,7 +116,7 @@ private:
 };
 
 /* General n to 1 audio mixer without gain controls */
-template <size_t channel_count>
+template <int channel_count>
 class AudioSummerBrick : public DspBrick
 {
 public:
@@ -147,7 +148,7 @@ public:
         for (auto& input : _inputs)
         {
             auto& in_buffer = input.buffer();
-            for (unsigned s = 0; s < _output_buffer.size(); ++s)
+            for (int s = 0; s < _output_buffer.size(); ++s)
             {
                 _output_buffer[s] += in_buffer[s];
             }
@@ -160,7 +161,7 @@ private:
 };
 
 /* Audio rate multiplier */
-template <size_t channel_count>
+template <int channel_count>
 class AudioMultiplierBrick : public DspBrick
 {
 public:
@@ -190,7 +191,7 @@ public:
         for (auto& input : _inputs)
         {
             auto& in_buffer = input.buffer();
-            for (unsigned s = 0; s < _output_buffer.size(); ++s)
+            for (int s = 0; s < _output_buffer.size(); ++s)
             {
                 _output_buffer[s] *= in_buffer[s];
             }
@@ -203,7 +204,7 @@ private:
 };
 
 /* General n to 1 control signal mixer, linear gain control */
-template <size_t channel_count>
+template <int channel_count>
 class ControlMixerBrick : public DspBrick
 {
 public:
@@ -227,7 +228,7 @@ public:
     void render() override
     {
         _output = 0.0f;
-        for (unsigned int i = 0; i < channel_count; ++i)
+        for (int i = 0; i < channel_count; ++i)
         {
             _output += _inputs[i].value() * _inputs[i + channel_count].value();
         }
@@ -240,7 +241,7 @@ private:
 
 
 /* General n to 1 control signal mixer without gain controls */
-template <size_t channel_count>
+template <int channel_count>
 class ControlSummerBrick : public DspBrick
 {
 public:
@@ -279,7 +280,7 @@ private:
 
 
 /* General n to 1 control signal multiplier */
-template <size_t channel_count>
+template <int channel_count>
 class ControlMultiplierBrick : public DspBrick
 {
 public:
@@ -317,7 +318,7 @@ private:
 };
 
 /* N to M control signal linear combinator. Useful för creating meta controllers/parameters */
-template <size_t input_count, size_t output_count, bool clamp_output = true>
+template <int input_count, int output_count, bool clamp_output = true>
 class MetaControlBrick : public DspBrick
 {
     using Matrix = std::array<std::array<float, output_count>, input_count>;
@@ -353,10 +354,10 @@ public:
     void render() override
     {
         _outputs.fill(0.0f);
-        for (unsigned int i = 0; i < input_count; ++i)
+        for (int i = 0; i < input_count; ++i)
         {
             float input = _inputs[i].value();
-            for (unsigned int j = 0; j < output_count; ++j)
+            for (int j = 0; j < output_count; ++j)
             {
                 _outputs[j] += input * _components[i][j];
             }

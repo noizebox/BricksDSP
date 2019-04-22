@@ -10,7 +10,7 @@ constexpr size_t VECTOR_ALIGNMENT = 32;
 
 /* Simple array wrapper class for data aligned for use with vector registers
  * as gcc doesn't seem to understand alignment in std::array  */
-template<typename value_type, size_t length>
+template<typename value_type, int length>
 class AlignedArray
 {
 public:
@@ -35,18 +35,18 @@ public:
     AlignedArray::const_iterator begin() const {return _data;}
     AlignedArray::const_iterator end() const {return _data + length;}
 
-    value_type operator [](size_t i) const
+    value_type operator [](int i) const
     {
         assert(i < length);
         return _data[i];
     }
-    value_type& operator [](size_t i)
+    value_type& operator [](int i)
     {
         assert(i < length);
         return _data[i];
     }
 
-    size_t size() const {return length;}
+    int size() const {return length;}
     value_type* data() {return _data;}
     const value_type* data() const {return _data;}
 

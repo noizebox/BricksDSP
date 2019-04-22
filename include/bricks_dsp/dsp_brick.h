@@ -13,7 +13,7 @@
 
 namespace bricks {
 
-constexpr size_t PROC_BLOCK_SIZE = DSP_BRICKS_BLOCK_SIZE;
+constexpr int PROC_BLOCK_SIZE = DSP_BRICKS_BLOCK_SIZE;
 
 constexpr float DEFAULT_SAMPLERATE = 44100;
 

@@ -64,7 +64,7 @@ void FmOscillatorBrick::render()
     {
         case Waveform::SAW:
         {
-            for (unsigned int i = 0; i < _buffer.size(); ++i)
+            for (int i = 0; i < _buffer.size(); ++i)
             {
                 phase += phase_inc * (1.0f + fm_mod[i]);
                 if (phase > 0.5)
@@ -75,7 +75,7 @@ void FmOscillatorBrick::render()
             break;
         case Waveform::PULSE:
         {
-            for (unsigned int i = 0; i < _buffer.size(); ++i)
+            for (int i = 0; i < _buffer.size(); ++i)
             {
                 phase += phase_inc * (1.0f + fm_mod[i]);
                 if (phase > 0.5)
@@ -88,7 +88,7 @@ void FmOscillatorBrick::render()
         case Waveform::TRIANGLE:
         {
             int dir = _tri_dir;
-            for (unsigned int i = 0; i < _buffer.size(); ++i)
+            for (int i = 0; i < _buffer.size(); ++i)
             {
                 phase += phase_inc * 2 * dir * (1.0f + fm_mod[i]);
                 if (phase > 0.5)
@@ -140,7 +140,7 @@ void WtOscillatorBrick::render()
     }
     assert(*table == 0.0f);
 
-    for (unsigned int i = 0; i < PROC_BLOCK_SIZE; ++i)
+    for (int i = 0; i < PROC_BLOCK_SIZE; ++i)
     {
         phase += phase_inc;
         if (phase > 1.0f)

@@ -59,7 +59,7 @@ inline float clamp(float x, float min, float max)
 }
 
 /* Linear interpolations over N samples */
-template <size_t length>
+template <int length>
 class LinearInterpolator
 {
 public:
@@ -85,7 +85,7 @@ private:
 };
 
 /* 1 pole filtering over N samples */
-template <size_t length>
+template <int length>
 class OnePoleLag
 {
 public:

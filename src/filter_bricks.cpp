@@ -200,7 +200,7 @@ void BiquadFilterBrick::render()
     }
 
     const AudioBuffer& in = _audio_in.buffer();
-    for (unsigned int i = 0; i < PROC_BLOCK_SIZE; ++i)
+    for (int i = 0; i < PROC_BLOCK_SIZE; ++i)
     {
         Coefficients coeff;
         for (size_t c = 0; c < coeff.size(); ++c)
@@ -240,7 +240,7 @@ void SVFFilterBrick::render()
 void FixedFilterBrick::render()
 {
     const AudioBuffer& in = _audio_in.buffer();
-    for (unsigned int i = 0; i < PROC_BLOCK_SIZE; ++i)
+    for (int i = 0; i < PROC_BLOCK_SIZE; ++i)
     {
         float w = in[i] - _coeff[A1] * _reg[Z1] - _coeff[A2] * _reg[Z2];
         _audio_out[i] = _coeff[B1] * _reg[Z1] + _coeff[B2] * _reg[Z2] + _coeff[B0] * w;
