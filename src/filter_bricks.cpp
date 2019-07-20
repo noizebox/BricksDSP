@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <cmath>
 
 #include "filter_bricks.h"
@@ -219,6 +220,7 @@ void SVFFilterBrick::render()
     /* From https://cytomic.com/files/dsp/SvfLinearTrapOptimised2.pdf */
     const AudioBuffer& in = _audio_in.buffer();
     float freq = 20 * powf(2.0f, _cutoff_ctrl.value() * 10.0f);
+    freq = std::clamp(freq, 20.0f, 18000.0f);
     float k = 2 - 2 * _res_ctrl.value();
     _g_lag.set(std::tan(static_cast<float>(M_PI) * freq / _samplerate));
     AudioBuffer g_lag = _g_lag.get_all();
@@ -233,7 +235,9 @@ void SVFFilterBrick::render()
         float v2 = _reg[1] + a2 * _reg[0] + a3 * v3;
         _reg[0] = 2.0f * v1 - _reg[0];
         _reg[1] = 2.0f * v2 - _reg[1];
-        _audio_out[i] = v2;
+        _lowpass_out[i] = v2;
+        _bandpass_out[i] = v1;
+        _highpass_out[i] = in[i] - k * v1 - v2;
     }
 }
 

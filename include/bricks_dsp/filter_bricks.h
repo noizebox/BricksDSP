@@ -73,7 +73,9 @@ public:
 
     enum AudioOutputs
     {
-        FILTER_OUT = 0,
+        LOWPASS = 0,
+        BANDPASS,
+        HIGHPASS,
         MAX_AUDIO_OUTS,
     };
 
@@ -83,7 +85,20 @@ public:
     const AudioBuffer& audio_output(int n) override
     {
         assert(n < MAX_AUDIO_OUTS);
-        return _audio_out;
+        switch (n)
+        {
+            case AudioOutputs::LOWPASS:
+                return _lowpass_out;
+
+            case AudioOutputs::BANDPASS:
+                return _bandpass_out;
+
+            case AudioOutputs::HIGHPASS:
+                return _highpass_out;
+
+            default:
+                return _lowpass_out;
+        }
     }
 
     void render() override;
@@ -92,7 +107,9 @@ protected:
     ControlPort     _cutoff_ctrl;
     ControlPort     _res_ctrl;
     AudioPort       _audio_in;
-    AudioBuffer     _audio_out;
+    AudioBuffer     _lowpass_out;
+    AudioBuffer     _bandpass_out;
+    AudioBuffer     _highpass_out;
     std::array<float ,2> _reg{0,0};
     ControlSmootherLinear _g_lag;
 };
