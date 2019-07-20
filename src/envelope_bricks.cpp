@@ -25,7 +25,7 @@ void AudioRateADSRBrick::render()
     float decay_factor = std::max((1.0f - _controls[SUSTAIN].value()) / (_samplerate * _controls[DECAY].value()), SHORTEST_ENVELOPE_TIME);
     float sustain_level = _controls[SUSTAIN].value();
     float release_factor = std::max(_controls[SUSTAIN].value() / (_samplerate * _controls[RELEASE].value()), SHORTEST_ENVELOPE_TIME);
-    // TODO - Perhaps the release factor needs scaling if the envelope goes direcly to release from attack or decay, see Apollo code
+    // TODO - Perhaps the release factor needs scaling if the envelope goes direcly to amp_release from attack or decay, see Apollo code
 
     for (auto& sample : _envelope)
     {

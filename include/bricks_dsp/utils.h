@@ -16,7 +16,7 @@ inline bool control_to_bool(float v)
 /* Map a float in range [0, 1] to a given, linear, integer range */
 inline int control_to_range(float v, int min_range, int max_range)
 {
-    return std::round(v * (max_range - min_range) - min_range);
+    return std::round(v * (max_range - min_range) + min_range);
 }
 
 /* Map a midi note number to a float in the range [0, 1] where 0.0 is

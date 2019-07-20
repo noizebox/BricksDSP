@@ -17,7 +17,6 @@ constexpr int PROC_BLOCK_SIZE = DSP_BRICKS_BLOCK_SIZE;
 
 constexpr float DEFAULT_SAMPLERATE = 44100;
 
-//typedef std::array<float, PROC_BLOCK_SIZE> AudioBuffer;
 typedef AlignedArray<float, PROC_BLOCK_SIZE> AudioBuffer;
 
 /* Thin wrappers around control and audio ports */

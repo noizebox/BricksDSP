@@ -22,6 +22,23 @@ TEST(NoteToControl, TestOperation)
     EXPECT_FLOAT_EQ((69 - 36) / 120.0f, control - control2);
 }
 
+TEST(ControlToBool, TestOperation)
+{
+    EXPECT_TRUE(control_to_bool(0.7f));
+    EXPECT_TRUE(control_to_bool(14.0f));
+    EXPECT_FALSE(control_to_bool(0.25f));
+    EXPECT_FALSE(control_to_bool(-1.280f));
+}
+
+TEST(ControlToRange, TestOperation)
+{
+    EXPECT_EQ(3, control_to_range(0.3, 0, 10));
+    EXPECT_EQ(0, control_to_range(0.5f, -12, 12));
+    EXPECT_EQ(5, control_to_range(1.0f, -5, 5));
+    EXPECT_EQ(-10, control_to_range(0.0f, -10, 100));
+    EXPECT_EQ(-50, control_to_range(0.25, -75, 25));
+}
+
 
 TEST(LinearInterpolatorTest, TestOperation)
 {
