@@ -70,11 +70,10 @@ public:
     AlignedArray<float, length> get_all()
     {
         AlignedArray<float, length> values;
-        for (int i = 0; i < static_cast<int>(length); ++i)
+        for (auto& v : values)
         {
-            values[i] = _lag + (i + 1) * _step;
+            v = this->get();
         }
-        _lag = _step * length;
         return values;
     };
 
