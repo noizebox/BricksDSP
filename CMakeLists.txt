@@ -8,7 +8,8 @@ set(BRICKS_BLOCK_SIZE 32 CACHE STRING "Internal processing block size")
 set(SOURCE_FILES src/envelope_bricks.cpp
                  src/filter_bricks.cpp
                  src/modulator_bricks.cpp
-                 src/oscillator_bricks.cpp)
+                 src/oscillator_bricks.cpp
+                 src/random_device.cpp)
 
 # Include headers separately, mostly for CLion convenience
 set(SOURCE_HEADERS  include/bricks_dsp/dsp_brick.h
@@ -17,7 +18,8 @@ set(SOURCE_HEADERS  include/bricks_dsp/dsp_brick.h
                     include/bricks_dsp/filter_bricks.h
                     include/bricks_dsp/modulator_bricks.h
                     include/bricks_dsp/oscillator_bricks.h
-                    include/bricks_dsp/aligned_array.h)
+                    include/bricks_dsp/aligned_array.h
+                    include/bricks_dsp/random_device.h)
 
 set(SOURCE_FILES "${SOURCE_FILES}" "${SOURCE_HEADERS}")
 

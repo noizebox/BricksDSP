@@ -1,6 +1,5 @@
 #ifndef BRICKS_DSP_UTILS_H
 #define BRICKS_DSP_UTILS_H
-
 #include <cmath>
 
 #include "aligned_array.h"
@@ -21,7 +20,7 @@ inline int control_to_range(float v, int min_range, int max_range)
 
 /* Map a midi note number to a float in the range [0, 1] where 0.0 is
  * 20 hz and scales with 0.1 / octave */
-inline float note_to_control(int midi_note)
+inline constexpr float note_to_control(int midi_note)
 {
     constexpr float SEMITONES_IN_RANGE = 120.0f;
     constexpr float SHIFT_FACTOR = 15.486822;

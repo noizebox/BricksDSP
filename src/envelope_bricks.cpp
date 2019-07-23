@@ -197,6 +197,7 @@ void AudioADSREnvelopeBrick::render()
     }
 }
 
+
 void LfoBrick::render()
 {
     float base_freq = LOWEST_LFO_SPEED * powf(2.0f, _rate_port.value() * 10.0f);
@@ -218,7 +219,6 @@ void LfoBrick::render()
             _level = std::signbit(phase) ? 0.5f : -0.5f;
             break;
 
-        case Waveform::SINE:
         case Waveform::TRIANGLE:
             phase += phase_inc * _tri_dir * 2.0f;
             if (std::abs(phase) > 0.5)
@@ -226,7 +226,50 @@ void LfoBrick::render()
                 _tri_dir = _tri_dir * -1;
             }
             _level = phase;
+            break;
+
+        case Waveform::SINE:
+            phase += phase_inc;
+            if (phase > 0.5)
+                phase -= 1;
+            _level = std::sin(phase * 2.0f * static_cast<float>(M_PI));
+            break;
+
+        case Waveform::SAMPLE_HOLD:
+            phase += phase_inc;
+            if (phase > 0.5)
+            {
+                phase -= 1;
+                _level = _rand_device.get_norm();
+            }
+
+        case Waveform::NOISE:
+            _level = _rand_device.get_norm();
+            break;
+
+        case Waveform::RANDOM:
+            float out = _rand_device.get_norm() * 100;
+            _level = out = (1.0f - 0.9997f) * out + 0.9997f * _level;
+            break;
     }
     _phase = phase;
+}
+
+void SineLfoBrick::render()
+{
+    // TODO - Cheaper power function
+    float base_freq = 2.0f * static_cast<float>(M_PI) * LOWEST_LFO_SPEED * powf(2.0f, _rate_port.value() * 10.0f);
+    _phase += base_freq * PROC_BLOCK_SIZE / _samplerate;
+    _level = std::sin(_phase);
+    if (_phase > 2 * M_PI)
+    {
+        _phase -= 1.0f;
+    }
+}
+
+void RandLfoBrick::set_samplerate(float samplerate)
+{
+    DspBrick::set_samplerate(samplerate);
+    _coeff_a0 = std::exp(-2.0f * static_cast<float>(M_PI) * LP_CUTOFF / (_samplerate / PROC_BLOCK_SIZE));
 }
 } // namespace bricks

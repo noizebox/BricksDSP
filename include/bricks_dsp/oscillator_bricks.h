@@ -4,6 +4,7 @@
 #include <cassert>
 
 #include "dsp_brick.h"
+#include "random_device.h"
 
 namespace bricks {
 
@@ -123,6 +124,45 @@ private:
     float               _phase{0};
     Waveform            _waveform{Waveform::SAW};
     AudioBuffer         _buffer;
+};
+
+/* Noise generator with 3 levels of lp filtering */
+class NoiseGeneratorBrick : public DspBrick
+{
+public:
+    enum class Waveform
+    {
+        WHITE,
+        PINK,
+        BROWN
+    };
+
+    enum AudioOutputs
+    {
+        NOISE_OUT = 0,
+        MAX_AUDIO_OUTS,
+    };
+
+    NoiseGeneratorBrick() = default;
+
+    const AudioBuffer& audio_output(int n) override
+    {
+        assert(n < MAX_AUDIO_OUTS);
+        return _buffer;
+    }
+
+    void set_waveform(Waveform waveform) {_waveform = waveform;}
+
+    void set_samplerate(float samplerate) override;
+
+    void render() override;
+
+private:
+    float               _pink_coeff_a0;
+    float               _brown_coeff_a0;
+    RandomDevice        _rand_device;
+    Waveform            _waveform{Waveform::WHITE};
+    AudioBuffer         _buffer{0.0f};
 };
 
 }// namespace bricks

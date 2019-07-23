@@ -3,6 +3,7 @@
 
 #include "bricks_dsp/dsp_brick.h"
 #include "bricks_dsp/utils.h"
+#include "random_device.cpp"
 
 using namespace bricks;
 
@@ -69,4 +70,26 @@ TEST(OnePoleLagTest, TestOperation)
     /* Check that it is at least 90% of the way towards the value */
     ASSERT_NEAR(2.0f, buffer[PROC_BLOCK_SIZE - 1], 0.2f);
     ASSERT_GT(buffer[PROC_BLOCK_SIZE / 2 - 1], 1.0f);
+}
+
+TEST(RandomDeviceTest, TestOperation)
+{
+    RandomDevice module_under_test;
+    auto na = module_under_test.get_norm();
+    auto nb = module_under_test.get_norm();
+    EXPECT_NE(na, nb);
+    EXPECT_GE(na, -1.0f);
+    EXPECT_LE(na, 1.0f);
+    EXPECT_GE(nb, -1.0f);
+    EXPECT_LE(nb, 1.0f);
+}
+
+TEST(RandomDeviceTest, TestUniquenes)
+{
+    RandomDevice dev_a;
+    RandomDevice dev_b;
+    for (int i = 0; i < 5; ++i)
+    {
+        EXPECT_NE(dev_a.get_norm(), dev_b.get_norm());
+    }
 }

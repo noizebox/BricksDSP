@@ -2,6 +2,8 @@
 #define BRICKS_DSP_ENVELOPE_BRICKS_H
 
 #include "dsp_brick.h"
+#include "random_device.h"
+
 namespace bricks {
 
 /* Linear slope ADSR envelope generated at audio rate */
@@ -168,7 +170,10 @@ public:
         SAW,
         PULSE,
         TRIANGLE,
-        SINE
+        SINE,
+        SAMPLE_HOLD, // Sampled noise
+        NOISE,       // White noise
+        RANDOM,      // lp filtered noise
     };
 
     enum ControlOutputs
@@ -195,8 +200,72 @@ private:
     float          _level{0};
     Waveform       _waveform{Waveform::TRIANGLE};
     int            _tri_dir{1};
+    RandomDevice   _rand_device;
 };
 
+/* Optimised LFO with only sine as waveform */
+class SineLfoBrick : public DspBrick
+{
+public:
+    enum ControlOutputs
+    {
+        LFO_OUT = 0,
+        MAX_CONTROL_OUTS,
+    };
+
+    SineLfoBrick(ControlPort rate) : _rate_port(rate) {}
+
+    const float& control_output(int n) override
+    {
+        assert(n < MAX_CONTROL_OUTS);
+        return _level;
+    }
+
+    void render() override;
+
+private:
+    ControlPort _rate_port;
+    float       _phase{0};
+    float       _level{0};
+};
+
+/* Optimised low frequency random generation */
+class RandLfoBrick : public DspBrick
+{
+public:
+    enum ControlOutputs
+    {
+        RAND_OUT = 0,
+        MAX_CONTROL_OUTS,
+    };
+
+    RandLfoBrick(ControlPort rate) : _rate_port(rate) {}
+
+    const float& control_output(int n) override
+    {
+        assert(n < MAX_CONTROL_OUTS);
+        return _level;
+    }
+
+    void set_samplerate(float samplerate) override;
+
+    void render() override
+    {
+        float out = _rand_device.get_norm() * GAIN_COMP;
+        _level = (1.0f - _coeff_a0) * out + _coeff_a0 * _level;
+    }
+
+    static constexpr float LP_CUTOFF = 0.05f;
+    static constexpr float GAIN_COMP = 100.0f;
+private:
+
+    ControlPort _rate_port;
+    float       _phase{0};
+    float       _level{0};
+    float       _coeff_a0{0};
+
+    RandomDevice _rand_device;
+};
 }// namespace bricks
 
 #endif //BRICKS_DSP_ENVELOPE_BRICKS_H

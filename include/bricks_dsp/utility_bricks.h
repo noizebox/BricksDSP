@@ -43,7 +43,7 @@ public:
             _gain_lag.set(to_db_approx(_gain_port.value()));
         }
         AudioBuffer gain = _gain_lag.get_all();
-        for (size_t s = 0; s < _audio_buffer.size(); ++s)
+        for (int s = 0; s < _audio_buffer.size(); ++s)
         {
             _audio_buffer[s] = _audio_in[s] * gain[s];
         }

@@ -5,6 +5,8 @@
 
 using namespace bricks;
 
+constexpr float TEST_SAMPLERATE = 44100;
+
 class AudioRateAdsrEnvelopeBrickTest : public ::testing::Test
 {
 protected:
@@ -126,4 +128,31 @@ TEST_F(LfoBrickTest, OperationalTest)
 
     ASSERT_LT(out.value(), 0.5f);
     ASSERT_GT(out.value(), -0.5f);
+}
+
+
+class RandLfoBrickTest : public ::testing::Test
+{
+protected:
+    RandLfoBrickTest() {}
+
+    void SetUp()
+    {
+        _test_module.set_samplerate(TEST_SAMPLERATE);
+    }
+    float _rate{1};
+    RandLfoBrick    _test_module{_rate};
+};
+
+TEST_F(RandLfoBrickTest, OperationalTest)
+{
+    auto& out = _test_module.control_output(RandLfoBrick::RAND_OUT);
+    for (int i = 0 ; i < 20; ++i)
+    {
+        _test_module.render();
+        EXPECT_NE(0.0f, out);
+        EXPECT_GT(out, -1.0f);
+        EXPECT_LT(out, 1.0f);
+
+    }
 }

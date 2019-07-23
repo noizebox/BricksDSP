@@ -155,4 +155,44 @@ void WtOscillatorBrick::render()
     _phase = phase;
 }
 
+constexpr float PINK_CUTOFF_FREQ = 100;
+constexpr float PINK_GAIN_CORR = 4.0f;
+constexpr float BROWN_CUTOFF_FREQ = 0.03;
+constexpr float BROWN_GAIN_CORR = 50.0f;
+
+void NoiseGeneratorBrick::render()
+{
+    for (auto& s : _buffer)
+    {
+        s = _rand_device.get_norm();
+    }
+    if (_waveform == Waveform::PINK)
+    {
+        float hist = _buffer[PROC_BLOCK_SIZE - 1];
+        for (auto& s : _buffer)
+        {
+            s *= PINK_GAIN_CORR;
+            s = (1.0f - _pink_coeff_a0) * s + _pink_coeff_a0 * hist;
+            hist = s;
+        }
+    }
+    if (_waveform == Waveform::BROWN)
+    {
+        float hist = _buffer[PROC_BLOCK_SIZE - 1];
+        for (auto& s : _buffer)
+        {
+            s *= BROWN_GAIN_CORR;
+            s = (1.0f - _brown_coeff_a0) * s + _brown_coeff_a0 * hist;
+            hist = s;
+        }
+    }
+}
+
+void NoiseGeneratorBrick::set_samplerate(float samplerate)
+{
+    DspBrick::set_samplerate(samplerate);
+    _pink_coeff_a0 = std::exp(-2.0f * M_PI * PINK_CUTOFF_FREQ / _samplerate );
+    _brown_coeff_a0 = std::exp(-2.0f * M_PI * BROWN_CUTOFF_FREQ / _samplerate );
+}
+
 } // namespace bricks
