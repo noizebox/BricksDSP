@@ -109,8 +109,8 @@ static constexpr float COEFF_A0 = std::exp(-1.0f * TIMECONSTANTS_PER_BLOCK / len
 static constexpr float COEFF_B0 = 1 - COEFF_A0;
 #endif
 #ifdef WINDOWS
-static const float COEFF_A0 = std::exp(-1.0f * TIMECONSTANTS_PER_BLOCK / length);
-static const float COEFF_B0 = 1 - COEFF_A0;
+static inline const float COEFF_A0 = std::exp(-1.0f * TIMECONSTANTS_PER_BLOCK / length);
+static inline const float COEFF_B0 = 1 - COEFF_A0;
 #endif
 
     float _target{0};

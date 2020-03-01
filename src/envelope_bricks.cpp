@@ -105,7 +105,7 @@ void LinearADSREnvelopeBrick::render()
         {
             float decay_time = _controls[DECAY].value();
             float sustain_level = _controls[SUSTAIN].value();
-            level -= decay_time > 0 ? sustain_level * PROC_BLOCK_SIZE / (_samplerate * decay_time) : 0;
+            level -= decay_time > 0 ? sustain_level * PROC_BLOCK_SIZE / (_samplerate * decay_time) : 0.0f;
             if (level <= sustain_level)
             {
                 _state = EnvelopeState::SUSTAIN;
@@ -124,7 +124,7 @@ void LinearADSREnvelopeBrick::render()
         {
             float release_time = _controls[RELEASE].value();
             float sustain_level = _controls[SUSTAIN].value();
-            level -= release_time > 0 ? sustain_level * PROC_BLOCK_SIZE / (_samplerate * release_time) : 0;
+            level -= release_time > 0 ? sustain_level * PROC_BLOCK_SIZE / (_samplerate * release_time) : sustain_level;
             if (level <= 0.0f)
             {
                 _state = EnvelopeState::OFF;

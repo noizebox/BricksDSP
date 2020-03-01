@@ -4,7 +4,7 @@
 #include "dsp_brick.h"
 namespace bricks {
 
-constexpr float DEFAULT_Q = 1 / sqrtf(2.0f);
+constexpr float DEFAULT_Q = 1 / 1.42f; //sqrtf(2.0f);
 
 /* Standard Biquad */
 class BiquadFilterBrick : public DspBrick

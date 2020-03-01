@@ -147,8 +147,9 @@ void WtOscillatorBrick::render()
             phase -= 1.0f;
         float pos = phase * table_len;
         int first = static_cast<int>(pos);
+        //int len = static_cast<int>(table_len);
         float weight = pos - std::floor(pos);
-        float sample = table[first] * (1.0f - weight) + table[first + 1] * weight;
+        float sample = table[first] + weight * (table[first + 1] - table[first]);
         //float sample = cubic_herm_int(table[(first-1)%len],table[first], table[first+1], table[(first+2)%len], weight);
         _buffer[i] = sample;
     }
@@ -190,9 +191,9 @@ void NoiseGeneratorBrick::render()
 
 void NoiseGeneratorBrick::set_samplerate(float samplerate)
 {
+    _pink_coeff_a0 = std::exp(-2.0f * M_PI * PINK_CUTOFF_FREQ / samplerate);
+    _brown_coeff_a0 = std::exp(-2.0f * M_PI * BROWN_CUTOFF_FREQ / samplerate);
     DspBrick::set_samplerate(samplerate);
-    _pink_coeff_a0 = std::exp(-2.0f * M_PI * PINK_CUTOFF_FREQ / _samplerate );
-    _brown_coeff_a0 = std::exp(-2.0f * M_PI * BROWN_CUTOFF_FREQ / _samplerate );
 }
 
 } // namespace bricks
