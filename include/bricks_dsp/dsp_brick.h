@@ -38,12 +38,12 @@ class AudioPort
 public:
     AudioPort() = delete;
 
-    AudioPort(const AudioBuffer& data) : _data(data) {}
+    AudioPort(const AudioBuffer& data) : _data(&data) {}
 
-    const AudioBuffer& buffer() const {return _data;}
+    const AudioBuffer& buffer() const {return *_data;}
 
 private:
-    const AudioBuffer& _data;
+    const AudioBuffer* _data;
 };
 
 /*
