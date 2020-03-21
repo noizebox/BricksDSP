@@ -65,36 +65,31 @@ int main ()
     float _pitch_fact = 1;
     float _fm_mod = 0;
     float _pwm = 0.5;
-    float _gain = 0.0f;
+    float _gain = 0.7f;
+    float _clip_level = 3.2f;
     //float pwm = 0.0;
     WtOscillatorBrick           _osc{_pitch};
-    VcaBrick<Response::LINEAR>  _mod{_fm_mod, _osc.audio_output(OscillatorBrick::OSC_OUT)};
-    WtModOscillatorBrick        _mod_osc{_pitch2, _pwm, _dummy, _mod.audio_output(VcaBrick<Response::LINEAR>::VCA_OUT)};
-    VcaBrick<Response::LINEAR>  _vol{_gain, _mod_osc.audio_output(WtModOscillatorBrick::OSC_OUT)};
-    _mod_osc.set_waveform(WtModOscillatorBrick::Waveform::PULSE);
+    AASaturationBrick<ClipType::HARD>   _clipper{_clip_level, _osc.audio_output(0)};
+    VcaBrick<Response::LINEAR>  _vca{_gain, _clipper.audio_output(0)};
+    const AudioBuffer& out =    _vca.audio_output(0);
 
-    const AudioBuffer& out = _vol.audio_output(0);
-
+    _osc.set_waveform(WtOscillatorBrick::Waveform::SINE);
     int samplecount = 0;
     int max_samples = SECONDS_TO_RENDER * EXAMPLE_SAMPLERATE;
     while (samplecount < max_samples)
     {
         auto start_time = std::chrono::high_resolution_clock::now();
         _pitch = static_cast<float_t>(samplecount) / max_samples;
-        /*gain = gain + 0.00007f;
-        test_brick.render();
-        gain_brick.render();*/
 
         _osc.render();
-        _mod.render();
-        _mod_osc.render();
-        _vol.render();
+        _clipper.render();
+        _vca.render();
 
         auto stop_time = std::chrono::high_resolution_clock::now();
         timing_records.push_back(stop_time - start_time);
         sf_writef_float(output_file, out.data(), PROC_BLOCK_SIZE);
         samplecount += PROC_BLOCK_SIZE;
-        std::this_thread::sleep_for(std::chrono::microseconds(500));
+        //std::this_thread::sleep_for(std::chrono::microseconds(500));
     }
 
     print_timings(timing_records);

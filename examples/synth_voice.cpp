@@ -14,7 +14,7 @@ using namespace bricks;
 /* Short example of how to combine a few bricks into a synth voice and
  * rendering a few seconds of audio to disk */
 constexpr float CLIP_LEVEL = 1.4f;
-constexpr float VOLUME = 0.8f;
+constexpr float VOLUME = 1.8f;
 
 class Voice
 {
@@ -22,6 +22,7 @@ public:
     Voice()
     {
         _osc.set_waveform(WtOscillatorBrick::Waveform::SAW);
+        _osc2.set_waveform(WtOscillatorBrick::Waveform::SAW);
     }
 
     const AudioBuffer& render()
@@ -39,27 +40,31 @@ public:
     void note_off() {_env.gate(false);}
 
 private:
-    float _attack{.7f};
-    float _decay{0.3f};
+    float _attack{.0f};
+    float _decay{1.6f};
     float _sustain{0.3f};
-    float _release{0.6f};
+    float _release{1.6f};
     float _rate{0.3f};
-    float _pitch{0.35f}; /* in 0.1 / octave on a range from 20 to 20kHz */
+    float _pitch{0.20f}; /* in 0.1 / octave on a range from 20 to 20kHz */
+    float _pitch_2{_pitch + 0.001f};
     float _cutoff{0.6};
-    float _res{0.9f};
-    float _clip{0.5f};
+    float _res{0.97f};
+    float _clip{0.2f};
+    float _gain{1.0f};
 
 
     LfoBrick                    _lfo{_rate};
     AudioADSREnvelopeBrick      _env{_attack, _decay, _sustain, _release};
     WtOscillatorBrick           _osc{_pitch};
-    SVFFilterBrick              _filt{_cutoff, _res, _osc.audio_output(OscillatorBrick::OSC_OUT)};
-    SaturationBrick             _dist{CLIP_LEVEL, _filt.audio_output(BiquadFilterBrick::FILTER_OUT)};
+    WtOscillatorBrick           _osc2{_pitch_2};
+    AudioSummerBrick<2>         _mixer{_osc.audio_output(WtOscillatorBrick::OSC_OUT), _osc2.audio_output(WtOscillatorBrick::OSC_OUT)};
+    SVFFilterBrick              _filt{_env.control_output(0), _res, _mixer.audio_output(AudioSummerBrick<2>::SUM_OUT)};
+    AASaturationBrick             _dist{_clip, _filt.audio_output(BiquadFilterBrick::FILTER_OUT)};
     ControlMultiplierBrick<2>   _amp_level{VOLUME, _env.control_output(LinearADSREnvelopeBrick::ENV_OUT)};
     VcaBrick<Response::LINEAR>  _amp{_amp_level.control_output(ControlMultiplierBrick<2>::MULT_OUT), _dist.audio_output(BiquadFilterBrick::FILTER_OUT)};
 
     /* The order of creation automatically becomes a valid process order */
-    std::vector<DspBrick*> _audio_graph{&_lfo, &_env, &_osc, &_filt, &_dist, &_amp_level, &_amp};
+    std::vector<DspBrick*> _audio_graph{&_lfo, &_env, &_osc, &_osc2, &_mixer, &_filt, &_dist, &_amp_level, &_amp};
 };
 
 
