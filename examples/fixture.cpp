@@ -69,7 +69,7 @@ int main ()
     float _clip_level = 3.2f;
     //float pwm = 0.0;
     WtOscillatorBrick           _osc{_pitch};
-    AASaturationBrick<ClipType::HARD>   _clipper{_clip_level, _osc.audio_output(0)};
+    SaturationBrick   _clipper{_clip_level, _osc.audio_output(0)};
     VcaBrick<Response::LINEAR>  _vca{_gain, _clipper.audio_output(0)};
     const AudioBuffer& out =    _vca.audio_output(0);
 

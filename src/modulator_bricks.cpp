@@ -11,8 +11,7 @@ inline float tanh_approx(const float& x)
     return x * (27.0f + x * x) / (27.0f + 9.0f * x * x);
 }
 
-
-inline double tanh_int(const double& x)
+inline double tanh_antiderivative(const double& x)
 {
     return std::log(std::cosh(x));
     //return 14.0f / 9.0f * std::log(std::abs(9 * x * x + 27));
@@ -48,46 +47,54 @@ inline float clip_antiderivate(const float& x)
 void SaturationBrick::render()
 {
     const AudioBuffer& in = _audio_in.buffer();
-    float comp = _clip_ctrl.value();
-    float clip_level = 1.0f / _clip_ctrl.value();
+    float gain = _gain.value();
     for (int i = 0; i < PROC_BLOCK_SIZE; ++i)
     {
-        float x = in[i];
-        //x = clamp(x, -3.0f, 3.0f);
-        _audio_out[i] = comp * sigm(x);
+        float x = in[i] * gain;
+        x = clamp(x, -3.0f, 3.0f);
+        _audio_out[i] = tanh_approx(x);
     }
 }
 
-template <ClipType clip_type>
+template <ClipType type>
 void render_saturation_aa(const AudioBuffer& in, AudioBuffer& out, float gain, float& prev_F1, float& prev_x)
 {
     float F1_1 = prev_F1;
     float x_1 = prev_x;
+    constexpr float STATIONARY_TH = 0.0002f;
 
-    constexpr float EPS = 0.0002f;
     for (int i = 0; i < PROC_BLOCK_SIZE; ++i)
     {
         float x = in[i] * gain;
         float F1;
+        float y;
 
-        if constexpr (clip_type == ClipType::SOFT)
+        if constexpr (type == ClipType::SOFT)
         {
             F1 = sigm_antiderivative(x);
         }
-        else if (clip_type == ClipType::HARD)
+        else if (type == ClipType::HARD)
         {
             F1 = clip_antiderivate(x);
         }
 
         // For numerical stability if x is (almost) stationary
-        if (std::abs(x - x_1) > EPS)
+        if (std::abs(x - x_1) > STATIONARY_TH)
         {
-            out[i] = (F1 - F1_1) / (x - x_1);
+            y = (F1 - F1_1) / (x - x_1);
         }
         else
         {
-            out[i] = sigm(x);
+            if constexpr (type == ClipType::SOFT)
+            {
+                y = sigm(x);
+            }
+            else if (type == ClipType::HARD)
+            {
+                y = std::clamp(x, -1.0f, 1.0f);
+            }
         }
+        out[i] = y;
         F1_1 = F1;
         x_1 = x;
     }

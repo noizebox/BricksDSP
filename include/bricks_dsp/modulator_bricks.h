@@ -20,8 +20,8 @@ public:
         MAX_AUDIO_OUTS,
     };
 
-    SaturationBrick(ControlPort clip_level, AudioPort audio_in) : _clip_ctrl(clip_level),
-                                                                  _audio_in(audio_in) {}
+    SaturationBrick(ControlPort gain, AudioPort audio_in) : _gain(gain),
+                                                            _audio_in(audio_in) {}
 
     const AudioBuffer& audio_output(int n) override
     {
@@ -32,7 +32,7 @@ public:
     void render() override;
 
 protected:
-    ControlPort     _clip_ctrl;
+    ControlPort     _gain;
     AudioPort       _audio_in;
     AudioBuffer     _audio_out;
 };

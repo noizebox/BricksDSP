@@ -4,10 +4,10 @@
 
 using namespace bricks;
 
-class AudioSaturationBrickTest : public ::testing::Test
+class SaturationBrickTest : public ::testing::Test
 {
 protected:
-    AudioSaturationBrickTest() {}
+    SaturationBrickTest() {}
 
     void SetUp()
     {
@@ -20,7 +20,7 @@ protected:
     const AudioBuffer&   _out_buffer{_test_module.audio_output(SaturationBrick::CLIP_OUT)};
 };
 
-TEST_F(AudioSaturationBrickTest, OperationTest)
+TEST_F(SaturationBrickTest, OperationTest)
 {
     _clip_level = 1;
     _test_module.render();
@@ -29,13 +29,48 @@ TEST_F(AudioSaturationBrickTest, OperationTest)
         ASSERT_LT(sample, 1.0f);
         ASSERT_GT(sample, -1.0f);
     }
-    /* Lower the clip level until it starts affecting the waveshape */
-    _clip_level = 0.2;
+    /* Raise the gain until it starts affecting the waveshape */
+    _clip_level = 2;
     _test_module.render();
     for (auto sample : _out_buffer)
     {
-        ASSERT_LT(sample, 0.3f);
-        ASSERT_GT(sample, -0.3f);
+        ASSERT_LT(sample, 1.5f);
+        ASSERT_GT(sample, -1.5f);
+    }
+}
+
+class AASaturationBrickTest : public ::testing::Test
+{
+protected:
+    AASaturationBrickTest() {}
+
+    void SetUp()
+    {
+        make_test_sq_wave(_buffer);
+    }
+
+    AudioBuffer                       _buffer;
+    float                             _gain;
+    AASaturationBrick<ClipType::HARD> _test_module{_gain, _buffer};
+    const AudioBuffer&                _out_buffer{_test_module.audio_output(AASaturationBrick<ClipType::HARD>::CLIP_OUT)};
+};
+
+TEST_F(AASaturationBrickTest, OperationTest)
+{
+    _gain = 1;
+    _test_module.render();
+    for (auto sample : _out_buffer)
+    {
+        ASSERT_LT(sample, 1.0f);
+        ASSERT_GT(sample, -1.0f);
+    }
+    /* Raise the gain until it starts affecting the waveshape */
+    _gain = 2;
+    _test_module.render();
+    for (auto sample : _out_buffer)
+    {
+        ASSERT_LT(sample, 1.5f);
+        ASSERT_GT(sample, -1.5f);
     }
 }
 
