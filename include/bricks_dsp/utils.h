@@ -41,9 +41,9 @@ inline float to_db_approx(float lin)
     return lin * lin * lin;
 }
 
-
 /* clamp/clip a value between min and max. With -ffast-math this seems to
- * compile to branchless and very efficent code for use on an audio buffer */
+ * compile to branchless and very efficient code for use on an audio buffer
+ * Same as std::clamp, but faster with clang for some weird reason */
 inline float clamp(const float& x, const float& min, const float& max)
 {
     if (x > max)
