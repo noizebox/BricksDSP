@@ -44,15 +44,15 @@ inline float to_db_approx(float lin)
 
 /* clamp/clip a value between min and max. With -ffast-math this seems to
  * compile to branchless and very efficent code for use on an audio buffer */
-inline float clamp(float x, float min, float max)
+inline float clamp(const float& x, const float& min, const float& max)
 {
     if (x > max)
     {
-        x = max;
+        return max;
     }
     if (x < min)
     {
-        x = min;
+        return min;
     }
     return x;
 }

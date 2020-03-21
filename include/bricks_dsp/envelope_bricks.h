@@ -257,8 +257,8 @@ public:
 
     static constexpr float LP_CUTOFF = 0.05f;
     static constexpr float GAIN_COMP = 100.0f;
-private:
 
+private:
     ControlPort _rate_port;
     float       _phase{0};
     float       _level{0};

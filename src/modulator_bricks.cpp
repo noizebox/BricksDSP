@@ -5,7 +5,7 @@
 
 namespace bricks {
 
-// Pade approximation of tanh, valid within [-3, 3]
+/* Pade approximation of tanh, valid within [-3, 3] */
 inline float tanh_approx(const float& x)
 {
     return x * (27.0f + x * x) / (27.0f + 9.0f * x * x);
@@ -17,20 +17,21 @@ inline double tanh_antiderivative(const double& x)
     //return 14.0f / 9.0f * std::log(std::abs(9 * x * x + 27));
 }
 
-// One of the computationally cheapest soft clipping functions
+/* One of the computationally cheapest soft clipping functions */
 inline float sigm(const float& x)
 {
     return x / std::sqrt(1 + x * x);
 }
 
-// Integral of the above sigmoid clipping function
+/* Integral of the above sigmoid clipping function */
 inline float sigm_antiderivative(const float& x)
 {
     // Todo -  verify if this is the correct integral of sigm()
     return std::sqrt(1 + x * x);
 }
 
-// Primitive function of a rectangular clip function that is 1 for x > 1, -1 for x < -1 and x otherwise
+/* Primitive function of a rectangular clip function
+ * that is 1 for x > 1, -1 for x < -1 and x otherwise */
 inline float clip_antiderivate(const float& x)
 {
     if (x >= 1)
@@ -70,7 +71,7 @@ void SaturationBrick<ClipType::HARD>::render()
 }
 
 template <ClipType type>
-void render_saturation_aa(const AudioBuffer& in, AudioBuffer& out, float gain, float& prev_F1, float& prev_x)
+void render_aa_clipping(const AudioBuffer& in, AudioBuffer& out, float gain, float& prev_F1, float& prev_x)
 {
     float F1_1 = prev_F1;
     float x_1 = prev_x;
@@ -104,7 +105,7 @@ void render_saturation_aa(const AudioBuffer& in, AudioBuffer& out, float gain, f
             }
             else if (type == ClipType::HARD)
             {
-                y = std::clamp(x, -1.0f, 1.0f);
+                y = clamp(x, -1.0f, 1.0f);
             }
         }
         out[i] = y;
@@ -119,14 +120,14 @@ template <>
 void AASaturationBrick<ClipType::SOFT>::render()
 {
     float gain = _gain.value();
-    render_saturation_aa<ClipType::SOFT>(_audio_in.buffer(), _audio_out, gain, _prev_F1, _prev_x);
+    render_aa_clipping<ClipType::SOFT>(_audio_in.buffer(), _audio_out, gain, _prev_F1, _prev_x);
 }
 
 template <>
 void AASaturationBrick<ClipType::HARD>::render()
 {
     float gain = _gain.value();
-    render_saturation_aa<ClipType::HARD> (_audio_in.buffer(), _audio_out, gain, _prev_F1, _prev_x);
+    render_aa_clipping<ClipType::HARD>(_audio_in.buffer(), _audio_out, gain, _prev_F1, _prev_x);
 }
 
 void UnitDelayBrick::render()

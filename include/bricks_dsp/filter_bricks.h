@@ -48,7 +48,7 @@ public:
 
     void reset() {_reg = {0, 0};}
 
-protected:
+private:
     ControlPort     _cutoff_ctrl;
     ControlPort     _res_q_ctrl;
     ControlPort     _gain_ctrl;
@@ -80,7 +80,7 @@ public:
     };
 
     SVFFilterBrick(ControlPort cutoff, ControlPort resonance, AudioPort audio_in) :
-            _cutoff_ctrl(cutoff), _res_ctrl(resonance), _audio_in(audio_in) {}
+                   _cutoff_ctrl(cutoff), _res_ctrl(resonance), _audio_in(audio_in) {}
 
     const AudioBuffer& audio_output(int n) override
     {
@@ -103,7 +103,7 @@ public:
 
     void render() override;
 
-protected:
+private:
     ControlPort     _cutoff_ctrl;
     ControlPort     _res_ctrl;
     AudioPort       _audio_in;
@@ -148,7 +148,7 @@ public:
     void set_highshelf(float freq, float gain, float slope = DEFAULT_Q, bool clear = true);
     void reset() {_reg = {0, 0}; }
 
-protected:
+private:
     AudioPort            _audio_in;
     std::array<float, 5> _coeff{0,0,0,0,0};
     std::array<float, 2> _reg{0,0};

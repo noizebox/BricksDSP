@@ -38,7 +38,7 @@ public:
 
     void render() override;
 
-protected:
+private:
     ControlPort     _gain;
     AudioPort       _audio_in;
     AudioBuffer     _audio_out;
@@ -77,7 +77,7 @@ public:
 
     void render() override;
 
-protected:
+private:
     float           _prev_F1{0.0f};
     float           _prev_x{0};
     ControlPort     _gain;
@@ -114,7 +114,7 @@ public:
 
     void render() override;
 
-protected:
+private:
     const AudioBuffer*  _audio_in;
     AudioBuffer         _unit_delay;
     AudioBuffer         _audio_out;
@@ -162,7 +162,7 @@ public:
 
     void render() override;
 
-protected:
+private:
     ControlPort         _delay_ctrl;
     AudioPort           _audio_in;
     AudioBuffer         _audio_out;
