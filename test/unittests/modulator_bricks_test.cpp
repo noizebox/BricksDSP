@@ -14,10 +14,10 @@ protected:
         make_test_sq_wave(_buffer);
     }
 
-    AudioBuffer          _buffer;
-    float                _clip_level;
-    SaturationBrick _test_module{_clip_level, _buffer};
-    const AudioBuffer&   _out_buffer{_test_module.audio_output(SaturationBrick::CLIP_OUT)};
+    AudioBuffer                     _buffer;
+    float                           _clip_level;
+    SaturationBrick<ClipType::SOFT> _test_module{_clip_level, _buffer};
+    const AudioBuffer&              _out_buffer{_test_module.audio_output(SaturationBrick<ClipType::SOFT>::CLIP_OUT)};
 };
 
 TEST_F(SaturationBrickTest, OperationTest)

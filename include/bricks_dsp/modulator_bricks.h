@@ -4,7 +4,14 @@
 #include "dsp_brick.h"
 namespace bricks {
 
-/* Tanh clipping */
+enum class ClipType
+{
+    SOFT,
+    HARD
+};
+
+/* Simple and cheap sample-by sample clipper with a choice of tanh saturation or brickwall clipping */
+template <ClipType type>
 class SaturationBrick : public DspBrick
 {
 public:
@@ -35,12 +42,6 @@ protected:
     ControlPort     _gain;
     AudioPort       _audio_in;
     AudioBuffer     _audio_out;
-};
-
-enum class ClipType
-{
-    SOFT,
-    HARD
 };
 
 /* Sigm or hard clipping with infinite linear oversampling according to :

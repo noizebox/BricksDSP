@@ -44,7 +44,8 @@ inline float clip_antiderivate(const float& x)
     return  0.5f * x * x;
 }
 
-void SaturationBrick::render()
+template<>
+void SaturationBrick<ClipType::SOFT>::render()
 {
     const AudioBuffer& in = _audio_in.buffer();
     float gain = _gain.value();
@@ -53,6 +54,18 @@ void SaturationBrick::render()
         float x = in[i] * gain;
         x = clamp(x, -3.0f, 3.0f);
         _audio_out[i] = tanh_approx(x);
+    }
+}
+
+template<>
+void SaturationBrick<ClipType::HARD>::render()
+{
+    const AudioBuffer& in = _audio_in.buffer();
+    float gain = _gain.value();
+    for (int i = 0; i < PROC_BLOCK_SIZE; ++i)
+    {
+        float x = in[i] * gain;
+        _audio_out[i] = clamp(x, -1.0f, 1.0f);
     }
 }
 
