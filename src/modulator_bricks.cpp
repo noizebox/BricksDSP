@@ -1,7 +1,49 @@
 #include "modulator_bricks.h"
+#include <algorithm>
+#include <iostream>
+
 
 namespace bricks {
 
+// Pade approximation of tanh, valid within [-3, 3]
+inline float tanh_approx(const float& x)
+{
+    return x * (27.0f + x * x) / (27.0f + 9.0f * x * x);
+}
+
+
+inline double tanh_int(const double& x)
+{
+    return std::log(std::cosh(x));
+    //return 14.0f / 9.0f * std::log(std::abs(9 * x * x + 27));
+}
+
+// One of the computationally cheapest soft clipping functions
+inline float sigm(const float& x)
+{
+    return x / std::sqrt(1 + x * x);
+}
+
+// Integral of the above sigmoid clipping function
+inline float sigm_antiderivative(const float& x)
+{
+    // Todo -  verify if this is the correct integral of sigm()
+    return std::sqrt(1 + x * x);
+}
+
+// Primitive function of a rectangular clip function that is 1 for x > 1, -1 for x < -1 and x otherwise
+inline float clip_antiderivate(const float& x)
+{
+    if (x >= 1)
+    {
+        return x - 0.5f;
+    }
+    if (x <= -1)
+    {
+        return -x - 0.5f;
+    }
+    return  0.5f * x * x;
+}
 
 void SaturationBrick::render()
 {
@@ -10,10 +52,61 @@ void SaturationBrick::render()
     float clip_level = 1.0f / _clip_ctrl.value();
     for (int i = 0; i < PROC_BLOCK_SIZE; ++i)
     {
-        float x = in[i] * clip_level;
-        x = clamp(x, -3.0f, 3.0f);
-        _audio_out[i] = comp * x * (27.0f + x * x) / (27.0f + 9.0f * x * x);
+        float x = in[i];
+        //x = clamp(x, -3.0f, 3.0f);
+        _audio_out[i] = comp * sigm(x);
     }
+}
+
+template <ClipType clip_type>
+void render_saturation_aa(const AudioBuffer& in, AudioBuffer& out, float gain, float& prev_F1, float& prev_x)
+{
+    float F1_1 = prev_F1;
+    float x_1 = prev_x;
+
+    constexpr float EPS = 0.0002f;
+    for (int i = 0; i < PROC_BLOCK_SIZE; ++i)
+    {
+        float x = in[i] * gain;
+        float F1;
+
+        if constexpr (clip_type == ClipType::SOFT)
+        {
+            F1 = sigm_antiderivative(x);
+        }
+        else if (clip_type == ClipType::HARD)
+        {
+            F1 = clip_antiderivate(x);
+        }
+
+        // For numerical stability if x is (almost) stationary
+        if (std::abs(x - x_1) > EPS)
+        {
+            out[i] = (F1 - F1_1) / (x - x_1);
+        }
+        else
+        {
+            out[i] = sigm(x);
+        }
+        F1_1 = F1;
+        x_1 = x;
+    }
+    prev_F1 = F1_1;
+    prev_x = x_1;
+}
+
+template <>
+void AASaturationBrick<ClipType::SOFT>::render()
+{
+    float gain = _gain.value();
+    render_saturation_aa<ClipType::SOFT>(_audio_in.buffer(), _audio_out, gain, _prev_F1, _prev_x);
+}
+
+template <>
+void AASaturationBrick<ClipType::HARD>::render()
+{
+    float gain = _gain.value();
+    render_saturation_aa<ClipType::HARD> (_audio_in.buffer(), _audio_out, gain, _prev_F1, _prev_x);
 }
 
 void UnitDelayBrick::render()

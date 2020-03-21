@@ -37,6 +37,53 @@ protected:
     AudioBuffer     _audio_out;
 };
 
+enum class ClipType
+{
+    SOFT,
+    HARD
+};
+
+/* Sigm or hard clipping with infinite linear oversampling according to :
+ * https://www.researchgate.net/publication/308020367_Reducing_The_Aliasing_Of_Nonlinear_Waveshaping_Using_Continuous-Time_Convolution
+ */
+template <ClipType type = ClipType::HARD>
+class AASaturationBrick : public DspBrick
+{
+public:
+    enum ControlInputs
+    {
+        GAIN = 0,
+        MAX_CONTROL_INPUTS,
+    };
+
+    enum AudioOutputs
+    {
+        CLIP_OUT = 0,
+        MAX_AUDIO_OUTS,
+    };
+
+    AASaturationBrick(ControlPort gain, AudioPort audio_in) : _gain(gain),
+                                                              _audio_in(audio_in)
+    {
+        _audio_out.fill(0.0f);
+    }
+
+    const AudioBuffer& audio_output(int n) override
+    {
+        assert(n < MAX_AUDIO_OUTS);
+        return _audio_out;
+    }
+
+    void render() override;
+
+protected:
+    float           _prev_F1{0.0f};
+    float           _prev_x{0};
+    ControlPort     _gain;
+    AudioPort       _audio_in;
+    AudioBuffer     _audio_out;
+};
+
 /* Delay audio one process block, used to break circular dependencies from feedback
  * loops. Input must must be set with set_input before calling render() */
 class UnitDelayBrick : public DspBrick
