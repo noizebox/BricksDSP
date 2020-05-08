@@ -201,6 +201,7 @@ void BiquadFilterBrick::render()
     }
 
     const AudioBuffer& in = _audio_in.buffer();
+    auto reg = _reg;
     for (int i = 0; i < PROC_BLOCK_SIZE; ++i)
     {
         Coefficients coeff;
@@ -208,11 +209,13 @@ void BiquadFilterBrick::render()
         {
             coeff[c] = _coeff[c].get();
         }
-        float w = in[i] - coeff[A1] * _reg[Z1] - coeff[A2] * _reg[Z2];
-        _audio_out[i] = coeff[B1] * _reg[Z1] + coeff[B2] * _reg[Z2] + coeff[B0] * w;
-        _reg[Z2] = _reg[Z1];
-        _reg[Z1] = w;
+        /* Direct form 2 transposed */
+        float out = in[i] * coeff[B0] + _reg[Z1];
+        _reg[Z1] = in[i] * coeff[B1] +  _reg[Z2] - coeff[A1] * out;
+        _reg[Z2] = in[i] * coeff[B2]- coeff[A2] * out;
+        _audio_out[i] = out;
     }
+    _reg = reg;
 }
 
 void SVFFilterBrick::render()
@@ -244,13 +247,16 @@ void SVFFilterBrick::render()
 void FixedFilterBrick::render()
 {
     const AudioBuffer& in = _audio_in.buffer();
+    auto reg = _reg;
     for (int i = 0; i < PROC_BLOCK_SIZE; ++i)
     {
-        float w = in[i] - _coeff[A1] * _reg[Z1] - _coeff[A2] * _reg[Z2];
-        _audio_out[i] = _coeff[B1] * _reg[Z1] + _coeff[B2] * _reg[Z2] + _coeff[B0] * w;
-        _reg[Z2] = _reg[Z1];
-        _reg[Z1] = w;
+        /* Direct form 2 transposed */
+        float out = in[i] * _coeff[B0] + reg[Z1];
+        reg[Z1] = in[i] * _coeff[B1] +  reg[Z2] - _coeff[A1] * out;
+        reg[Z2] = in[i] * _coeff[B2]- _coeff[A2] * out;
+        _audio_out[i] = out;
     }
+    _reg = reg;
 }
 
 void FixedFilterBrick::set_lowpass(float freq, float q, bool clear)
