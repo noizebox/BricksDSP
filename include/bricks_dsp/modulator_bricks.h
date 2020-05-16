@@ -85,6 +85,48 @@ private:
     AudioBuffer     _audio_out;
 };
 
+/* Clone of Soft Distortion Sustainer circuit from Roland AG5 pedal */
+class SustainerBrick : public DspBrick
+{
+public:
+    enum ControlInputs
+    {
+        GAIN = 0,
+        MAX_CONTROL_INPUTS,
+    };
+
+    enum AudioOutputs
+    {
+        SUSTAIN_OUT = 0,
+        MAX_AUDIO_OUTS,
+    };
+
+    SustainerBrick(ControlPort gain, AudioPort audio_in) : _gain(gain),
+                                                           _audio_in(audio_in) {}
+
+    const AudioBuffer& audio_output(int n) override
+    {
+        assert(n < MAX_AUDIO_OUTS);
+        return _audio_out;
+    }
+
+    void render() override;
+
+    void set_samplerate(float samplerate) override;
+
+private:
+
+    float           _op_gain;
+
+    RCStage<float>  _op_hp;
+    RCStage<float>  _env_hp;
+    RCStage<float>  _env_lp;
+
+    ControlPort     _gain;
+    AudioPort       _audio_in;
+    AudioBuffer     _audio_out;
+};
+
 /* Delay audio one process block, used to break circular dependencies from feedback
  * loops. Input must must be set with set_input before calling render() */
 class UnitDelayBrick : public DspBrick

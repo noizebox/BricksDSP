@@ -117,6 +117,38 @@ static inline const float COEFF_B0 = 1 - COEFF_A0;
     float _lag{0};
 };
 
+/* Simple class for modelling RC circuits */
+template<typename FloatType>
+class RCStage
+{
+public:
+    void set(FloatType rc_const, FloatType samplerate, bool reset)
+    {
+        _coeff = std::exp(-1.0 / (rc_const * samplerate));
+        if (reset)
+        {
+            this->reset();
+        }
+    }
+
+    FloatType render_lp(const FloatType& input)
+    {
+        return _reg = input + _coeff * (_reg - input);
+    }
+
+    FloatType render_hp(const FloatType& input)
+    {
+        _reg = input + _coeff * (_reg - input);
+        return input - _reg;
+    }
+
+    void reset() {_reg = 0;}
+
+private:
+    FloatType _reg{0};
+    FloatType _coeff{0};
+};
+
 } // namespace bricks
 
 #endif //BRICKS_DSP_UTILS_H

@@ -93,3 +93,43 @@ TEST(RandomDeviceTest, TestUniquenes)
         EXPECT_NE(dev_a.get_norm(), dev_b.get_norm());
     }
 }
+
+TEST(RCLowPassTest, TestOperation)
+{
+    RCStage<float> _module_under_test;
+    /* Test by passing a step and measure the rise time
+     * Set time constant to be 0.5 ms, and samplerate 44100
+     * t80% should then be 1.4*rc = 31 samples */
+    _module_under_test.set(0.0005, 44100, true);
+    AudioBuffer input;
+    AudioBuffer output;
+    input.fill(1.0f);
+
+    for (int i = 0; i < PROC_BLOCK_SIZE; ++i)
+    {
+        output[i] = _module_under_test.render_lp(input[i]);
+    }
+
+    /* Give a reasonable margin of error */
+    ASSERT_NEAR(0.8f, output[30], 0.05);
+}
+
+TEST(RCHighPassTest, TestOperation)
+{
+    RCStage<float> _module_under_test;
+    /* Test by passing a step and measure the settling time
+     * Set time constant to be 0.2 ms, and samplerate 44100
+     * t20% should then be 1.4*rc = 12 samples */
+    _module_under_test.set(0.0002, 44100, true);
+    AudioBuffer input;
+    AudioBuffer output;
+    input.fill(1.0f);
+
+    for (int i = 0; i < PROC_BLOCK_SIZE; ++i)
+    {
+        output[i] = _module_under_test.render_hp(input[i]);
+    }
+
+    /* Give a reasonable margin of error */
+    ASSERT_NEAR(0.2f, output[12], 0.05);
+}

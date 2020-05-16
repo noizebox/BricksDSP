@@ -130,6 +130,50 @@ void AASaturationBrick<ClipType::HARD>::render()
     render_aa_clipping<ClipType::HARD>(_audio_in.buffer(), _audio_out, gain, _prev_F1, _prev_x);
 }
 
+
+void SustainerBrick::set_samplerate(float samplerate)
+{
+    DspBrick::set_samplerate(samplerate);
+    /* Values directly from the schematic */
+    _op_hp.set(470.0 * 0.001, samplerate, true);
+    _env_hp.set(22.2 * 0.00068, samplerate, true);
+    _env_lp.set(470.0 * 0.00022, samplerate, true);
+}
+
+constexpr float DIODE_THRESHOLD = 0.5;
+constexpr float OP_FB_RES = 470;
+constexpr float JFET_OPEN_RES = 10;
+constexpr float JFET_V_CUTOFF = 3;
+
+
+void SustainerBrick::render()
+{
+    float gain = 20 * to_db_approx(_gain.value());
+    float op_gain = _op_gain;
+
+    for (int i = 0; i < PROC_BLOCK_SIZE; ++i)
+    {
+        // gain control
+        float x = _audio_in.buffer()[i] * gain;
+
+        // non-inv amp with soft clip
+        float op_out = _op_hp.render_hp(x) * op_gain;
+        float op_clip = tanh_approx(bricks::clamp(op_out, -3.0, 3.0f));
+        _audio_out[i] = op_clip;
+
+        // calc feedback env follower,
+        float env = _env_hp.render_hp(op_clip);
+
+        // Simplest diode model (hard knee)
+        float rect = env > DIODE_THRESHOLD? env - DIODE_THRESHOLD : 0.0f;
+        float gain_ctrl = bricks::clamp(_env_lp.render_lp(rect), 0, JFET_V_CUTOFF);
+
+        // calc new op-gain
+        op_gain = 1 + ((JFET_V_CUTOFF - gain_ctrl) * JFET_OPEN_RES / (OP_FB_RES * JFET_V_CUTOFF));
+    }
+}
+
+
 void UnitDelayBrick::render()
 {
     assert(_audio_in != nullptr);
@@ -199,4 +243,5 @@ void ModulatedDelayBrick::render()
     }
 
 }
+
 } // namespace bricks
