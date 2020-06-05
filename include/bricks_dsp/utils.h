@@ -131,6 +131,16 @@ public:
         }
     }
 
+    /* Somewhat less accurate but fast enough to set in the audio thread */
+    void set_approx(FloatType rc_const, FloatType samplerate, bool reset)
+    {
+        _coeff = -1.0 / (rc_const * samplerate);
+        if (reset)
+        {
+            this->reset();
+        }
+    }
+
     FloatType render_lp(const FloatType& input)
     {
         return _reg = input + _coeff * (_reg - input);

@@ -142,8 +142,11 @@ void SustainerBrick::set_samplerate(float samplerate)
 
 constexpr float DIODE_THRESHOLD = 0.5;
 constexpr float OP_FB_RES = 470;
-constexpr float JFET_OPEN_RES = 10;
-constexpr float JFET_V_CUTOFF = 3;
+constexpr float JFET_OPEN_RES = 47000;
+constexpr float JFET_V_CUTOFF = 5;
+
+constexpr float ENV_OPEN_RC = 2.2 * 0.00022;
+constexpr float ENV_CLOSED_RC = 470 * 0.00022;
 
 
 void SustainerBrick::render()
@@ -158,7 +161,8 @@ void SustainerBrick::render()
 
         // non-inv amp with soft clip
         float op_out = _op_hp.render_hp(x) * op_gain;
-        float op_clip = tanh_approx(bricks::clamp(op_out, -3.0, 3.0f));
+        //float op_clip = 5.0f * tanh_approx(bricks::clamp(op_out * 0.5f, -3.0, 3.0f));
+        float op_clip = JFET_V_CUTOFF * sigm(op_out * (1.0f/JFET_V_CUTOFF));
         _audio_out[i] = op_clip;
 
         // calc feedback env follower,
@@ -166,11 +170,13 @@ void SustainerBrick::render()
 
         // Simplest diode model (hard knee)
         float rect = env > DIODE_THRESHOLD? env - DIODE_THRESHOLD : 0.0f;
-        float gain_ctrl = bricks::clamp(_env_lp.render_lp(rect), 0, JFET_V_CUTOFF);
+
+        float gain_ctrl = bricks::clamp(_env_lp.render_lp(rect) * 10.0f, 0, JFET_V_CUTOFF);
 
         // calc new op-gain
         op_gain = 1 + ((JFET_V_CUTOFF - gain_ctrl) * JFET_OPEN_RES / (OP_FB_RES * JFET_V_CUTOFF));
     }
+    _op_gain = op_gain;
 }
 
 
