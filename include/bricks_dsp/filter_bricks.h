@@ -59,8 +59,8 @@ private:
     AudioBuffer     _audio_out;
 };
 
-
-/* State variable lowpass */
+/* State variable filter with multiple outs from Andrew Simper, Cytomic,
+ * adapted from https://cytomic.com/files/dsp/SvfLinearTrapOptimised2.pdf */
 class SVFFilterBrick : public DspBrick
 {
 public:
@@ -153,6 +153,46 @@ private:
     std::array<float, 5> _coeff{0,0,0,0,0};
     std::array<float, 2> _reg{0,0};
     AudioBuffer          _audio_out;
+};
+
+/* Topology-preserving (zero delay) ladder with non-linearities
+ * From https://www.kvraudio.com/forum/viewtopic.php?t=349859
+ * and Copyright 2012 Teemu Voipio (mystran @ kvr)  */
+class MystransLadderFilter : public DspBrick
+{
+   public:
+    enum ControlInputs
+    {
+        CUTOFF = 0,
+        RESONANCE,
+        MAX_CONTROL_INPUTS,
+    };
+
+    enum AudioOutputs
+    {
+        FILTER_OUT = 0,
+        MAX_AUDIO_OUTS,
+    };
+
+    MystransLadderFilter(ControlPort cutoff, ControlPort resonance, AudioPort audio_in) :
+                         _cutoff_ctrl(cutoff), _res_ctrl(resonance), _audio_in(audio_in) {}
+
+    void render() override;
+
+    const AudioBuffer& audio_output(int n) override
+    {
+        assert(n < MAX_AUDIO_OUTS);
+        return _audio_out;
+    }
+
+private:
+    ControlPort            _cutoff_ctrl;
+    ControlPort            _res_ctrl;
+    AudioPort              _audio_in;
+    ControlSmootherLinear  _freq_lag;
+    double                 _zi;
+    std::array<double, 4>  _states{0, 0, 0, 0};
+    AudioBuffer            _audio_out;
 };
 
 
