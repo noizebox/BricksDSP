@@ -225,6 +225,7 @@ void SVFFilterBrick::render()
     freq = std::clamp(freq, 20.0f, 18000.0f);
     float k = 2 - 2 * _res_ctrl.value();
     _g_lag.set(std::tan(static_cast<float>(M_PI) * freq / _samplerate));
+    auto reg = _reg;
     AudioBuffer g_lag = _g_lag.get_all();
     for (unsigned int i = 0; i < PROC_BLOCK_SIZE; ++i)
     {
@@ -232,15 +233,17 @@ void SVFFilterBrick::render()
         float a1 = 1 / (1 + g * (g + k));
         float a2 = g * a1;
         float a3 = g * a2;
-        float v3 = in[i] - _reg[1];
-        float v1 = a1 * _reg[0] + a2 * v3;
-        float v2 = _reg[1] + a2 * _reg[0] + a3 * v3;
-        _reg[0] = 2.0f * v1 - _reg[0];
-        _reg[1] = 2.0f * v2 - _reg[1];
+        float v3 = in[i] - reg[1];
+        float v1 = a1 * reg[0] + a2 * v3;
+        float v2 = reg[1] + a2 * reg[0] + a3 * v3;
+        reg[0] = 2.0f * v1 - reg[0];
+        reg[1] = 2.0f * v2 - reg[1];
+
         _lowpass_out[i] = v2;
         _bandpass_out[i] = v1;
         _highpass_out[i] = in[i] - k * v1 - v2;
     }
+    _reg = reg;
 }
 
 void FixedFilterBrick::render()
@@ -346,7 +349,8 @@ void MystransLadderFilter::render()
     {
         double f = _freq_lag.get();
         // input with half delay, for non-linearities
-        double ih = 0.5 * (in[i] + _zi); _zi = in[i];
+        double ih = 0.5 * (in[i] + zi);
+        zi = in[i];
 
         // evaluate the non-linear gains
         double t0 = tanhXdX(ih - r * s[3]);
@@ -356,26 +360,29 @@ void MystransLadderFilter::render()
         double t4 = tanhXdX(s[3]);
 
         // g# the denominators for solutions of individual stages
-        double g0 = 1 / (1 + f*t1), g1 = 1 / (1 + f*t2);
-        double g2 = 1 / (1 + f*t3), g3 = 1 / (1 + f*t4);
+        double g0 = 1 / (1 + f * t1), g1 = 1 / (1 + f * t2);
+        double g2 = 1 / (1 + f * t3), g3 = 1 / (1 + f * t4);
 
         // f# are just factored out of the feedback solution
-        double f3 = f*t3*g3, f2 = f*t2*g2*f3, f1 = f*t1*g1*f2, f0 = f*t0*g0*f1;
+        double f3 = f * t3 * g3;
+        double f2 = f * t2 * g2 * f3;
+        double f1 = f * t1 * g1 * f2;
+        double f0 = f * t0 * g0 * f1;
 
         // solve feedback
-        double y3 = (g3*s[3] + f3*g2*s[2] + f2*g1*s[1] + f1*g0*s[0] + f0*in[i]) / (1 + r * f0);
+        double y3 = (g3 * s[3] + f3 * g2 * s[2] + f2 * g1 * s[1] + f1 * g0 * s[0] + f0 * in[i]) / (1 + r * f0);
 
         // then solve the remaining outputs (with the non-linear gains here)
-        double xx = t0*(in[i] - r * y3);
-        double y0 = t1*g0*(s[0] + f*xx);
-        double y1 = t2*g1*(s[1] + f*y0);
-        double y2 = t3*g2*(s[2] + f*y1);
+        double xx = t0 * (in[i] - r * y3);
+        double y0 = t1 * g0 * (s[0] + f * xx);
+        double y1 = t2 * g1 * (s[1] + f * y0);
+        double y2 = t3 * g2 * (s[2] + f * y1);
 
         // update state
-        s[0] += 2*f * (xx - y0);
-        s[1] += 2*f * (y0 - y1);
-        s[2] += 2*f * (y1 - y2);
-        s[3] += 2*f * (y2 - t4*y3);
+        s[0] += 2 * f * (xx - y0);
+        s[1] += 2 * f * (y0 - y1);
+        s[2] += 2 * f * (y1 - y2);
+        s[3] += 2 * f * (y2 - t4 * y3);
 
         _audio_out[i] = y3;
     }
