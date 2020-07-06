@@ -5,6 +5,8 @@
 
 namespace bricks {
 
+constexpr float MAX_BIT_DEPTH = 24;
+
 /* Pade approximation of tanh, valid within [-3, 3] */
 inline float tanh_approx(const float& x)
 {
@@ -199,4 +201,16 @@ void ModulatedDelayBrick::render()
     }
 
 }
+
+void BitRateReducerBrick::render()
+{
+    float bit_gain = std::exp2f(1.0f + _bit_depth.value() * MAX_BIT_DEPTH);
+    float gain_red = 1.0f / (bit_gain - 1.0f);
+    const auto& audio_in = _audio_in.buffer();
+    for (int i = 0; i < PROC_BLOCK_SIZE; ++i)
+    {
+        _audio_out[i] = static_cast<float>(static_cast<int>(audio_in[i] * bit_gain)) * gain_red;
+    }
+}
+
 } // namespace bricks

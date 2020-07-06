@@ -176,7 +176,39 @@ private:
     float               _play_wraparound;
     float*              _buffer{nullptr};
     float*              _rec_times{nullptr};
+};
 
+/* Reduce the bit depth continuously from 24 to 1 */
+class BitRateReducerBrick : public DspBrick
+{
+public:
+    enum ControlInputs
+    {
+        BIT_DEPTH = 0,
+        MAX_CONTROL_INPUTS,
+    };
+
+    enum AudioOutputs
+    {
+        OUT = 0,
+        MAX_AUDIO_OUTS,
+    };
+
+    BitRateReducerBrick(ControlPort bit_depth, AudioPort audio_in) : _bit_depth(bit_depth),
+                                                                     _audio_in(audio_in) {}
+
+    const AudioBuffer& audio_output(int n) override
+    {
+        assert(n < MAX_AUDIO_OUTS);
+        return _audio_out;
+    }
+
+    void render() override;
+
+private:
+    ControlPort     _bit_depth;
+    AudioPort       _audio_in;
+    AudioBuffer     _audio_out;
 };
 
 } // end namespace bricks

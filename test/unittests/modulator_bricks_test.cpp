@@ -95,3 +95,42 @@ TEST_F(ModulatedDelayBrickTest, OperationTest)
     _test_module.render();
     assert_buffer(_out_buffer, 0.0f);
 }
+
+class BitRateReducerBrickTest : public ::testing::Test
+{
+protected:
+    BitRateReducerBrickTest() {}
+
+    void SetUp()
+    {
+        make_test_sine_wave(_buffer);
+    }
+
+    AudioBuffer           _buffer;
+    float                 _depth;
+    BitRateReducerBrick   _test_module{_depth, _buffer};
+    const AudioBuffer&    _out_buffer{_test_module.audio_output(BitRateReducerBrick::OUT)};
+};
+
+bool is_2_bit_predicate(float val)
+{
+    return val == 0 || val == -1.0f || val == 1.0f;
+}
+
+TEST_F(BitRateReducerBrickTest, OperationTest)
+{
+    _depth = 1.0f;
+    _test_module.render();
+    /* 24 bits should be within the float error margin so they should compare equal */
+    for (int i = 0; i < PROC_BLOCK_SIZE; ++i)
+    {
+        EXPECT_FLOAT_EQ(_buffer[i], _out_buffer[i]);
+    }
+    /* With bits = 0 we should have only 1 bit left, values should be 0.0 or +/- 1.0 */
+    _depth = 0;
+    _test_module.render();
+    for (auto sample : _out_buffer)
+    {
+        EXPECT_PRED1(is_2_bit_predicate, sample);
+    }
+}
