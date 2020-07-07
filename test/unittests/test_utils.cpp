@@ -21,6 +21,15 @@ void make_test_sq_wave(bricks::AudioBuffer& buffer)
     }
 }
 
+void make_test_sine_wave(bricks::AudioBuffer& buffer)
+{
+    float i = 0;
+    for (auto& sample : buffer)
+    {
+        sample = std::sin(++i * 0.5f);
+    }
+}
+
 void assert_buffer(const bricks::AudioBuffer& buffer, float value)
 {
     for (const auto& sample : buffer)
