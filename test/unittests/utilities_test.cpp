@@ -40,6 +40,12 @@ TEST(ControlToRange, TestOperation)
     EXPECT_EQ(-50, control_to_range(0.25, -75, 25));
 }
 
+TEST(ControlToFreq, TestOperation)
+{
+    EXPECT_FLOAT_EQ(20, control_to_freq(0.0f));
+    EXPECT_FLOAT_EQ(20480, control_to_freq(1.0f));
+    EXPECT_FLOAT_EQ(160, control_to_freq(0.3f));
+}
 
 TEST(LinearInterpolatorTest, TestOperation)
 {

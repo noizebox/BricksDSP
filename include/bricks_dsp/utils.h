@@ -27,6 +27,13 @@ inline constexpr float note_to_control(int midi_note)
     return (midi_note - SHIFT_FACTOR) / SEMITONES_IN_RANGE;
 }
 
+/* Map a control input to a 0.1 per octave pitch control to a frequency in Hz */
+inline float control_to_freq(float v)
+{
+    constexpr float OSC_BASE_FREQ = 20.0f;
+    return OSC_BASE_FREQ * powf(2, v * 10.0f);
+}
+
 /* Proper mapping from a linear range to a 60 dB exponential response */
 inline float to_db(float lin)
 {
