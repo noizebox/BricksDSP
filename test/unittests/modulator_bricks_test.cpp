@@ -134,3 +134,38 @@ TEST_F(BitRateReducerBrickTest, OperationTest)
         EXPECT_PRED1(is_2_bit_predicate, sample);
     }
 }
+
+class SampleRateReducerBrickTest : public ::testing::Test
+{
+protected:
+    SampleRateReducerBrickTest() {}
+
+    void SetUp()
+    {
+        make_test_sine_wave(_buffer);
+    }
+
+    AudioBuffer             _buffer;
+    float                   _samplerate;
+    SampleRateReducerBrick  _test_module{_samplerate, _buffer};
+    const AudioBuffer&      _out_buffer{_test_module.audio_output(SampleRateReducerBrick::OUT)};
+};
+
+TEST_F(SampleRateReducerBrickTest, OperationTest)
+{
+    _samplerate = 1.0f;
+    _test_module.render();
+    /* Just test bibo stability at this point */
+    for (int i = 0; i < PROC_BLOCK_SIZE; ++i)
+    {
+        EXPECT_LE(-1.0f, _out_buffer[i]);
+        EXPECT_GE(1.0f, _out_buffer[i]);
+    }
+    _samplerate = 0;
+    _test_module.render();
+    for (int i = 0; i < PROC_BLOCK_SIZE; ++i)
+    {
+        EXPECT_LE(-1.0f, _out_buffer[i]);
+        EXPECT_GE(1.0f, _out_buffer[i]);
+    }
+}

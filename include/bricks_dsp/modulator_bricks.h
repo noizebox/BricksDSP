@@ -211,5 +211,51 @@ private:
     AudioBuffer     _audio_out;
 };
 
+/* Reduce the sample rate continuously from 44100Hz to 20 Hz
+ * Linear interpolation in both up and down sampling */
+class SampleRateReducerBrick : public DspBrick
+{
+public:
+    enum ControlInputs
+    {
+        SAMPLE_RATE = 0,
+        MAX_CONTROL_INPUTS,
+    };
+
+    enum AudioOutputs
+    {
+        OUT = 0,
+        MAX_AUDIO_OUTS,
+    };
+
+    SampleRateReducerBrick(ControlPort rate, AudioPort audio_in) : _rate(rate),
+                                                                   _audio_in(audio_in)
+    {
+        _delay_buffer.fill(0.0f);
+        _downsampled_buffer.fill(0.0f);
+    }
+
+    const AudioBuffer& audio_output(int n) override
+    {
+        assert(n < MAX_AUDIO_OUTS);
+        return _audio_out;
+    }
+
+    void render() override;
+
+private:
+    static constexpr int SAMPLE_DELAY = 2;
+
+    ControlPort     _rate;
+    AudioPort       _audio_in;
+    AudioBuffer     _audio_out;
+
+    float           _down_phase{0.0f};
+    float           _up_phase{0.0f};
+
+    AlignedArray<float, PROC_BLOCK_SIZE + SAMPLE_DELAY * 2> _delay_buffer;
+    AlignedArray<float, PROC_BLOCK_SIZE + SAMPLE_DELAY * 2> _downsampled_buffer;
+};
+
 } // end namespace bricks
 #endif //BRICKS_DSP_MODULATOR_BRICKS_H

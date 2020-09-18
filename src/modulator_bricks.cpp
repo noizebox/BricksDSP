@@ -6,6 +6,8 @@
 namespace bricks {
 
 constexpr float MAX_BIT_DEPTH = 24;
+constexpr float OSC_BASE_FREQ = 20.0f;
+
 
 /* Pade approximation of tanh, valid within [-3, 3] */
 inline float tanh_approx(const float& x)
@@ -164,7 +166,7 @@ void ModulatedDelayBrick::set_max_delay_time(float max_delay_seconds)
     _play_head = _rec_wraparound /2;
 }
 
-inline float linear_int(float pos, const float*data)
+inline float linear_int(float pos, const float* data)
 {
     int first = static_cast<int>(pos);
     float weight = pos - std::floor(pos);
@@ -213,4 +215,51 @@ void BitRateReducerBrick::render()
     }
 }
 
+void SampleRateReducerBrick::render()
+{
+    // Added to keep the upsampling phase from drifting away
+    constexpr float NUDGE_FACTOR = 0.00005f;
+    float ratio = clamp(control_to_freq(_rate.value()) / _samplerate * 2.0f, 0.0f, 1.0f);
+
+    // Delay for interpolation
+    for (int i = 0; i < SAMPLE_DELAY; ++i)
+    {
+        _delay_buffer[i] = _delay_buffer[PROC_BLOCK_SIZE + i];
+    }
+    std::copy(_audio_in.buffer().begin(), _audio_in.buffer().end(), &_delay_buffer[SAMPLE_DELAY]);
+
+    // Downsample to internal buffer
+    float down_phase = _down_phase;
+    int down_samples = 0;
+    while (down_phase <= PROC_BLOCK_SIZE)
+    {
+        _downsampled_buffer[SAMPLE_DELAY + down_samples] = linear_int(down_phase, _delay_buffer.data());
+        down_phase += 1.0f / ratio;
+        down_samples++;
+    }
+    if (down_phase > PROC_BLOCK_SIZE)
+    {
+        down_phase -= PROC_BLOCK_SIZE;
+    }
+    _down_phase = down_phase;
+    assert(down_phase >= 0.0f);
+
+    // Upsample and interpolate from this buffer
+    float up_phase = std::min(_up_phase, 1.0f);
+    for (int i = 0; i < PROC_BLOCK_SIZE; ++i)
+    {
+        _audio_out[i] = linear_int(up_phase, _downsampled_buffer.data());
+        up_phase += ratio;
+    }
+    _up_phase = std::max(up_phase - up_phase * NUDGE_FACTOR - down_samples, 0.0f);
+
+    assert(_up_phase >= 0.0f);
+    assert(_up_phase < PROC_BLOCK_SIZE + 2);
+
+    // 'rewind' the downsampled buffer
+    for (int i = 0; i < SAMPLE_DELAY; ++i)
+    {
+        _downsampled_buffer[i] = _downsampled_buffer[down_samples + i];
+    }
+}
 } // namespace bricks
