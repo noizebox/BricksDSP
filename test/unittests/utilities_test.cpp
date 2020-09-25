@@ -99,3 +99,62 @@ TEST(RandomDeviceTest, TestUniquenes)
         EXPECT_NE(dev_a.get_norm(), dev_b.get_norm());
     }
 }
+
+std::array<float, 10> INT_DATA = {1, 2, 3, 4, 5, 1, 1, 1, 0, 1};
+
+TEST(InterpolatorTest, TestZeroth)
+{
+    EXPECT_EQ(2, zeroth_int(1.2f, INT_DATA.data()));
+    EXPECT_EQ(2, zeroth_int(1.99f, INT_DATA.data()));
+    EXPECT_EQ(4, zeroth_int(3.01f, INT_DATA.data()));
+}
+
+TEST(InterpolatorTest, TestLinear)
+{
+    EXPECT_FLOAT_EQ(2.5, linear_int(1.5f, INT_DATA.data()));
+    EXPECT_FLOAT_EQ(1, linear_int(5.24f, INT_DATA.data()));
+    EXPECT_FLOAT_EQ(4, linear_int(3.00f, INT_DATA.data()));
+    EXPECT_FLOAT_EQ(1.25, linear_int(0.25f, INT_DATA.data()));
+}
+
+TEST(InterpolatorTest, TestCubic)
+{
+    EXPECT_FLOAT_EQ(2.5, cubic_int(1.5f, INT_DATA.data()));
+
+    EXPECT_GE(cubic_int(5.24f, INT_DATA.data()), 0);
+    EXPECT_LE(cubic_int(5.24f, INT_DATA.data()), 1);
+
+    EXPECT_GE(cubic_int(3.30f, INT_DATA.data()), 4);
+    EXPECT_LE(cubic_int(3.30f, INT_DATA.data()), 5);
+
+    EXPECT_GE(cubic_int(7.0f, INT_DATA.data()), 0.5);
+    EXPECT_LE(cubic_int(7.0f, INT_DATA.data()), 1);
+}
+
+TEST(InterpolatorTest, TestCatmullRom)
+{
+    EXPECT_FLOAT_EQ(2.5, catmull_rom_cubic_int(1.5f, INT_DATA.data()));
+
+    EXPECT_GE(catmull_rom_cubic_int(5.24f, INT_DATA.data()), 0);
+    EXPECT_LE(catmull_rom_cubic_int(5.24f, INT_DATA.data()), 1);
+
+    EXPECT_GE(catmull_rom_cubic_int(3.25f, INT_DATA.data()), 4);
+    EXPECT_LE(catmull_rom_cubic_int(3.25f, INT_DATA.data()), 5);
+
+    EXPECT_GE(catmull_rom_cubic_int(7.0f, INT_DATA.data()), 0.5);
+    EXPECT_LE(catmull_rom_cubic_int(7.0f, INT_DATA.data()), 1);
+}
+
+TEST(InterpolatorTest, TestCosine)
+{
+    EXPECT_FLOAT_EQ(2.5, cosine_int(1.5f, INT_DATA.data()));
+
+    EXPECT_GE(cosine_int(5.24f, INT_DATA.data()), 0);
+    EXPECT_LE(cosine_int(5.24f, INT_DATA.data()), 1);
+
+    EXPECT_GE(cosine_int(3.5f, INT_DATA.data()), 4);
+    EXPECT_LE(cosine_int(3.5f, INT_DATA.data()), 5);
+
+    EXPECT_GE(cosine_int(7.0f, INT_DATA.data()), 0.5);
+    EXPECT_LE(cosine_int(7.0f, INT_DATA.data()), 1);
+}

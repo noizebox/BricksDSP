@@ -166,13 +166,6 @@ void ModulatedDelayBrick::set_max_delay_time(float max_delay_seconds)
     _play_head = _rec_wraparound /2;
 }
 
-inline float linear_int(float pos, const float* data)
-{
-    int first = static_cast<int>(pos);
-    float weight = pos - std::floor(pos);
-    return data[first] * (1.0f - weight) + data[first + 1] * weight;
-}
-
 void ModulatedDelayBrick::render()
 {
     float current_time = clamp(_delay_ctrl.value(), 0.01f, 1.0f);
@@ -201,7 +194,6 @@ void ModulatedDelayBrick::render()
         }
         _audio_out[i] = linear_int(_play_head, _buffer);
     }
-
 }
 
 void BitRateReducerBrick::render()

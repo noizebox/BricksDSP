@@ -100,16 +100,6 @@ void FmOscillatorBrick::render()
     _phase = phase;
 }
 
-float cubic_herm_int(float A, float B, float C, float D, float pos)
-{
-    float a = -A/2.0f + (3.0f*B)/2.0f - (3.0f*C)/2.0f + D/2.0f;
-    float b = A - (5.0f*B)/2.0f + 2.0f*C - D / 2.0f;
-    float c = -A/2.0f + C/2.0f;
-    float d = B;
-
-    return a * pos * pos * pos + b * pos * pos + c * pos + d;
-}
-
 void WtOscillatorBrick::render()
 {
     /* If the samplerate it less than 80kHz, use the wavetables 1 octave above
@@ -144,11 +134,7 @@ void WtOscillatorBrick::render()
         if (phase > 1.0f)
             phase -= 1.0f;
         float pos = phase * table_len;
-        int first = static_cast<int>(pos);
-        //int len = static_cast<int>(table_len);
-        float weight = pos - std::floor(pos);
-        float sample = table[first] + weight * (table[first + 1] - table[first]);
-        //float sample = cubic_herm_int(table[(first-1)%len],table[first], table[first+1], table[(first+2)%len], weight);
+        float sample = linear_int(pos, table);
         _buffer[i] = sample;
     }
     _phase = phase;
