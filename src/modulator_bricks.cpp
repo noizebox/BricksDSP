@@ -1,6 +1,6 @@
 #include "modulator_bricks.h"
 #include <algorithm>
-#include <iostream>
+#include <cmath>
 
 
 namespace bricks {

@@ -54,7 +54,6 @@ private:
     const AudioBuffer&      _audio_in;
     AudioBuffer             _audio_buffer;
     ControlSmootherLinear   _gain_lag;
-    float                   _prev_gain{0};
 };
 
 /* General n to 1 audio mixer with individual gain controls for each input
@@ -317,7 +316,7 @@ private:
     float _output{0};
 };
 
-/* N to M control signal linear combinator. Useful för creating meta controllers/parameters */
+/* N to M control signal linear combinator. Useful for creating meta controllers/parameters */
 template <int input_count, int output_count, bool clamp_output = true>
 class MetaControlBrick : public DspBrick
 {
