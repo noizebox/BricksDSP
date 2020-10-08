@@ -139,7 +139,6 @@ void UnitDelayBrick::render()
     assert(_audio_in != nullptr);
     _audio_out = _unit_delay;
     _unit_delay = *_audio_in;
-
 }
 
 void ModulatedDelayBrick::set_max_delay_time(float max_delay_seconds)

@@ -221,7 +221,7 @@ template <InterpolationType type>
 class FixedDelayBrick : public BasicDelay
 {
 public:
-    FixedDelayBrick(AudioPort audio_in, std::chrono::microseconds max_delay) : BasicDelay(audio_in, max_delay)
+    FixedDelayBrick(AudioPort audio_in, std::chrono::microseconds max_delay = std::chrono::seconds(1)) : BasicDelay(audio_in, max_delay)
     {
         set_delay_time(max_delay);
     }
@@ -282,7 +282,7 @@ class ModDelayBrick : public BasicDelay
 {
 public:
     ModDelayBrick(ControlPort delay_mod_ctrl, AudioPort audio_in,
-                  std::chrono::microseconds max_delay) : BasicDelay(audio_in, max_delay),
+                  std::chrono::microseconds max_delay = std::chrono::seconds(1)) : BasicDelay(audio_in, max_delay),
                                                          _delay_mod_ctrl(delay_mod_ctrl)
     {
         set_delay_time(max_delay / 2);
@@ -338,7 +338,7 @@ public:
         MAX_AUDIO_OUTS,
     };
 
-    ModulatedDelayBrick(ControlPort delay_ctrl, AudioPort audio_in, float max_delay_seconds) : _delay_ctrl(delay_ctrl),
+    ModulatedDelayBrick(ControlPort delay_ctrl, AudioPort audio_in, float max_delay_seconds= 1) : _delay_ctrl(delay_ctrl),
                                                                                                _audio_in(audio_in),
                                                                                                _max_seconds(max_delay_seconds)
 

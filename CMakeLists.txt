@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.7)
 project(bricks_dsp CXX)
 
 option(BRICKS_DSP_BUILD_TESTS "Build and run unit tests" ON)
+option(BRICKS_DSP_BUILD_BENCHMARKS "Build performance benchmarks" ON)
 set(BRICKS_BLOCK_SIZE 32 CACHE STRING "Internal processing block size")
 
 # Source Files
@@ -46,5 +47,10 @@ target_compile_options(bricks_dsp PUBLIC ${EXTRA_COMPILER_FLAGS})
 if(${BRICKS_DSP_BUILD_TESTS})
     add_subdirectory(test)
 endif()
+
+if(${BRICKS_DSP_BUILD_BENCHMARKS})
+    add_subdirectory(benchmark)
+endif()
+
 
 add_subdirectory(examples EXCLUDE_FROM_ALL)

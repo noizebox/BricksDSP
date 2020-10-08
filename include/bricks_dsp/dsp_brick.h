@@ -23,7 +23,7 @@ typedef AlignedArray<float, PROC_BLOCK_SIZE> AudioBuffer;
 class ControlPort
 {
 public:
-    ControlPort() = delete;
+    ControlPort() = default;//delete;
 
     ControlPort(const float& data) : _data(&data) {}
 
@@ -36,7 +36,7 @@ private:
 class AudioPort
 {
 public:
-    AudioPort() = delete;
+    AudioPort() = default; //delete;
 
     AudioPort(const AudioBuffer& data) : _data(&data) {}
 
