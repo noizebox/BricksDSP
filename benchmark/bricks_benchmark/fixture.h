@@ -64,60 +64,88 @@ static bricks::AlignedArray<float, TEST_AUDIO_DATA_SIZE> gen_noise_data()
     return data;
 }
 
-/* Template on the type of brick to use, and the number of inputs */
-template<typename T, int ctrl_inputs, int audio_inputs, AudioType audio_type>
-static void BasicBrickBM(benchmark::State& state)
+/* No-op bricks to measure the benchmarking overhead, essentially subtract the
+ * measured time from this from all brick benchmarks to measure the overhead */
+class BaselineBrick : public bricks::DspBrick
 {
-    std::array<float, 3> ctrl_signals;
-    ctrl_signals.fill(0.0);
-    bricks::AudioBuffer audio_buffer;
+public:
+    BaselineBrick(ControlPort ctrl_1, ControlPort ctrl_2, AudioPort in) : _ctrl_1(ctrl_1),_ctrl_2(ctrl_2), _in(in) {}
+
+    void render() override {};
+
+private:
+    ControlPort _ctrl_1;
+    ControlPort _ctrl_2;
+    AudioPort   _in;
+};
+
+class BaselineBrickCtrlOnly : public bricks::DspBrick
+{
+public:
+    BaselineBrickCtrlOnly(ControlPort ctrl_1, ControlPort ctrl_2) : _ctrl_1(ctrl_1), _ctrl_2(ctrl_2) {}
+
+    void render() override {};
+
+private:
+    ControlPort _ctrl_1;
+    ControlPort _ctrl_2;
+};
+
+/* Expands arrays into variadic packs for passing to constructors */
+template<typename T, int ctrl_inputs, int audio_inputs, size_t... Is, size_t... Isa>
+std::unique_ptr<T> make_brick(const std::array<float, ctrl_inputs>& ctrl_args,
+                              const std::array<AudioBuffer, audio_inputs>& audio_args,
+                              std::index_sequence<Is...>, std::index_sequence<Isa...>)
+{
+    return std::make_unique<T>(std::get<Is>(ctrl_args) ..., std::get<Isa>(audio_args) ...);
+}
+
+/* Expands arrays into arrays of ControlPorts and AudioPorts for passing to constructors */
+template<typename T, int ctrl_inputs, int audio_inputs, size_t... Is, size_t... Isa>
+std::unique_ptr<T> make_brick_array_args(const std::array<float, ctrl_inputs>& ctrl_args,
+                                         const std::array<AudioBuffer, audio_inputs>& audio_args,
+                                         std::index_sequence<Is...>, std::index_sequence<Isa...>)
+{
+    auto c_arg = std::array<ControlPort, ctrl_inputs>{std::get<Is>(ctrl_args) ...};
+    auto a_arg = std::array<AudioPort, audio_inputs>{std::get<Isa>(audio_args) ...};
+
+    return std::make_unique<T>(c_arg, a_arg);
+}
+
+/* Generic test fixture that passes a given number of control and audio inputs to the
+ * DspBrick to benchmark
+ *
+ * T            - DspBrick type to benchmark
+ * ctrl_inputs  - Number of control inputs to the brick
+ * audio_inputs - Number of audio inputs to the brick
+ * audio_type   - The type of audio to pass through - if performance depends on branch pred. or similar
+ * array_args   - if true, format the constructor arguments into arrays of ControlPorts and AudioPorts,
+ *                Else, use variadic expansion for passing arguments */
+template<typename T, int ctrl_inputs, int audio_inputs, AudioType audio_type, bool array_args = false>
+static void BrickBM(benchmark::State& state)
+{
+    std::array<float, ctrl_inputs> ctrl_signals;
+    std::array<bricks::AudioBuffer, audio_inputs> audio_signals;
     auto audio_data = get_audio_data(audio_type);
 
-    std::unique_ptr<T> test_module;
-    if constexpr (audio_inputs == 0)
+    ctrl_signals.fill(0.0);
+
+    std::unique_ptr<DspBrick> test_module;
+    if constexpr (array_args)
     {
-        if constexpr (ctrl_inputs == 0)
-        {
-            test_module = std::make_unique<T>();
-        }
-        else if constexpr (ctrl_inputs == 1)
-        {
-            test_module = std::make_unique<T>(ctrl_signals[0]);
-        }
-        else if constexpr (ctrl_inputs == 2)
-        {
-            test_module = std::make_unique<T>(ctrl_signals[0], ctrl_signals[1]);
-        }
-        else if constexpr (ctrl_inputs == 3)
-        {
-            test_module = std::make_unique<T>(ctrl_signals[0], ctrl_signals[1], ctrl_signals[2]);
-        }
-        else if constexpr (ctrl_inputs == 4)
-        {
-            test_module = std::make_unique<T>(ctrl_signals[0], ctrl_signals[1], ctrl_signals[2], ctrl_signals[3]);
-        }
+        test_module = make_brick_array_args<T, ctrl_inputs, audio_inputs>(ctrl_signals, audio_signals,
+                                                                          std::make_index_sequence<ctrl_inputs>{},
+                                                                          std::make_index_sequence<audio_inputs>{});
     }
-    else if constexpr (audio_inputs == 1)
+    else
     {
-        if constexpr (ctrl_inputs == 0)
-        {
-            test_module = std::make_unique<T>(audio_buffer);
-        }
-        else if constexpr (ctrl_inputs == 1)
-        {
-            test_module = std::make_unique<T>(ctrl_signals[0], audio_buffer);
-        }
-        else if constexpr (ctrl_inputs == 2)
-        {
-            test_module = std::make_unique<T>(ctrl_signals[0], ctrl_signals[1], audio_buffer);
-        }
-        else if constexpr (ctrl_inputs == 3)
-        {
-            test_module = std::make_unique<T>(ctrl_signals[0], ctrl_signals[1], ctrl_signals[2], audio_buffer);
-        }
+        test_module = make_brick<T, ctrl_inputs, audio_inputs>(ctrl_signals, audio_signals,
+                                                               std::make_index_sequence<ctrl_inputs>{},
+                                                               std::make_index_sequence<audio_inputs>{});
     }
     assert(test_module);
     test_module->set_samplerate(TEST_SAMPLE_RATE);
+
     int samples = 0;
     for (auto _ : state)
     {
@@ -125,71 +153,22 @@ static void BasicBrickBM(benchmark::State& state)
         {
             samples = 0;
         }
-        std::copy(audio_data->data() + samples, audio_data->data() + samples + bricks::PROC_BLOCK_SIZE, audio_buffer.data());
+        for (auto& i : audio_signals)
+        {
+            std::copy(audio_data->data() + samples, audio_data->data() + samples + bricks::PROC_BLOCK_SIZE, i.data());
+        }
         for (auto& i : ctrl_signals)
         {
             i = static_cast<float>(samples) / TEST_AUDIO_DATA_SIZE;
         }
-        /* Do procesing.
-         * The setting up and copying of audio data above will be included in the total
-         * measured time, though in practice it adds very little overhead and is negligible
-         * for all but the simplest bricks */
+        /* Do processing.
+         * The changing of control values and copying of audio data above will be included
+         * in the total measured time, though in practice it adds very little overhead and
+         * is negligible for all but the simplest bricks.
+         * See timings for the BaselineBrick for an estimation of the overhead */
         test_module->render();
     }
 };
-
-/* Template on the type of brick to use, and the number of inputs */
-template<typename T, int ctrl_inputs, int audio_inputs, AudioType audio_type>
-static void VarBrickBM(benchmark::State& state)
-{
-    std::array<float, ctrl_inputs> ctrl_values;
-    ctrl_values.fill(0.0);
-    std::array<ControlPort, ctrl_inputs> ctrl_signals;
-    for (int i = 0; i < ctrl_inputs; ++i)
-    {
-        ctrl_signals[i] = ControlPort(ctrl_values[i]);
-    }
-    bricks::AudioBuffer audio_buffer;
-    std::array<bricks::AudioPort, audio_inputs> audio_signals;
-    audio_signals.fill(AudioPort(audio_buffer));
-    auto audio_data = get_audio_data(audio_type);
-
-    std::unique_ptr<T> test_module;
-    if constexpr (audio_inputs == 0)
-    {
-        test_module = std::make_unique<T>(ctrl_signals);
-    }
-    else if constexpr (ctrl_inputs == 0)
-    {
-        test_module = std::make_unique<T>(audio_signals);
-    }
-    else if constexpr (audio_inputs > 0)
-    {
-        test_module = std::make_unique<T>(ctrl_signals, audio_signals);
-    }
-
-    assert(test_module);
-    test_module->set_samplerate(TEST_SAMPLE_RATE);
-    int samples = 0;
-    for (auto _ : state)
-    {
-        if (samples >= TEST_AUDIO_DATA_SIZE - bricks::PROC_BLOCK_SIZE)
-        {
-            samples = 0;
-        }
-        std::copy(audio_data->data() + samples, audio_data->data() + samples + bricks::PROC_BLOCK_SIZE, audio_buffer.data());
-        for (auto& i : ctrl_values)
-        {
-            i = static_cast<float>(samples) / TEST_AUDIO_DATA_SIZE;
-        }
-        /* Do procesing.
-         * The setting up and copying of audio data above will be included in the total
-         * measured time, though in practice it adds very little overhead and is negligible
-         * for all but the simplest bricks */
-        test_module->render();
-    }
-};
-
 
 } // end bricks_bench
 #endif //BRICKS_DSP_FIXTURE_H

@@ -202,7 +202,8 @@ private:
     AudioBuffer _output_buffer;
 };
 
-/* General n to 1 control signal mixer, linear gain control */
+/* General n to 1 control signal mixer, linear gain control As with the
+ * audio mixer, first n arguments are gains, the rest are control signals*/
 template <int channel_count>
 class ControlMixerBrick : public DspBrick
 {
