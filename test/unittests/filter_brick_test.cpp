@@ -13,7 +13,7 @@ protected:
     float               _freq;
     float               _res;
     float               _gain;
-    BiquadFilterBrick   _test_module{_freq, _res, _gain, _buffer};
+    BiquadFilterBrick   _test_module{&_freq, &_res, &_gain, &_buffer};
 };
 
 TEST_F(BiquadBrickTest, OperationalTest)
@@ -22,9 +22,9 @@ TEST_F(BiquadBrickTest, OperationalTest)
     _freq = 0.8;
     _res = 0.4;
     _test_module.render();
-    auto& out_buffer = _test_module.audio_output(BiquadFilterBrick::FILTER_OUT);
+    const AudioBuffer* out_buffer = _test_module.audio_output(BiquadFilterBrick::FILTER_OUT);
     float sum = 0;
-    for (auto sample : out_buffer)
+    for (const auto sample : *out_buffer)
     {
         sum += std::abs(sample);
     }
@@ -45,8 +45,8 @@ protected:
     }
 
     AudioBuffer         _buffer;
-    FixedFilterBrick    _test_module{_buffer};
-    const AudioBuffer&  _out_buffer{_test_module.audio_output(FixedFilterBrick::FILTER_OUT)};
+    FixedFilterBrick    _test_module{&_buffer};
+    const AudioBuffer*  _out_buffer{_test_module.audio_output(FixedFilterBrick::FILTER_OUT)};
 };
 
 TEST_F(FixedFilterBrickTest, LowpassTest)
@@ -54,7 +54,7 @@ TEST_F(FixedFilterBrickTest, LowpassTest)
     _test_module.set_lowpass(1000, 0.7);
     _test_module.render();
     float sum = 0;
-    for (auto sample : _out_buffer)
+    for (auto sample : *_out_buffer)
     {
         sum += std::abs(sample);
     }
@@ -70,7 +70,7 @@ TEST_F(FixedFilterBrickTest, HighpassTest)
     _test_module.set_highpass(1000, 0.7);
     _test_module.render();
     float sum = 0;
-    for (auto sample : _out_buffer)
+    for (auto sample : *_out_buffer)
     {
         sum += std::abs(sample);
     }
@@ -86,7 +86,7 @@ TEST_F(FixedFilterBrickTest, AllpassTest)
     _test_module.set_allpass(1000, 0.7);
     _test_module.render();
     float sum = 0;
-    for (auto sample : _out_buffer)
+    for (auto sample : *_out_buffer)
     {
         sum += std::abs(sample);
     }

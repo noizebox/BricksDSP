@@ -182,7 +182,7 @@ protected:
     AudioBuffer           _buffer;
     float                 _depth;
     BitRateReducerBrick   _test_module{_depth, _buffer};
-    const AudioBuffer&    _out_buffer{_test_module.audio_output(BitRateReducerBrick::OUT)};
+    const AudioBuffer&    _out_buffer{_test_module.audio_output(BitRateReducerBrick::BITRED_OUT)};
 };
 
 bool is_2_bit_predicate(float val)
@@ -222,7 +222,7 @@ protected:
     AudioBuffer             _buffer;
     float                   _samplerate;
     SampleRateReducerBrick  _test_module{_samplerate, _buffer};
-    const AudioBuffer&      _out_buffer{_test_module.audio_output(SampleRateReducerBrick::OUT)};
+    const AudioBuffer&      _out_buffer{_test_module.audio_output(SampleRateReducerBrick::DOWNSAMPLED_OUT)};
 };
 
 TEST_F(SampleRateReducerBrickTest, OperationTest)

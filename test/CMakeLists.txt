@@ -12,6 +12,7 @@ SET(TEST_SOURCES  unittests/test_utils.cpp
 
 add_executable(unit_tests ${TEST_SOURCES})
 
+
 target_include_directories(unit_tests PRIVATE ${PROJECT_SOURCE_DIR}/src)
 target_include_directories(unit_tests PRIVATE ${PROJECT_SOURCE_DIR}/include/bricks_dsp)
 target_link_libraries(unit_tests bricks_dsp gtest gtest_main)

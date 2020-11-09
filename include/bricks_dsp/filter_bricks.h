@@ -7,7 +7,7 @@ namespace bricks {
 constexpr float DEFAULT_Q = 1 / 1.42f; //sqrtf(2.0f);
 
 /* Standard Biquad */
-class BiquadFilterBrick : public DspBrick
+class BiquadFilterBrick : public DspBrickImpl<3, 0, 1, 1>
 {
 public:
     enum class Mode
@@ -20,121 +20,96 @@ public:
         LOW_SHELF,
         HIGH_SHELF
     };
-    enum ControlInputs
+    enum ControlInput
     {
         CUTOFF = 0,
         RESONANCE,
-        MAX_CONTROL_INPUTS,
+        GAIN
     };
 
-    enum AudioOutputs
+    enum AudioOutput
     {
-        FILTER_OUT = 0,
-        MAX_AUDIO_OUTS,
+        FILTER_OUT = 0
     };
 
-    BiquadFilterBrick(ControlPort cutoff, ControlPort resonance, ControlPort gain, AudioPort audio_in) :
-            _cutoff_ctrl(cutoff), _res_q_ctrl(resonance), _gain_ctrl(gain), _audio_in(audio_in) {}
-
-    const AudioBuffer& audio_output(int n) override
+    BiquadFilterBrick(const float* cutoff, const float* resonance, const float* gain, const AudioBuffer* audio_in)
     {
-        assert(n < MAX_AUDIO_OUTS);
-        return _audio_out;
+        set_control_input(ControlInput::CUTOFF, cutoff);
+        set_control_input(ControlInput::RESONANCE, resonance);
+        set_control_input(ControlInput::GAIN, gain);
+        set_audio_input(0, audio_in);
     }
 
     void render() override;
 
-    void set_mode(Mode mode) {_mode = mode;};
+    void set_mode(Mode mode)
+    {
+        _mode = mode;
+    }
 
-    void reset() {_reg = {0, 0};}
+    void reset() override
+    {
+        _reg.fill(0.0f);
+    }
 
 private:
-    ControlPort     _cutoff_ctrl;
-    ControlPort     _res_q_ctrl;
-    ControlPort     _gain_ctrl;
-    AudioPort       _audio_in;
-    Mode            _mode{Mode::LOWPASS};
+    Mode                                 _mode{Mode::LOWPASS};
+    float                                _samplerate{DEFAULT_SAMPLERATE};
     std::array<ControlSmootherLinear, 5> _coeff;
-    std::array<float ,2> _reg{0,0};
-    AudioBuffer     _audio_out;
+    std::array<float ,2>                 _reg{0,0};
 };
 
 /* State variable filter with multiple outs from Andrew Simper, Cytomic,
  * adapted from https://cytomic.com/files/dsp/SvfLinearTrapOptimised2.pdf */
-class SVFFilterBrick : public DspBrick
+class SVFFilterBrick : public DspBrickImpl<2, 0, 1, 3>
 {
 public:
     enum ControlInputs
     {
         CUTOFF = 0,
-        RESONANCE,
-        MAX_CONTROL_INPUTS,
+        RESONANCE
     };
 
-    enum AudioOutputs
+    enum AudioOutput
     {
         LOWPASS = 0,
         BANDPASS,
-        HIGHPASS,
-        MAX_AUDIO_OUTS,
+        HIGHPASS
     };
 
-    SVFFilterBrick(ControlPort cutoff, ControlPort resonance, AudioPort audio_in) :
-                   _cutoff_ctrl(cutoff), _res_ctrl(resonance), _audio_in(audio_in) {}
-
-    const AudioBuffer& audio_output(int n) override
+    SVFFilterBrick(const float* cutoff, float* resonance, const AudioBuffer* audio_in)
     {
-        assert(n < MAX_AUDIO_OUTS);
-        switch (n)
-        {
-            case AudioOutputs::LOWPASS:
-                return _lowpass_out;
+        set_control_input(ControlInputs::CUTOFF, cutoff);
+        set_control_input(ControlInputs::RESONANCE, resonance);
+        set_audio_input(0, audio_in);
+    }
 
-            case AudioOutputs::BANDPASS:
-                return _bandpass_out;
-
-            case AudioOutputs::HIGHPASS:
-                return _highpass_out;
-
-            default:
-                return _lowpass_out;
-        }
+    void reset()
+    {
+        // TODO - reset() on control smoothers.
+        _reg.fill(0);
     }
 
     void render() override;
 
 private:
-    ControlPort     _cutoff_ctrl;
-    ControlPort     _res_ctrl;
-    AudioPort       _audio_in;
-    AudioBuffer     _lowpass_out;
-    AudioBuffer     _bandpass_out;
-    AudioBuffer     _highpass_out;
     std::array<float ,2> _reg{0,0};
     ControlSmootherLinear _g_lag;
 };
 
+
 /* Standard Biquad with non-modulated filter parameters */
-class FixedFilterBrick : public DspBrick
+class FixedFilterBrick : public DspBrickImpl<0, 0, 1, 1>
 {
 public:
-    enum ControlInputs
+    enum AudioOutput
     {
-        MAX_CONTROL_INPUTS = 0,
+        FILTER_OUT = 0
     };
 
-    enum AudioOutputs
+    FixedFilterBrick(const AudioBuffer* audio_in)
     {
-        FILTER_OUT = 0,
-        MAX_AUDIO_OUTS,
-    };
-
-    FixedFilterBrick(AudioPort audio_in) : _audio_in(audio_in) {}
-
-    const AudioBuffer& audio_output(int n) override
-    {
-        assert(n < MAX_AUDIO_OUTS);
-        return _audio_out;
+        set_audio_input(0, audio_in);
     }
 
     void render() override;
@@ -146,55 +121,54 @@ public:
     void set_allpass(float freq, float q = DEFAULT_Q, bool clear = true);
     void set_lowshelf(float freq, float gain, float slope = DEFAULT_Q, bool clear = true);
     void set_highshelf(float freq, float gain, float slope = DEFAULT_Q, bool clear = true);
-    void reset() {_reg = {0, 0}; }
+
+    void reset()
+    {
+        _reg = {0, 0};
+    }
 
 private:
-    AudioPort            _audio_in;
     std::array<float, 5> _coeff{0,0,0,0,0};
     std::array<float, 2> _reg{0,0};
-    AudioBuffer          _audio_out;
 };
 
 /* Topology-preserving (zero delay) ladder with non-linearities
  * From https://www.kvraudio.com/forum/viewtopic.php?t=349859
  * and Copyright 2012 Teemu Voipio (mystran @ kvr)  */
-class MystransLadderFilter : public DspBrick
+class MystransLadderFilter : public DspBrickImpl<2, 0, 1, 1>
 {
    public:
-    enum ControlInputs
+    enum ControlInput
     {
         CUTOFF = 0,
         RESONANCE,
-        MAX_CONTROL_INPUTS,
     };
 
-    enum AudioOutputs
+    enum AudioOutput
     {
         FILTER_OUT = 0,
-        MAX_AUDIO_OUTS,
     };
 
-    MystransLadderFilter(ControlPort cutoff, ControlPort resonance, AudioPort audio_in) :
-                         _cutoff_ctrl(cutoff), _res_ctrl(resonance), _audio_in(audio_in) {}
+    MystransLadderFilter(float* cutoff, float* resonance, const AudioBuffer* audio_in)
+    {
+        set_control_input(ControlInput::CUTOFF, cutoff);
+        set_control_input(ControlInput::RESONANCE, resonance);
+        set_audio_input(0, audio_in);
+    }
 
     void render() override;
 
-    const AudioBuffer& audio_output(int n) override
+    void reset()
     {
-        assert(n < MAX_AUDIO_OUTS);
-        return _audio_out;
+        // TODO - reset() on control smoothers.
+        _states.fill(0);
     }
 
 private:
-    ControlPort            _cutoff_ctrl;
-    ControlPort            _res_ctrl;
-    AudioPort              _audio_in;
     ControlSmootherLinear  _freq_lag;
     double                 _zi;
     std::array<double, 4>  _states{0, 0, 0, 0};
-    AudioBuffer            _audio_out;
 };
-
 
 }// namespace bricks
 

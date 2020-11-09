@@ -21,13 +21,20 @@ void AudioRateADSRBrick::gate(bool gate)
 
 void AudioRateADSRBrick::render()
 {
-    float attack_factor = std::max(1 / (_samplerate * _controls[ATTACK].value()), SHORTEST_ENVELOPE_TIME);
-    float decay_factor = std::max((1.0f - _controls[SUSTAIN].value()) / (_samplerate * _controls[DECAY].value()), SHORTEST_ENVELOPE_TIME);
-    float sustain_level = _controls[SUSTAIN].value();
-    float release_factor = std::max(_controls[SUSTAIN].value() / (_samplerate * _controls[RELEASE].value()), SHORTEST_ENVELOPE_TIME);
+    float attack = _ctrl_value(ControlInput::ATTACK);
+    float decay = _ctrl_value(ControlInput::RELEASE);
+    float sustain = _ctrl_value(ControlInput::SUSTAIN);
+    float release = _ctrl_value(ControlInput::RELEASE);
+    float samplerate = _sample_rate();
+    float attack_factor = std::max(1.0f / (samplerate * attack), SHORTEST_ENVELOPE_TIME);
+    float decay_factor = std::max((1.0f - sustain) / (samplerate * decay), SHORTEST_ENVELOPE_TIME);
+    float sustain_level = sustain;
+    float release_factor = std::max(sustain / (samplerate * release), SHORTEST_ENVELOPE_TIME);
     // TODO - Perhaps the release factor needs scaling if the envelope goes direcly to amp_release from attack or decay, see Apollo code
 
-    for (auto& sample : _envelope)
+    AudioBuffer& out = _output_buffer(AudioOutput::ENV_OUT);
+
+    for (auto& sample : out)
     {
         switch (_state)
         {
@@ -84,6 +91,7 @@ void LinearADSREnvelopeBrick::gate(bool gate)
 void LinearADSREnvelopeBrick::render()
 {
     float level = _level;
+    float samplerate = _sample_rate();
     switch (_state)
     {
         case EnvelopeState::OFF:
@@ -91,8 +99,8 @@ void LinearADSREnvelopeBrick::render()
 
         case EnvelopeState::ATTACK:
         {
-            float attack_time = _controls[ATTACK].value();
-            level += attack_time > 0 ? PROC_BLOCK_SIZE / (_samplerate * attack_time) : 1.0f;
+            float attack_time = _ctrl_value(ControlInput::ATTACK);
+            level += attack_time > 0 ? PROC_BLOCK_SIZE / (samplerate * attack_time) : 1.0f;
             if (level >= 1)
             {
                 _state = EnvelopeState::DECAY;
@@ -103,9 +111,9 @@ void LinearADSREnvelopeBrick::render()
 
         case EnvelopeState::DECAY:
         {
-            float decay_time = _controls[DECAY].value();
-            float sustain_level = _controls[SUSTAIN].value();
-            level -= decay_time > 0 ? sustain_level * PROC_BLOCK_SIZE / (_samplerate * decay_time) : 0.0f;
+            float decay_time = _ctrl_value(ControlInput::DECAY);
+            float sustain_level = _ctrl_value(ControlInput::SUSTAIN);
+            level -= decay_time > 0 ? sustain_level * PROC_BLOCK_SIZE / (samplerate * decay_time) : 0.0f;
             if (level <= sustain_level)
             {
                 _state = EnvelopeState::SUSTAIN;
@@ -116,15 +124,15 @@ void LinearADSREnvelopeBrick::render()
 
         case EnvelopeState::SUSTAIN:
         {
-            level = _controls[SUSTAIN].value();
+            level = _ctrl_value(ControlInput::SUSTAIN);
             break;
         }
 
         case EnvelopeState::RELEASE:
         {
-            float release_time = _controls[RELEASE].value();
-            float sustain_level = _controls[SUSTAIN].value();
-            level -= release_time > 0 ? sustain_level * PROC_BLOCK_SIZE / (_samplerate * release_time) : sustain_level;
+            float release_time = _ctrl_value(ControlInput::RELEASE);
+            float sustain_level = _ctrl_value(ControlInput::SUSTAIN);
+            level -= release_time > 0 ? sustain_level * PROC_BLOCK_SIZE / (samplerate * release_time) : sustain_level;
             if (level <= 0.0f)
             {
                 _state = EnvelopeState::OFF;
@@ -134,6 +142,7 @@ void LinearADSREnvelopeBrick::render()
         }
     }
     _level = level;
+    _set_ctrl_value(ControlOutput::ENV_OUT, level);
 }
 
 void AudioADSREnvelopeBrick::gate(bool gate)
@@ -152,6 +161,8 @@ constexpr float ENVELOPE_EPS = 0.00001f;
 
 void AudioADSREnvelopeBrick::render()
 {
+    float samplerate = _sample_rate();
+    float level = _level;
     switch (_state)
     {
         case EnvelopeState::OFF:
@@ -159,8 +170,8 @@ void AudioADSREnvelopeBrick::render()
 
         case EnvelopeState::ATTACK:
         {
-            float attack_time = _attack.value();
-            _level += attack_time > 0 ? PROC_BLOCK_SIZE / (_samplerate * attack_time) : 1.0f;
+            float attack_time = _ctrl_value(ControlInput::ATTACK);
+            _level += attack_time > 0 ? PROC_BLOCK_SIZE / (samplerate * attack_time) : 1.0f;
             if (_level >= 1)
             {
                 _state = EnvelopeState::DECAY;
@@ -171,11 +182,11 @@ void AudioADSREnvelopeBrick::render()
 
         case EnvelopeState::DECAY:
         {
-            float decay_rate = _decay.value();
-            float sustain_level = _sustain.value();
+            float decay_rate = _ctrl_value(ControlInput::DECAY);
+            float sustain_level = _ctrl_value(ControlInput::SUSTAIN);
             sustain_level *= sustain_level;
             /* 1 - 1/x is a quick approximation of e^(-1 / x) for small values of x */
-            float b0 = PROC_BLOCK_SIZE / (_samplerate * decay_rate);
+            float b0 = PROC_BLOCK_SIZE / (samplerate * decay_rate);
             float a0 = 1.0f - b0;
             _level = _level * a0 + b0 * sustain_level;
             /* Note, as decay approaches the sustain level asymptotically,
@@ -184,8 +195,8 @@ void AudioADSREnvelopeBrick::render()
         }
         case EnvelopeState::RELEASE:
         {
-            float release_rate = _release.value();
-            float a0 = 1.0f - PROC_BLOCK_SIZE / (_samplerate * release_rate);
+            float release_rate = _ctrl_value(ControlInput::RELEASE);
+            float a0 = 1.0f - PROC_BLOCK_SIZE / (samplerate * release_rate);
             _level = _level * a0;
             if (_level < ENVELOPE_EPS)
             {
@@ -195,28 +206,31 @@ void AudioADSREnvelopeBrick::render()
             break;
         }
     }
+    _level = level;
+    _set_ctrl_value(ControlOutput::ENV_OUT, level);
 }
 
 
 void LfoBrick::render()
 {
-    float base_freq = LOWEST_LFO_SPEED * powf(2.0f, _rate_port.value() * 10.0f);
-    float phase_inc = base_freq * PROC_BLOCK_SIZE / _samplerate;
+    float base_freq = LOWEST_LFO_SPEED * powf(2.0f, _ctrl_value(ControlInput::RATE) * 10.0f);
+    float phase_inc = base_freq * PROC_BLOCK_SIZE / _sample_rate();
     float phase = _phase;
+    float level = _level;
     switch (_waveform)
     {
         case Waveform::SAW:
             phase += phase_inc;
             if (phase > 0.5)
                 phase -= 1;
-            _level = phase;
+            level = phase;
             break;
 
         case Waveform::PULSE:
             phase += phase_inc;
             if (phase > 0.5)
                 phase -= 1;
-            _level = std::signbit(phase) ? 0.5f : -0.5f;
+            level = std::signbit(phase) ? 0.5f : -0.5f;
             break;
 
         case Waveform::TRIANGLE:
@@ -225,14 +239,14 @@ void LfoBrick::render()
             {
                 _tri_dir = _tri_dir * -1;
             }
-            _level = phase;
+            level = phase;
             break;
 
         case Waveform::SINE:
             phase += phase_inc;
             if (phase > 0.5)
                 phase -= 1;
-            _level = std::sin(phase * 2.0f * static_cast<float>(M_PI));
+            level = std::sin(phase * 2.0f * static_cast<float>(M_PI));
             break;
 
         case Waveform::SAMPLE_HOLD:
@@ -240,27 +254,30 @@ void LfoBrick::render()
             if (phase > 0.5)
             {
                 phase -= 1;
-                _level = _rand_device.get_norm();
+                level = _rand_device.get_norm();
             }
 
         case Waveform::NOISE:
-            _level = _rand_device.get_norm();
+            level = _rand_device.get_norm();
             break;
 
         case Waveform::RANDOM:
             float out = _rand_device.get_norm() * 100;
-            _level = out = (1.0f - 0.9997f) * out + 0.9997f * _level;
+            level = out = (1.0f - 0.9997f) * out + 0.9997f * level;
             break;
     }
+    _level = level;
     _phase = phase;
+    _set_ctrl_value(ControlOutput::LFO_OUT, level);
 }
 
 void SineLfoBrick::render()
 {
     // TODO - Cheaper power function
-    float base_freq = 2.0f * static_cast<float>(M_PI) * LOWEST_LFO_SPEED * powf(2.0f, _rate_port.value() * 10.0f);
-    _phase += base_freq * PROC_BLOCK_SIZE / _samplerate;
-    _level = std::sin(_phase);
+    float rate = _ctrl_value(ControlInput::RATE);
+    float base_freq = 2.0f * static_cast<float>(M_PI) * LOWEST_LFO_SPEED * powf(2.0f, rate * 10.0f);
+    _phase += base_freq * PROC_BLOCK_SIZE / _sample_rate();
+    _set_ctrl_value(ControlOutput::LFO_OUT, std::sin(_phase));
     if (_phase > 2 * M_PI)
     {
         _phase -= 1.0f;
@@ -269,7 +286,7 @@ void SineLfoBrick::render()
 
 void RandLfoBrick::set_samplerate(float samplerate)
 {
-    DspBrick::set_samplerate(samplerate);
-    _coeff_a0 = std::exp(-2.0f * static_cast<float>(M_PI) * LP_CUTOFF / (_samplerate / PROC_BLOCK_SIZE));
+    DspBrickImpl::set_samplerate(samplerate);
+    _coeff_a0 = std::exp(-2.0f * static_cast<float>(M_PI) * LP_CUTOFF / (samplerate / PROC_BLOCK_SIZE));
 }
 } // namespace bricks

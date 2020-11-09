@@ -84,6 +84,7 @@ public:
     };
 
     float step() {return _step;}
+
 private:
     float _lag{0};
     float _step{0};
