@@ -16,8 +16,8 @@ protected:
 
     AudioBuffer                     _buffer;
     float                           _clip_level;
-    SaturationBrick<ClipType::SOFT> _test_module{_clip_level, _buffer};
-    const AudioBuffer&              _out_buffer{_test_module.audio_output(SaturationBrick<ClipType::SOFT>::CLIP_OUT)};
+    SaturationBrick<ClipType::SOFT> _test_module{&_clip_level, &_buffer};
+    const AudioBuffer&              _out_buffer{*_test_module.audio_output(SaturationBrick<ClipType::SOFT>::CLIP_OUT)};
 };
 
 TEST_F(SaturationBrickTest, OperationTest)
@@ -51,8 +51,8 @@ protected:
 
     AudioBuffer                       _buffer;
     float                             _gain;
-    AASaturationBrick<ClipType::HARD> _test_module{_gain, _buffer};
-    const AudioBuffer&                _out_buffer{_test_module.audio_output(AASaturationBrick<ClipType::HARD>::CLIP_OUT)};
+    AASaturationBrick<ClipType::HARD> _test_module{&_gain, &_buffer};
+    const AudioBuffer&                _out_buffer{*_test_module.audio_output(AASaturationBrick<ClipType::HARD>::CLIP_OUT)};
 };
 
 TEST_F(AASaturationBrickTest, OperationTest)
@@ -85,8 +85,8 @@ protected:
     }
 
     AudioBuffer          _buffer;
-    FixedDelayBrick<InterpolationType::LIN>  _test_module{_buffer, std::chrono::milliseconds(200)};
-    const AudioBuffer&   _out_buffer{_test_module.audio_output(FixedDelayBrick<InterpolationType::CUBIC>::DELAY_OUT)};
+    FixedDelayBrick<InterpolationType::LIN>  _test_module{&_buffer, std::chrono::milliseconds(200)};
+    const AudioBuffer&   _out_buffer{*_test_module.audio_output(FixedDelayBrick<InterpolationType::CUBIC>::DELAY_OUT)};
 };
 
 TEST_F(FixedDelayBrickTest, OperationTest)
@@ -136,8 +136,8 @@ protected:
 
     AudioBuffer          _buffer;
     float                _delay_mod{0};
-    ModDelayBrick<InterpolationType::CUBIC>  _test_module{_delay_mod, _buffer, std::chrono::milliseconds(200)};
-    const AudioBuffer&   _out_buffer{_test_module.audio_output(ModDelayBrick<InterpolationType::LIN>::DELAY_OUT)};
+    ModDelayBrick<InterpolationType::CUBIC>  _test_module{&_delay_mod, &_buffer, std::chrono::milliseconds(200)};
+    const AudioBuffer&   _out_buffer{*_test_module.audio_output(ModDelayBrick<InterpolationType::LIN>::DELAY_OUT)};
 };
 
 TEST_F(ModDelayBrickTest, OperationTest)
@@ -159,8 +159,8 @@ protected:
 
     AudioBuffer          _buffer;
     float                _delay_time;
-    ModulatedDelayBrick  _test_module{_delay_time, _buffer, 1};
-    const AudioBuffer&   _out_buffer{_test_module.audio_output(ModulatedDelayBrick::DELAY_OUT)};
+    ModulatedDelayBrick  _test_module{&_delay_time, &_buffer, 1};
+    const AudioBuffer&   _out_buffer{*_test_module.audio_output(ModulatedDelayBrick::DELAY_OUT)};
 };
 
 TEST_F(ModulatedDelayBrickTest, OperationTest)
@@ -181,8 +181,8 @@ protected:
 
     AudioBuffer           _buffer;
     float                 _depth;
-    BitRateReducerBrick   _test_module{_depth, _buffer};
-    const AudioBuffer&    _out_buffer{_test_module.audio_output(BitRateReducerBrick::BITRED_OUT)};
+    BitRateReducerBrick   _test_module{&_depth, &_buffer};
+    const AudioBuffer&    _out_buffer{*_test_module.audio_output(BitRateReducerBrick::BITRED_OUT)};
 };
 
 bool is_2_bit_predicate(float val)
@@ -221,8 +221,8 @@ protected:
 
     AudioBuffer             _buffer;
     float                   _samplerate;
-    SampleRateReducerBrick  _test_module{_samplerate, _buffer};
-    const AudioBuffer&      _out_buffer{_test_module.audio_output(SampleRateReducerBrick::DOWNSAMPLED_OUT)};
+    SampleRateReducerBrick  _test_module{&_samplerate, &_buffer};
+    const AudioBuffer&      _out_buffer{*_test_module.audio_output(SampleRateReducerBrick::DOWNSAMPLED_OUT)};
 };
 
 TEST_F(SampleRateReducerBrickTest, OperationTest)

@@ -29,9 +29,9 @@ public:
 
     VcaBrick() = default;
 
-    VcaBrick(const float& gain, const AudioBuffer& audio_in)
+    VcaBrick(const float* gain, const AudioBuffer* audio_in)
     {
-        set_control_input(ControlInput::Gain, gain);
+        set_control_input(ControlInput::GAIN, gain);
         set_audio_input(DEFAULT_INPUT, audio_in);
     }
 
@@ -66,6 +66,8 @@ private:
 template <int channel_count, Response response>
 class AudioMixerBrick : public DspBrickImpl<channel_count, 0, channel_count, 1>
 {
+    using this_template = DspBrickImpl<channel_count, 0, channel_count, 1>;
+
 public:
     enum AudioOutput
     {
@@ -79,22 +81,22 @@ public:
     {
         for (int i = 0; i < gains.size(); ++i)
         {
-            set_control_input(i, gains[i]);
+            this_template::set_control_input(i, gains[i]);
         }
         for (int i = 0; i < audio_ins.size(); ++i)
         {
-            set_audio_input(i, audio_ins[i]);
+            this_template::set_audio_input(i, audio_ins[i]);
         }
     }
 
     void render() override
     {
-        auto& audio_out = _output_buffer(AudioOutput::MIX_OUT);
+        auto& audio_out = this_template::_output_buffer(AudioOutput::MIX_OUT);
         audio_out.fill(0.0f);
 
         for (int i = 0; i < channel_count; ++i)
         {
-            float gain = _ctrl_value(i);
+            float gain = this_template::_ctrl_value(i);
             if constexpr (response == Response::LINEAR)
             {
                 _gain_lags[i].set(gain);
@@ -105,7 +107,7 @@ public:
             }
 
             AudioBuffer gain_lag = _gain_lags[i].get_all();
-            const auto& audio_in = _input_buffer(i);
+            const auto& audio_in = this_template::_input_buffer(i);
             for (int s = 0; s < audio_out.size(); ++s)
             {
                 audio_out[s] += audio_in[s] * gain_lag[i];
@@ -121,6 +123,8 @@ private:
 template <int channel_count>
 class AudioSummerBrick : public DspBrickImpl<0, 0, channel_count, 1>
 {
+    using template_spec = DspBrickImpl<0, 0, channel_count, 1>;
+
 public:
     enum AudioOutput
     {
@@ -144,7 +148,7 @@ public:
 
         for (int i = 0; i < audio_out.size(); ++i)
         {
-            const auto& audio_in = _input_buffer(i);
+            const auto& audio_in = template_spec::_input_buffer(i);
             for (int s = 0; s < audio_out.size(); ++s)
             {
                 audio_out[s] += audio_in[s];
@@ -157,6 +161,8 @@ public:
 template <int channel_count>
 class AudioMultiplierBrick : public DspBrickImpl<0, 0, channel_count, 1>
 {
+    using template_spec = DspBrickImpl<0, 0, channel_count, 1>;
+
 public:
     enum AudioOutput
     {
@@ -178,7 +184,7 @@ public:
 
         for (int i = 0; i < audio_out.size(); ++i)
         {
-            const auto& audio_in = _input_buffer(i);
+            const auto& audio_in = template_spec::_input_buffer(i);
             for (int s = 0; s < audio_out.size(); ++s)
             {
                 audio_out[s] *= audio_in[s];
@@ -192,6 +198,8 @@ public:
 template <int channel_count>
 class ControlMixerBrick : public DspBrickImpl<channel_count * 2, 1, 0, 0>
 {
+    using template_spec = DspBrickImpl<channel_count * 2, 1, 0, 0>;
+
 public:
     enum ControlOutput
     {
@@ -211,7 +219,7 @@ public:
         float output = 0.0f;
         for (int i = 0; i < channel_count; ++i)
         {
-            output += _ctrl_value(i) * _ctrl_value(i + channel_count);
+            output += template_spec::_ctrl_value(i) * template_spec::_ctrl_value(i + channel_count);
         }
         _set_ctrl_value(ControlOutput::MIX_OUT, output);
     }
@@ -222,8 +230,10 @@ public:
 template <int channel_count>
 class ControlSummerBrick : public DspBrickImpl<channel_count, 1, 0, 0>
 {
+    using template_spec = DspBrickImpl<channel_count, 1, 0, 0>;
+
 public:
-    enum ControlOutputs
+    enum ControlOutput
     {
         SUM_OUT = 0
     };
@@ -243,7 +253,7 @@ public:
         float output = 0.0f;
         for (int i = 0; i < channel_count; ++i)
         {
-            output += _ctrl_value(i);
+            output += template_spec::_ctrl_value(i);
         }
         _set_ctrl_value(ControlOutput::SUM_OUT, output);
     }
@@ -254,8 +264,10 @@ public:
 template <int channel_count>
 class ControlMultiplierBrick : public DspBrickImpl<channel_count, 1, 0, 0>
 {
+    using template_spec = DspBrickImpl<channel_count, 1, 0, 0>;
+
 public:
-    enum ControlOutputs
+    enum ControlOutput
     {
         MULT_OUT = 0
     };
@@ -273,7 +285,7 @@ public:
         float output = 1.0f;
         for (int i = 0; i < channel_count; ++i)
         {
-            output *= _ctrl_value(i);
+            output *= template_spec::_ctrl_value(i);
         }
         _set_ctrl_value(ControlOutput::MULT_OUT, output);
     }
@@ -284,8 +296,9 @@ template <int input_count, int output_count, bool clamp_output = true>
 class MetaControlBrick : public DspBrickImpl<input_count, output_count, 0, 0>
 {
     using Matrix = std::array<std::array<float, output_count>, input_count>;
-public:
+    using template_spec = DspBrickImpl<input_count, output_count, 0, 0>;
 
+public:
     MetaControlBrick() = default;
 
     /*template <class ...T>
@@ -317,7 +330,7 @@ public:
 
         for (int i = 0; i < input_count; ++i)
         {
-            float input = _ctrl_value(i);
+            float input = template_spec::_ctrl_value(i);
             for (int j = 0; j < output_count; ++j)
             {
                 outputs[j] += input * _components[i][j];

@@ -17,14 +17,14 @@ protected:
 
     AudioBuffer     _buffer;
     float           _pitch;
-    OscillatorBrick _test_module{_pitch};
+    OscillatorBrick _test_module{&_pitch};
 };
 
 TEST_F(OscillatorBrickTest, TestOperation)
 {
     _pitch = 440 / DEFAULT_SAMPLERATE;
     _test_module.render();
-    auto& buffer = _test_module.audio_output(OscillatorBrick::OSC_OUT);
+    const AudioBuffer & buffer = *_test_module.audio_output(OscillatorBrick::OSC_OUT);
 
     float sum = 0;
     for (auto sample : buffer)
@@ -69,7 +69,7 @@ protected:
 
     AudioBuffer         _buffer;
     float               _pitch;
-    FmOscillatorBrick   _test_module{_pitch, _buffer};
+    FmOscillatorBrick   _test_module{&_pitch, &_buffer};
 };
 
 
@@ -78,7 +78,7 @@ TEST_F(FmOscillatorBrickTest, TestOperation)
     _pitch = 440 / DEFAULT_SAMPLERATE;
     fill_buffer(_buffer, 1.0f);
     _test_module.render();
-    auto& buffer = _test_module.audio_output(OscillatorBrick::OSC_OUT);
+    const auto& buffer = *_test_module.audio_output(OscillatorBrick::OSC_OUT);
 
     float sum = 0;
     for (auto sample : buffer)
@@ -122,7 +122,7 @@ protected:
 
     AudioBuffer         _buffer;
     float               _pitch;
-    WtOscillatorBrick   _test_module{_pitch};
+    WtOscillatorBrick   _test_module{&_pitch};
 };
 
 
@@ -131,7 +131,7 @@ TEST_F(WtOscillatorBrickTest, TestOperation)
     _pitch = 440 / DEFAULT_SAMPLERATE;
     fill_buffer(_buffer, 1.0f);
     _test_module.render();
-    auto& buffer = _test_module.audio_output(WtOscillatorBrick::OSC_OUT);
+    const auto& buffer = *_test_module.audio_output(WtOscillatorBrick::OSC_OUT);
 
     float sum = 0;
     for (auto sample : buffer)
@@ -181,7 +181,7 @@ TEST_F(NoiseGeneratorBrickTest, TestOperation)
     fill_buffer(_buffer, 1.0f);
     _test_module.set_waveform(NoiseGeneratorBrick::Waveform::BROWN);
     _test_module.render();
-    auto& buffer = _test_module.audio_output(WtOscillatorBrick::OSC_OUT);
+    const auto& buffer = *_test_module.audio_output(NoiseGeneratorBrick::NOISE_OUT);
 
     float sum = 0;
     for (auto sample : buffer)

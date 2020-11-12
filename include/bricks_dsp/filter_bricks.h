@@ -64,7 +64,7 @@ private:
 class SVFFilterBrick : public DspBrickImpl<2, 0, 1, 3>
 {
 public:
-    enum ControlInputs
+    enum ControlInput
     {
         CUTOFF = 0,
         RESONANCE
@@ -79,8 +79,8 @@ public:
 
     SVFFilterBrick(const float* cutoff, float* resonance, const AudioBuffer* audio_in)
     {
-        set_control_input(ControlInputs::CUTOFF, cutoff);
-        set_control_input(ControlInputs::RESONANCE, resonance);
+        set_control_input(ControlInput::CUTOFF, cutoff);
+        set_control_input(ControlInput::RESONANCE, resonance);
         set_audio_input(0, audio_in);
     }
 

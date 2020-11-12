@@ -146,7 +146,7 @@ protected:
 
 TEST_F(RandLfoBrickTest, OperationalTest)
 {
-    float out = *_test_module.control_output(RandLfoBrick::RAND_OUT);
+    const float& out = *_test_module.control_output(RandLfoBrick::RAND_OUT);
     for (int i = 0 ; i < 20; ++i)
     {
         _test_module.render();

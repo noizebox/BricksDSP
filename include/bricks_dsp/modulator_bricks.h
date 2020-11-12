@@ -114,7 +114,7 @@ private:
 class BasicDelay : public DspBrickImpl<1, 0, 1, 1>
 {
 public:
-    enum AudioOutputs
+    enum AudioOutput
     {
         DELAY_OUT = 0
     };
@@ -218,7 +218,7 @@ public:
     {
         _copy_audio_in(_input_buffer(DEFAULT_INPUT));
         auto read_index = _get_read_index();
-        auto& audio_out = _output_buffer(AudioOutputs::DELAY_OUT);
+        auto& audio_out = _output_buffer(AudioOutput::DELAY_OUT);
         for (int i = 0; i < PROC_BLOCK_SIZE; ++i)
         {
             assert(read_index <= _max_samples + PROC_BLOCK_SIZE);
@@ -278,6 +278,7 @@ public:
                   std::chrono::microseconds max_delay = std::chrono::seconds(1)) : BasicDelay(max_delay)
     {
         set_control_input(ControlInput::DELAY_MOD, delay_mod);
+        set_audio_input(DEFAULT_INPUT, audio_in);
         set_delay_time(max_delay / 2);
     }
 
@@ -290,7 +291,7 @@ public:
     {
         _copy_audio_in(_input_buffer(DEFAULT_INPUT));
         _mod_lag.set(clamp(_ctrl_value(ControlInput::DELAY_MOD), 0.0f, 1.0f));
-        auto& audio_out = _output_buffer(AudioOutputs::DELAY_OUT);
+        auto& audio_out = _output_buffer(AudioOutput::DELAY_OUT);
 
         for (int i = 0; i < PROC_BLOCK_SIZE; ++i)
         {
