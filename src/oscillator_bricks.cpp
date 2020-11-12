@@ -8,7 +8,7 @@ namespace bricks {
 void OscillatorBrick::render()
 {
     float base_freq = control_to_freq(_ctrl_value(ControlInput::PITCH));
-    float phase_inc = base_freq / _sample_rate();
+    float phase_inc = base_freq / samplerate();
     float phase = _phase;
     AudioBuffer& audio_out = _output_buffer(AudioOutput::OSC_OUT);
 
@@ -57,7 +57,7 @@ void FmOscillatorBrick::render()
 {
     float base_freq = control_to_freq(_ctrl_value(ControlInput::PITCH));
     //_pitch_lag.set(_pitch_port.value());
-    float phase_inc = base_freq / _sample_rate();
+    float phase_inc = base_freq / samplerate();
     float phase = _phase;
     const AudioBuffer& fm_mod = _input_buffer(AudioInput::LIN_FM);
     AudioBuffer& audio_out = _output_buffer(AudioOutput::OSC_OUT);
@@ -108,7 +108,7 @@ void WtOscillatorBrick::render()
 {
     /* If the samplerate it less than 80kHz, use the wavetables 1 octave above
      * which has less harmonics to make sure they dont alias when interpolated */
-    float sr = _sample_rate();
+    float sr = samplerate();
     int wt_shift = sr > 80000? 0 : sr > 40000? 1 : 2;
     float pitch = _ctrl_value(ControlInput::PITCH);
     float base_freq = control_to_freq(pitch);

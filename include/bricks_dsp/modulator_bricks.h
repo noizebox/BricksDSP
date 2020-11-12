@@ -139,7 +139,7 @@ public:
 
     void set_max_delay_time(std::chrono::duration<float> delay)
     {
-        int samples = _sample_rate() * delay.count();
+        int samples = samplerate() * delay.count();
         /* Samples is rounded up to nearest multiple of PROC_BLOCK_SIZE + 1 more */
         _max_samples = (samples / PROC_BLOCK_SIZE + 2) * PROC_BLOCK_SIZE;
         _max_delay = samples;
@@ -205,7 +205,7 @@ public:
 
     void set_delay_time(std::chrono::duration<float> delay)
     {
-        set_delay_samples(_sample_rate() * delay.count());
+        set_delay_samples(samplerate() * delay.count());
     }
 
     /* Note that this can still be a fraction if interpolation is not NONE */
@@ -284,7 +284,7 @@ public:
 
     void set_delay_time(std::chrono::duration<float> delay)
     {
-        _delay = clamp(_sample_rate() * delay.count(), 0, _max_delay);
+        _delay = clamp(samplerate() * delay.count(), 0, _max_delay);
     }
 
     void render() override

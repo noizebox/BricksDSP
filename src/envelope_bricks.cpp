@@ -25,7 +25,7 @@ void AudioRateADSRBrick::render()
     float decay = _ctrl_value(ControlInput::RELEASE);
     float sustain = _ctrl_value(ControlInput::SUSTAIN);
     float release = _ctrl_value(ControlInput::RELEASE);
-    float samplerate = _sample_rate();
+    float samplerate = this->samplerate();
     float attack_factor = std::max(1.0f / (samplerate * attack), SHORTEST_ENVELOPE_TIME);
     float decay_factor = std::max((1.0f - sustain) / (samplerate * decay), SHORTEST_ENVELOPE_TIME);
     float sustain_level = sustain;
@@ -91,7 +91,7 @@ void LinearADSREnvelopeBrick::gate(bool gate)
 void LinearADSREnvelopeBrick::render()
 {
     float level = _level;
-    float samplerate = _sample_rate();
+    float samplerate = this->samplerate();
     switch (_state)
     {
         case EnvelopeState::OFF:
@@ -161,7 +161,7 @@ constexpr float ENVELOPE_EPS = 0.00001f;
 
 void AudioADSREnvelopeBrick::render()
 {
-    float samplerate = _sample_rate();
+    float samplerate = this->samplerate();
     float level = _level;
     switch (_state)
     {
@@ -214,7 +214,7 @@ void AudioADSREnvelopeBrick::render()
 void LfoBrick::render()
 {
     float base_freq = LOWEST_LFO_SPEED * powf(2.0f, _ctrl_value(ControlInput::RATE) * 10.0f);
-    float phase_inc = base_freq * PROC_BLOCK_SIZE / _sample_rate();
+    float phase_inc = base_freq * PROC_BLOCK_SIZE / samplerate();
     float phase = _phase;
     float level = _level;
     switch (_waveform)
@@ -276,7 +276,7 @@ void SineLfoBrick::render()
     // TODO - Cheaper power function
     float rate = _ctrl_value(ControlInput::RATE);
     float base_freq = 2.0f * static_cast<float>(M_PI) * LOWEST_LFO_SPEED * powf(2.0f, rate * 10.0f);
-    _phase += base_freq * PROC_BLOCK_SIZE / _sample_rate();
+    _phase += base_freq * PROC_BLOCK_SIZE / samplerate();
     _set_ctrl_value(ControlOutput::LFO_OUT, std::sin(_phase));
     if (_phase > 2 * M_PI)
     {

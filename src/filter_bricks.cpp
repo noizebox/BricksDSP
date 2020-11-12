@@ -160,7 +160,7 @@ void BiquadFilterBrick::render()
     float freq = 20 * powf(2.0f, _ctrl_value(ControlInput::CUTOFF) * 10.0f);
     float res = _ctrl_value(ControlInput::RESONANCE);
     float gain = _ctrl_value(ControlInput::GAIN) * 15.0f; // 15dB -/+ range for peaking and shelving modes
-    float samplerate = _sample_rate();
+    float samplerate = this->samplerate();
     Coefficients new_coeff;
     switch (_mode)
     {
@@ -229,7 +229,7 @@ void SVFFilterBrick::render()
     float freq = 20 * powf(2.0f, _ctrl_value(ControlInput::CUTOFF) * 10.0f);
     freq = std::clamp(freq, 20.0f, 18000.0f);
     float k = 2 - 2 * _ctrl_value(ControlInput::RESONANCE);
-    _g_lag.set(std::tan(static_cast<float>(M_PI) * freq / _sample_rate()));
+    _g_lag.set(std::tan(static_cast<float>(M_PI) * freq / samplerate()));
     auto reg = _reg;
     AudioBuffer g_lag = _g_lag.get_all();
     for (unsigned int i = 0; i < PROC_BLOCK_SIZE; ++i)
@@ -269,7 +269,7 @@ void FixedFilterBrick::render()
 
 void FixedFilterBrick::set_lowpass(float freq, float q, bool clear)
 {
-    _coeff = calc_lowpass(freq, q, _sample_rate());
+    _coeff = calc_lowpass(freq, q, samplerate());
     if (clear)
     {
         _reg = {0, 0};
@@ -278,7 +278,7 @@ void FixedFilterBrick::set_lowpass(float freq, float q, bool clear)
 
 void FixedFilterBrick::set_highpass(float freq, float q, bool clear)
 {
-    _coeff = calc_highpass(freq, q, _sample_rate());
+    _coeff = calc_highpass(freq, q, samplerate());
     if (clear)
     {
         reset();
@@ -287,7 +287,7 @@ void FixedFilterBrick::set_highpass(float freq, float q, bool clear)
 
 void FixedFilterBrick::set_bandpass(float freq, float q, bool clear)
 {
-    _coeff = calc_bandpass(freq, q, _sample_rate());
+    _coeff = calc_bandpass(freq, q, samplerate());
     if (clear)
     {
         reset();
@@ -296,7 +296,7 @@ void FixedFilterBrick::set_bandpass(float freq, float q, bool clear)
 
 void FixedFilterBrick::set_peaking(float freq, float gain, float q, bool clear)
 {
-    _coeff = calc_peaking(freq, gain, q, _sample_rate());
+    _coeff = calc_peaking(freq, gain, q, samplerate());
     if (clear)
     {
         reset();
@@ -305,7 +305,7 @@ void FixedFilterBrick::set_peaking(float freq, float gain, float q, bool clear)
 
 void FixedFilterBrick::set_allpass(float freq, float q, bool clear)
 {
-    _coeff = calc_allpass(freq, q, _sample_rate());
+    _coeff = calc_allpass(freq, q, samplerate());
     if (clear)
     {
         reset();
@@ -314,7 +314,7 @@ void FixedFilterBrick::set_allpass(float freq, float q, bool clear)
 
 void FixedFilterBrick::set_lowshelf(float freq, float gain, float q, bool clear)
 {
-    _coeff = calc_lowshelf(freq, gain, q, _sample_rate());
+    _coeff = calc_lowshelf(freq, gain, q, samplerate());
     if (clear)
     {
         reset();
@@ -323,7 +323,7 @@ void FixedFilterBrick::set_lowshelf(float freq, float gain, float q, bool clear)
 
 void FixedFilterBrick::set_highshelf(float freq, float gain, float q, bool clear)
 {
-    _coeff = calc_highshelf(freq, gain, q, _sample_rate());
+    _coeff = calc_highshelf(freq, gain, q, samplerate());
     if (clear)
     {
         reset();
@@ -346,7 +346,7 @@ void MystransLadderFilter::render()
     auto& audio_out = _output_buffer(0);
     float freq = 20 * powf(2.0f, _ctrl_value(ControlInput::CUTOFF) * 10.0f);
     freq = std::clamp(freq, 20.0f, 22000.0f);
-    _freq_lag.set(std::tan(static_cast<float>(M_PI) * freq / _sample_rate()));
+    _freq_lag.set(std::tan(static_cast<float>(M_PI) * freq / samplerate()));
     double r = (40.0/9.0) * _ctrl_value(ControlInput::RESONANCE);
 
     auto s = _states;

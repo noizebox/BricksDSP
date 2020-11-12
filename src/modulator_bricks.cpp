@@ -157,7 +157,7 @@ void ModulatedDelayBrick::set_max_delay_time(float max_delay_seconds)
         delete[] _rec_times;
     }
     /* Samples is rounded up to nearest multiple of PROC_BLOCK_SIZE plus 1 extra for interpolation*/
-    size_t samples = max_delay_seconds * _sample_rate();
+    size_t samples = max_delay_seconds * samplerate();
     samples = (samples / PROC_BLOCK_SIZE + 2) * PROC_BLOCK_SIZE;
     _max_samples = samples;
     _buffer = new float[samples];
@@ -227,7 +227,7 @@ void SampleRateReducerBrick::render()
 {
     // Added to keep the upsampling phase from drifting away
     constexpr float NUDGE_FACTOR = 0.00005f;
-    float ratio = clamp(control_to_freq(_ctrl_value(ControlInput::SAMPLE_RATE)) / _sample_rate() * 2.0f, 0.0f, 1.0f);
+    float ratio = clamp(control_to_freq(_ctrl_value(ControlInput::SAMPLE_RATE)) / samplerate() * 2.0f, 0.0f, 1.0f);
     const auto& audio_in = _input_buffer(0);
 
     // Delay for interpolation

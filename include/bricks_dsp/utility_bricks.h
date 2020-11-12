@@ -79,11 +79,11 @@ public:
     AudioMixerBrick(std::array<const float*, channel_count> gains,
                     std::array<const AudioBuffer*, channel_count> audio_ins)
     {
-        for (int i = 0; i < gains.size(); ++i)
+        for (unsigned int i = 0; i < gains.size(); ++i)
         {
             this_template::set_control_input(i, gains[i]);
         }
-        for (int i = 0; i < audio_ins.size(); ++i)
+        for (unsigned int i = 0; i < audio_ins.size(); ++i)
         {
             this_template::set_audio_input(i, audio_ins[i]);
         }
@@ -123,7 +123,7 @@ private:
 template <int channel_count>
 class AudioSummerBrick : public DspBrickImpl<0, 0, channel_count, 1>
 {
-    using template_spec = DspBrickImpl<0, 0, channel_count, 1>;
+    using this_template = DspBrickImpl<0, 0, channel_count, 1>;
 
 public:
     enum AudioOutput
@@ -133,22 +133,25 @@ public:
 
     AudioSummerBrick() = default;
 
-/*    template <class ...T>
-    explicit AudioSummerBrick(T&... inputs) : _inputs{AudioPort(inputs)...}
+    template <class ...T>
+    explicit AudioSummerBrick(T... inputs)
     {
-#ifdef LINUX
         static_assert(sizeof...(inputs) == channel_count);
-#endif
-    }*/
+        std::array<const AudioBuffer*, channel_count> audio_ins = {{inputs...}};
+        for (int i = 0; i < channel_count; ++i)
+        {
+            this_template::set_audio_input(i, audio_ins[i]);
+        }
+    }
 
     void render() override
     {
-        auto& audio_out = _output_buffer(AudioOutput::SUM_OUT);
+        auto& audio_out = this_template::_output_buffer(AudioOutput::SUM_OUT);
         audio_out.fill(0.0f);
 
-        for (int i = 0; i < audio_out.size(); ++i)
+        for (int i = 0; i < channel_count; ++i)
         {
-            const auto& audio_in = template_spec::_input_buffer(i);
+            const auto& audio_in = this_template::_input_buffer(i);
             for (int s = 0; s < audio_out.size(); ++s)
             {
                 audio_out[s] += audio_in[s];
@@ -161,7 +164,7 @@ public:
 template <int channel_count>
 class AudioMultiplierBrick : public DspBrickImpl<0, 0, channel_count, 1>
 {
-    using template_spec = DspBrickImpl<0, 0, channel_count, 1>;
+    using this_template = DspBrickImpl<0, 0, channel_count, 1>;
 
 public:
     enum AudioOutput
@@ -171,20 +174,25 @@ public:
 
     AudioMultiplierBrick() = default;
 
-    /*template <class ...T>
-    explicit AudioMultiplierBrick(T&... inputs) : _inputs{AudioPort(inputs)...}
+    template <class ...T>
+    explicit AudioMultiplierBrick(T... inputs)
     {
         static_assert(sizeof...(inputs) == channel_count);
-    }*/
+        std::array<const AudioBuffer*, channel_count> audio_ins = {inputs...};
+        for (int i = 0; i < channel_count; ++i)
+        {
+            this_template::set_audio_input(i, audio_ins[i]);
+        }
+    }
 
     void render() override
     {
-        auto& audio_out = _output_buffer(AudioOutput::SUM_OUT);
-        audio_out.fill(0.0f);
+        auto& audio_out = this_template::_output_buffer(AudioOutput::MULT_OUT);
+        audio_out.fill(1.0f);
 
-        for (int i = 0; i < audio_out.size(); ++i)
+        for (int i = 0; i < channel_count; ++i)
         {
-            const auto& audio_in = template_spec::_input_buffer(i);
+            const auto& audio_in = this_template::_input_buffer(i);
             for (int s = 0; s < audio_out.size(); ++s)
             {
                 audio_out[s] *= audio_in[s];
@@ -198,7 +206,7 @@ public:
 template <int channel_count>
 class ControlMixerBrick : public DspBrickImpl<channel_count * 2, 1, 0, 0>
 {
-    using template_spec = DspBrickImpl<channel_count * 2, 1, 0, 0>;
+    using this_template = DspBrickImpl<channel_count * 2, 1, 0, 0>;
 
 public:
     enum ControlOutput
@@ -208,20 +216,25 @@ public:
 
     ControlMixerBrick() = default;
 
-    /*template <class ...T>
-    explicit ControlMixerBrick(T&... inputs) : _inputs{ControlPort(inputs)...}
+    template <class ...T>
+    explicit ControlMixerBrick(T... inputs)
     {
         static_assert(sizeof...(inputs) == channel_count * 2);
-    }*/
+        std::array<const float*, channel_count * 2> ctrl_ins = {inputs...};
+        for (int i = 0; i < channel_count * 2; ++i)
+        {
+            this_template::set_control_input(i, ctrl_ins[i]);
+        }
+    }
 
     void render() override
     {
         float output = 0.0f;
         for (int i = 0; i < channel_count; ++i)
         {
-            output += template_spec::_ctrl_value(i) * template_spec::_ctrl_value(i + channel_count);
+            output += this_template::_ctrl_value(i) * this_template::_ctrl_value(i + channel_count);
         }
-        _set_ctrl_value(ControlOutput::MIX_OUT, output);
+        this_template::_set_ctrl_value(ControlOutput::MIX_OUT, output);
     }
 };
 
@@ -230,7 +243,7 @@ public:
 template <int channel_count>
 class ControlSummerBrick : public DspBrickImpl<channel_count, 1, 0, 0>
 {
-    using template_spec = DspBrickImpl<channel_count, 1, 0, 0>;
+    using this_template = DspBrickImpl<channel_count, 1, 0, 0>;
 
 public:
     enum ControlOutput
@@ -240,22 +253,25 @@ public:
 
     ControlSummerBrick() = default;
 
-    /*template <class ...T>
-    explicit ControlSummerBrick(T&... inputs) : _inputs{ControlPort(inputs)...}
+    template <class ...T>
+    explicit ControlSummerBrick(T... inputs)
     {
-#ifdef LINUX
         static_assert(sizeof...(inputs) == channel_count);
-#endif
-    }*/
+        std::array<const float*, channel_count> ctrl_ins = {inputs...};
+        for (int i = 0; i < channel_count; ++i)
+        {
+            this_template::set_control_input(i, ctrl_ins[i]);
+        }
+    }
 
     void render() override
     {
         float output = 0.0f;
         for (int i = 0; i < channel_count; ++i)
         {
-            output += template_spec::_ctrl_value(i);
+            output += this_template::_ctrl_value(i);
         }
-        _set_ctrl_value(ControlOutput::SUM_OUT, output);
+        this_template::_set_ctrl_value(ControlOutput::SUM_OUT, output);
     }
 };
 
@@ -264,7 +280,7 @@ public:
 template <int channel_count>
 class ControlMultiplierBrick : public DspBrickImpl<channel_count, 1, 0, 0>
 {
-    using template_spec = DspBrickImpl<channel_count, 1, 0, 0>;
+    using this_template = DspBrickImpl<channel_count, 1, 0, 0>;
 
 public:
     enum ControlOutput
@@ -272,22 +288,25 @@ public:
         MULT_OUT = 0
     };
 
-    /*template <class ...T>
-    explicit ControlMultiplierBrick(T&... inputs) : _inputs{ControlPort(inputs)...}
+    template <class ...T>
+    explicit ControlMultiplierBrick(T... inputs)
     {
-#ifdef LINUX
         static_assert(sizeof...(inputs) == channel_count);
-#endif
-    }*/
+        std::array<const float*, channel_count> ctrl_ins = {inputs...};
+        for (int i = 0; i < channel_count; ++i)
+        {
+            this_template::set_control_input(i, ctrl_ins[i]);
+        }
+    }
 
     void render() override
     {
         float output = 1.0f;
         for (int i = 0; i < channel_count; ++i)
         {
-            output *= template_spec::_ctrl_value(i);
+            output *= this_template::_ctrl_value(i);
         }
-        _set_ctrl_value(ControlOutput::MULT_OUT, output);
+        this_template::_set_ctrl_value(ControlOutput::MULT_OUT, output);
     }
 };
 
@@ -296,16 +315,21 @@ template <int input_count, int output_count, bool clamp_output = true>
 class MetaControlBrick : public DspBrickImpl<input_count, output_count, 0, 0>
 {
     using Matrix = std::array<std::array<float, output_count>, input_count>;
-    using template_spec = DspBrickImpl<input_count, output_count, 0, 0>;
+    using this_template = DspBrickImpl<input_count, output_count, 0, 0>;
 
 public:
     MetaControlBrick() = default;
 
-    /*template <class ...T>
-    explicit MetaControlBrick(T&... inputs) : _inputs{ControlPort(inputs)...}
+    template <class ...T>
+    explicit MetaControlBrick(T... inputs)
     {
         static_assert(sizeof...(inputs) == input_count);
-    }*/
+        std::array<const float*, input_count> ctrl_ins = {inputs...};
+        for (int i = 0; i < input_count; ++i)
+        {
+            this_template::set_control_input(i, ctrl_ins[i]);
+        }
+    }
 
     void set_component(int input, std::array<float, output_count> component, float weight = 1.0f)
     {
@@ -330,7 +354,7 @@ public:
 
         for (int i = 0; i < input_count; ++i)
         {
-            float input = template_spec::_ctrl_value(i);
+            float input = this_template::_ctrl_value(i);
             for (int j = 0; j < output_count; ++j)
             {
                 outputs[j] += input * _components[i][j];
@@ -340,12 +364,11 @@ public:
         {
             if constexpr(clamp_output)
             {
-                _set_ctrl_value(i, clamp(outputs[i], _clamp_min, _clamp_max));
+                this_template::_set_ctrl_value(i, clamp(outputs[i], _clamp_min, _clamp_max));
             }
             else
             {
-                _set_ctrl_value(i, outputs[i]);
-
+                this_template::_set_ctrl_value(i, outputs[i]);
             }
         }
     }

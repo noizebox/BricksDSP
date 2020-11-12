@@ -18,74 +18,6 @@ constexpr int PROC_BLOCK_SIZE = DSP_BRICKS_BLOCK_SIZE;
 constexpr float DEFAULT_SAMPLERATE = 44100;
 
 typedef AlignedArray<float, PROC_BLOCK_SIZE> AudioBuffer;
-
-/* Thin wrappers around control and audio ports */
-class ControlPort
-{
-public:
-    ControlPort() = delete;
-
-    ControlPort(const float& data) : _data(&data) {}
-
-    float value() const {return *_data;}
-
-private:
-    const float* _data;
-};
-
-class AudioPort
-{
-public:
-    AudioPort() = delete;
-
-    AudioPort(const AudioBuffer& data) : _data(&data) {}
-
-    const AudioBuffer& buffer() const {return *_data;}
-
-private:
-    const AudioBuffer* _data;
-};
-
-/*
- * The basic building block of DspBricks.
- * Each derived brick module should implement a constructor that takes its
- * audio and control ports as inputs and maps them to internal placeholders.
- * The signal chain is then configured at construction and fixed for the
- * lifetime of the bricks.
- * The Brick is required to provide storage for output ports, floats for
- * control ports and AudioBuffers for audio ports
- */
-
-class DspBrick
-{
-public:
-    virtual ~DspBrick() = default;
-
-    virtual const float& control_output(int /*n*/)
-    {
-        assert(false);
-#ifdef WINDOWS
-        float a;  return a;
-#endif
-    }
-
-    virtual const AudioBuffer& audio_output(int /*n*/)
-    {
-        assert(false);
-#ifdef WINDOWS
-        AudioBuffer a; return a;
-#endif
-    }
-
-    virtual void render() = 0;
-
-    virtual void set_samplerate(float samplerate) {_samplerate = samplerate;}
-
-protected:
-    DspBrick() = default;
-    float _samplerate{DEFAULT_SAMPLERATE};
-};
-
 typedef LinearInterpolator<PROC_BLOCK_SIZE> ControlSmootherLinear;
 typedef OnePoleLag<PROC_BLOCK_SIZE> ControlSmootherLag;
 
@@ -93,10 +25,9 @@ typedef OnePoleLag<PROC_BLOCK_SIZE> ControlSmootherLag;
  * The basic building block of DspBricks.
  * Each derived brick module should implement a default constructor as well
  * as a constructor that takes its audio and control inputs as arguments and
- * sets them
-
+ * sets them as inputs.
  */
-class NextGenDspBrick
+class DspBrick
 {
 public:
     enum DefaultAudioInput
@@ -104,7 +35,7 @@ public:
         DEFAULT_INPUT = 0
     };
 
-    virtual ~NextGenDspBrick() = default;
+    virtual ~DspBrick() = default;
 
     virtual void render() = 0;
 
@@ -129,15 +60,20 @@ public:
 #endif
 
 protected:
-    NextGenDspBrick() = default;
+    DspBrick() = default;
 };
 
-/* Provides implementations for */
+/* Implementation class that provides boilerplate code for setting up and storing
+ * control and audio in/outputs. Templated so input and output pointers and objects
+ * can be stored directly inside the object without extra redirections through
+ * heap allocations */
 template <int ctrl_ins, int ctrl_outs, int audio_ins, int audio_outs>
-class DspBrickImpl : public NextGenDspBrick
+class DspBrickImpl : public DspBrick
 {
 public:
     virtual void set_samplerate(float samplerate) override {_samplerate = samplerate;}
+
+    float samplerate() const {return _samplerate;}
 
     int n_control_inputs() const final {return ctrl_ins;}
 
@@ -158,13 +94,13 @@ public:
         assert(input_no <= audio_ins);
         _audio_ins[input_no] = input;
     }
-
 #ifndef BRICKS_DSP_INTERNAL_BUFFERS
     void set_audio_output(int output_no, AudioBuffer* output) final
     {
         assert(output_no <= audio_outs);
         _audio_outs[output_no] = output;
     }
+
 #endif
 
     const float* control_output(int output_no)
@@ -182,8 +118,8 @@ public:
         return _audio_outs[output_no];
 #endif
     }
-
 protected:
+
     /* Get the value of a control input */
     float _ctrl_value(int input_no) const
     {
@@ -216,8 +152,6 @@ protected:
         return *_audio_outs[output_no];
 #endif
     }
-
-    float _sample_rate() const {return _samplerate;}
 
 private:
     float _samplerate{DEFAULT_SAMPLERATE};

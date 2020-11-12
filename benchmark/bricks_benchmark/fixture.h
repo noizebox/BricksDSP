@@ -66,48 +66,48 @@ static bricks::AlignedArray<float, TEST_AUDIO_DATA_SIZE> gen_noise_data()
 
 /* No-op bricks to measure the benchmarking overhead, essentially subtract the
  * measured time from this from all brick benchmarks to measure the overhead */
-class BaselineBrick : public bricks::DspBrick
+class BaselineBrick : public bricks::DspBrickImpl<2, 0, 1, 1>
 {
 public:
-    BaselineBrick(ControlPort ctrl_1, ControlPort ctrl_2, AudioPort in) : _ctrl_1(ctrl_1),_ctrl_2(ctrl_2), _in(in) {}
+    BaselineBrick(const float* ctrl_1, const float* ctrl_2, const AudioBuffer* in)
+    {
+        set_control_input(0, ctrl_1);
+        set_control_input(1, ctrl_2);
+        set_audio_input(0, in);
+    }
 
     void render() override {};
-
-private:
-    ControlPort _ctrl_1;
-    ControlPort _ctrl_2;
-    AudioPort   _in;
 };
 
-class BaselineBrickCtrlOnly : public bricks::DspBrick
+class BaselineBrickCtrlOnly : public bricks::DspBrickImpl<2, 2, 0, 0>
 {
 public:
-    BaselineBrickCtrlOnly(ControlPort ctrl_1, ControlPort ctrl_2) : _ctrl_1(ctrl_1), _ctrl_2(ctrl_2) {}
+    BaselineBrickCtrlOnly(const float* ctrl_1, const float* ctrl_2)
+    {
+        set_control_input(0, ctrl_1);
+        set_control_input(1, ctrl_2);
+    }
 
     void render() override {};
-
-private:
-    ControlPort _ctrl_1;
-    ControlPort _ctrl_2;
 };
 
 /* Expands arrays into variadic packs for passing to constructors */
 template<typename T, int ctrl_inputs, int audio_inputs, size_t... Is, size_t... Isa>
 std::unique_ptr<T> make_brick(const std::array<float, ctrl_inputs>& ctrl_args,
-                              const std::array<AudioBuffer, audio_inputs>& audio_args,
+                              const std::array<bricks::AudioBuffer, audio_inputs>& audio_args,
                               std::index_sequence<Is...>, std::index_sequence<Isa...>)
 {
-    return std::make_unique<T>(std::get<Is>(ctrl_args) ..., std::get<Isa>(audio_args) ...);
+    return std::make_unique<T>(&std::get<Is>(ctrl_args) ..., &std::get<Isa>(audio_args) ...);
 }
 
-/* Expands arrays into arrays of ControlPorts and AudioPorts for passing to constructors */
+/* Expands arrays into arrays of pointers for passing to constructors */
 template<typename T, int ctrl_inputs, int audio_inputs, size_t... Is, size_t... Isa>
 std::unique_ptr<T> make_brick_array_args(const std::array<float, ctrl_inputs>& ctrl_args,
                                          const std::array<AudioBuffer, audio_inputs>& audio_args,
                                          std::index_sequence<Is...>, std::index_sequence<Isa...>)
 {
-    auto c_arg = std::array<ControlPort, ctrl_inputs>{std::get<Is>(ctrl_args) ...};
-    auto a_arg = std::array<AudioPort, audio_inputs>{std::get<Isa>(audio_args) ...};
+    auto c_arg = std::array<const float*, ctrl_inputs>{&std::get<Is>(ctrl_args) ...};
+    auto a_arg = std::array<const AudioBuffer*, audio_inputs>{&std::get<Isa>(audio_args) ...};
 
     return std::make_unique<T>(c_arg, a_arg);
 }

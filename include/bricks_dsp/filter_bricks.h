@@ -77,7 +77,7 @@ public:
         HIGHPASS
     };
 
-    SVFFilterBrick(const float* cutoff, float* resonance, const AudioBuffer* audio_in)
+    SVFFilterBrick(const float* cutoff, const float* resonance, const AudioBuffer* audio_in)
     {
         set_control_input(ControlInput::CUTOFF, cutoff);
         set_control_input(ControlInput::RESONANCE, resonance);
@@ -149,7 +149,7 @@ class MystransLadderFilter : public DspBrickImpl<2, 0, 1, 1>
         FILTER_OUT = 0,
     };
 
-    MystransLadderFilter(float* cutoff, float* resonance, const AudioBuffer* audio_in)
+    MystransLadderFilter(const float* cutoff, const float* resonance, const AudioBuffer* audio_in)
     {
         set_control_input(ControlInput::CUTOFF, cutoff);
         set_control_input(ControlInput::RESONANCE, resonance);

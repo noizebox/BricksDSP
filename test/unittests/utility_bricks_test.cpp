@@ -55,7 +55,6 @@ TEST_F(AudioMixerBrickTest, OperationalTest)
     assert_buffer(*_test_module.audio_output(AudioMixerBrick<2, Response::LOG>::MIX_OUT), 0.75f);
 }
 
-/*
 class AudioSummerBrickTest : public ::testing::Test
 {
 protected:
@@ -73,7 +72,7 @@ TEST_F(AudioSummerBrickTest, OperationalTest)
     fill_buffer(_in_2,  0.3f);
     _test_module.render();
 
-    auto& out = _test_module.audio_output(AudioSummerBrick<2>::SUM_OUT);
+    const auto& out = *_test_module.audio_output(AudioSummerBrick<2>::SUM_OUT);
     assert_buffer(out, 0.5f);
 }
 
@@ -94,7 +93,7 @@ TEST_F(AudioMultiplierBrickTest, OperationalTest)
     fill_buffer(_in_2,  0.3f);
     _test_module.render();
 
-    auto& out = _test_module.audio_output(AudioMultiplierBrick<2>::MULT_OUT);
+    const auto& out = *_test_module.audio_output(AudioMultiplierBrick<2>::MULT_OUT);
     assert_buffer(out, 0.15f);
 }
 
@@ -119,7 +118,7 @@ TEST_F(ControlMixerBrickTest, OperationalTest)
     _gain_2 = 2.0f;
     _test_module.render();
 
-    auto& out = _test_module.control_output(ControlMixerBrick<2>::MIX_OUT);
+    const auto& out = *_test_module.control_output(ControlMixerBrick<2>::MIX_OUT);
     ASSERT_FLOAT_EQ(0.8f, out);
 }
 
@@ -141,8 +140,7 @@ TEST_F(ControlSummerBrickTest, OperationalTest)
     _in_2 = 0.3f;
     _test_module.render();
 
-    ASSERT_FLOAT_EQ(0.2f, _test_module._inputs[0].value());
-    auto& out = _test_module.control_output(ControlSummerBrick<2>::SUM_OUT);
+    const auto& out = *_test_module.control_output(ControlSummerBrick<2>::SUM_OUT);
     ASSERT_FLOAT_EQ(0.5f, out);
 }
 
@@ -165,7 +163,7 @@ TEST_F(ControlMultiplierBrickTest, OperationalTest)
     _in_3 = 1.0f;
     _test_module.render();
 
-    auto& out = _test_module.control_output(ControlMultiplierBrick<3>::MULT_OUT);
+    const auto& out = *_test_module.control_output(ControlMultiplierBrick<3>::MULT_OUT);
     ASSERT_FLOAT_EQ(0.25f, out);
 }
 
@@ -178,19 +176,17 @@ TEST(MetaControlBrickTest, OperationalTest)
     module_under_test.set_component(1, {0,-1,2,0}, 0.25f);
     module_under_test.set_output_clamp(0, 5);
     module_under_test.render();
-    EXPECT_FLOAT_EQ(0.5f, module_under_test.control_output(0));
-    EXPECT_FLOAT_EQ(0.0f, module_under_test.control_output(1));
-    EXPECT_FLOAT_EQ(1.5f, module_under_test.control_output(2));
-    EXPECT_FLOAT_EQ(0.5f, module_under_test.control_output(3));
+    EXPECT_FLOAT_EQ(0.5f, *module_under_test.control_output(0));
+    EXPECT_FLOAT_EQ(0.0f, *module_under_test.control_output(1));
+    EXPECT_FLOAT_EQ(1.5f, *module_under_test.control_output(2));
+    EXPECT_FLOAT_EQ(0.5f, *module_under_test.control_output(3));
 
     a = 0;
     b = 4;
     module_under_test.set_output_clamp(0, 1);
     module_under_test.render();
-    EXPECT_FLOAT_EQ(0.0f, module_under_test.control_output(0));
-    EXPECT_FLOAT_EQ(0.0f, module_under_test.control_output(1));
-    EXPECT_FLOAT_EQ(1.0f, module_under_test.control_output(2));
-    EXPECT_FLOAT_EQ(0.0f, module_under_test.control_output(3));
+    EXPECT_FLOAT_EQ(0.0f, *module_under_test.control_output(0));
+    EXPECT_FLOAT_EQ(0.0f, *module_under_test.control_output(1));
+    EXPECT_FLOAT_EQ(1.0f, *module_under_test.control_output(2));
+    EXPECT_FLOAT_EQ(0.0f, *module_under_test.control_output(3));
 }
-
- */
