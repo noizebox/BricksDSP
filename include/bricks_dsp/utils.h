@@ -219,10 +219,11 @@ public:
         }
     }
 
-    /* Somewhat less accurate but fast enough to set in the audio thread */
+    /* Somewhat less accurate, esp- for small rc constants,
+     * but fast enough to call in the audio thread */
     void set_approx(FloatType rc_const, FloatType samplerate, bool reset)
     {
-        _coeff = -1.0 / (rc_const * samplerate);
+        _coeff = 1.0 - 1.0 / (rc_const * samplerate);
         if (reset)
         {
             this->reset();

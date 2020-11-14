@@ -110,11 +110,13 @@ public:
     void set_samplerate(float samplerate) override;
 
 private:
+    float           _op_gain{0.0f};
+    float           _fet_gain{0.0f};
+    bool            _plot;
 
-    float           _op_gain;
-    RCStage<float>  _op_hp;
-    RCStage<float>  _env_hp;
-    RCStage<float>  _env_lp;
+    RCStage<double>  _op_hp;
+    RCStage<double>  _env_hp;
+    RCStage<double>  _env_lp;
 };
 
 /* Delay audio one process block, used to break circular dependencies from feedback

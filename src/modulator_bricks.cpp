@@ -146,7 +146,7 @@ void SustainerBrick::set_samplerate(float samplerate)
     DspBrickImpl::set_samplerate(samplerate);
     /* Values directly from the schematic */
     _op_hp.set(470.0 * 0.001, samplerate, true);
-    _env_hp.set(22.2 * 0.00068, samplerate, true);
+    _env_hp.set((22.2 + 2.2) * 0.00068, samplerate, true);
     _env_lp.set(470.0 * 0.00022, samplerate, true);
 }
 
@@ -171,6 +171,8 @@ void SustainerBrick::render()
     const AudioBuffer& audio_in = _input_buffer(DEFAULT_INPUT);
     AudioBuffer& audio_out = _output_buffer(AudioOutput::SUSTAIN_OUT);
     float op_gain = _op_gain;
+    float fet_gain = _fet_gain;
+    bool plot = true;
 
     for (int i = 0; i < PROC_BLOCK_SIZE; ++i)
     {
@@ -187,14 +189,34 @@ void SustainerBrick::render()
         float env = _env_hp.render_hp(op_clip);
 
         // Simplest diode model (hard knee)
-        float rect = env > DIODE_THRESHOLD? env - DIODE_THRESHOLD : 0.0f;
+        // If diode is conducting, R5 and C3 forms a lp filter
+        // If diode it not conducting, C3 is discharged through R3
+        float rect;
+        if ((env ) > DIODE_THRESHOLD)
+        {
+            rect = env - DIODE_THRESHOLD;
+            _env_lp.set_approx(ENV_OPEN_RC, samplerate(), false);
+        }
+        else
+        {
+            rect = 0.0f;
+            _env_lp.set_approx(ENV_CLOSED_RC, samplerate(), false);
+        }
 
-        float gain_ctrl = bricks::clamp(_env_lp.render_lp(rect) * 10.0f, 0, JFET_V_CUTOFF);
+        fet_gain = _env_lp.render_lp(rect);
+        float gain_ctrl = bricks::clamp(fet_gain * 10.0f, 0, JFET_V_CUTOFF);
 
         // calc new op-gain
         op_gain = 1 + ((JFET_V_CUTOFF - gain_ctrl) * JFET_OPEN_RES / (OP_FB_RES * JFET_V_CUTOFF));
+
+        if (plot)
+        {
+            //std::cout << "SDD: gain: "<< gain << ", op_gain: " << op_gain << ", gain_ctrl: " << gain_ctrl << std::endl;
+            plot = false;
+        }
     }
     _op_gain = op_gain;
+    _fet_gain = fet_gain;
 }
 
 
