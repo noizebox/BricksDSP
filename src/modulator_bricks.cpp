@@ -143,11 +143,18 @@ void AASaturationBrick<ClipType::HARD>::render()
 
 void SustainerBrick::set_samplerate(float samplerate)
 {
-    DspBrick::set_samplerate(samplerate);
+    DspBrickImpl::set_samplerate(samplerate);
     /* Values directly from the schematic */
     _op_hp.set(470.0 * 0.001, samplerate, true);
     _env_hp.set(22.2 * 0.00068, samplerate, true);
     _env_lp.set(470.0 * 0.00022, samplerate, true);
+}
+
+void SustainerBrick::reset()
+{
+    _op_hp.reset();
+    _env_hp.reset();
+    _env_lp.reset();
 }
 
 constexpr float DIODE_THRESHOLD = 0.5;
@@ -158,22 +165,23 @@ constexpr float JFET_V_CUTOFF = 5;
 constexpr float ENV_OPEN_RC = 2.2 * 0.00022;
 constexpr float ENV_CLOSED_RC = 470 * 0.00022;
 
-
 void SustainerBrick::render()
 {
-    float gain = 20 * to_db_approx(_gain.value());
+    float gain = 20 * to_db_approx(_ctrl_value(ControlInput::GAIN));
+    const AudioBuffer& audio_in = _input_buffer(DEFAULT_INPUT);
+    AudioBuffer& audio_out = _output_buffer(AudioOutput::SUSTAIN_OUT);
     float op_gain = _op_gain;
 
     for (int i = 0; i < PROC_BLOCK_SIZE; ++i)
     {
         // gain control
-        float x = _audio_in.buffer()[i] * gain;
+        float x = audio_in[i] * gain;
 
         // non-inv amp with soft clip
         float op_out = _op_hp.render_hp(x) * op_gain;
         //float op_clip = 5.0f * tanh_approx(bricks::clamp(op_out * 0.5f, -3.0, 3.0f));
         float op_clip = JFET_V_CUTOFF * sigm(op_out * (1.0f/JFET_V_CUTOFF));
-        _audio_out[i] = op_clip;
+        audio_out[i] = op_clip;
 
         // calc feedback env follower,
         float env = _env_hp.render_hp(op_clip);

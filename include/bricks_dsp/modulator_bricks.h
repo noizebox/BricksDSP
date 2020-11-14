@@ -82,45 +82,39 @@ private:
 };
 
 /* Clone of Soft Distortion Sustainer circuit from Roland AG5 pedal */
-class SustainerBrick : public DspBrick
+class SustainerBrick : public DspBrickImpl<1, 0, 1, 1>
 {
 public:
-    enum ControlInputs
+    enum ControlInput
     {
-        GAIN = 0,
-        MAX_CONTROL_INPUTS,
+        GAIN = 0
     };
 
-    enum AudioOutputs
+    enum AudioOutput
     {
-        SUSTAIN_OUT = 0,
-        MAX_AUDIO_OUTS,
+        SUSTAIN_OUT = 0
     };
 
-    SustainerBrick(ControlPort gain, AudioPort audio_in) : _gain(gain),
-                                                           _audio_in(audio_in) {}
+    SustainerBrick() = default;
 
-    const AudioBuffer& audio_output(int n) override
+    SustainerBrick(const float* gain, const AudioBuffer* audio_in)
     {
-        assert(n < MAX_AUDIO_OUTS);
-        return _audio_out;
+        set_control_input(ControlInput::GAIN, gain);
+        set_audio_input(DEFAULT_INPUT, audio_in);
     }
 
     void render() override;
+
+    void reset() override;
 
     void set_samplerate(float samplerate) override;
 
 private:
 
     float           _op_gain;
-
     RCStage<float>  _op_hp;
     RCStage<float>  _env_hp;
     RCStage<float>  _env_lp;
-
-    ControlPort     _gain;
-    AudioPort       _audio_in;
-    AudioBuffer     _audio_out;
 };
 
 /* Delay audio one process block, used to break circular dependencies from feedback
