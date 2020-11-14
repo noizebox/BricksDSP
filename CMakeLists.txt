@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.7)
 project(bricks_dsp CXX)
 
 option(BRICKS_DSP_BUILD_TESTS "Build and run unit tests" ON)
+option(BRICKS_DSP_BUILD_BENCHMARKS "Build performance benchmarks" ON)
+option(BRICKS_DSP_INTERNAL_AUDIO_BUFFERS "Audio output buffers are owned by bricks" ON)
 set(BRICKS_BLOCK_SIZE 32 CACHE STRING "Internal processing block size")
 
 # Source Files
@@ -35,10 +37,14 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
     target_compile_definitions(bricks_dsp PUBLIC /D WINDOWS /D _USE_MATH_DEFINES)
 else()
     set(EXTRA_COMPILER_FLAGS -Wall -fno-rtti -ffast-math -march=native -fpic)
-    target_compile_definitions(bricks_dsp PUBLIC -DLINUX)
+    target_compile_definitions(bricks_dsp PUBLIC LINUX)
 endif()
 
-target_compile_definitions(bricks_dsp PRIVATE -DDSP_BRICKS_BLOCK_SIZE=${BRICKS_BLOCK_SIZE})
+if(BRICKS_DSP_INTERNAL_AUDIO_BUFFERS)
+    target_compile_definitions(bricks_dsp PUBLIC BRICKS_DSP_INTERNAL_BUFFERS)
+endif()
+
+target_compile_definitions(bricks_dsp PRIVATE DSP_BRICKS_BLOCK_SIZE=${BRICKS_BLOCK_SIZE})
 target_compile_features(bricks_dsp PUBLIC cxx_std_17)
 target_compile_options(bricks_dsp PUBLIC ${EXTRA_COMPILER_FLAGS})
 
@@ -46,5 +52,10 @@ target_compile_options(bricks_dsp PUBLIC ${EXTRA_COMPILER_FLAGS})
 if(${BRICKS_DSP_BUILD_TESTS})
     add_subdirectory(test)
 endif()
+
+if(${BRICKS_DSP_BUILD_BENCHMARKS})
+    add_subdirectory(benchmark)
+endif()
+
 
 add_subdirectory(examples EXCLUDE_FROM_ALL)

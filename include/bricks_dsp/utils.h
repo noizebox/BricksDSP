@@ -27,6 +27,13 @@ inline constexpr float note_to_control(int midi_note)
     return (midi_note - SHIFT_FACTOR) / SEMITONES_IN_RANGE;
 }
 
+/* Map a control input to a 0.1 per octave pitch control to a frequency in Hz */
+inline float control_to_freq(float v)
+{
+    constexpr float OSC_BASE_FREQ = 20.0f;
+    return OSC_BASE_FREQ * powf(2, v * 10.0f);
+}
+
 /* Proper mapping from a linear range to a 60 dB exponential response */
 inline float to_db(float lin)
 {
@@ -77,6 +84,7 @@ public:
     };
 
     float step() {return _step;}
+
 private:
     float _lag{0};
     float _step{0};
@@ -116,6 +124,86 @@ static inline const float COEFF_B0 = 1 - COEFF_A0;
     float _target{0};
     float _lag{0};
 };
+
+/* Interpolation functions, these assume that data points to a continuous
+ * buffer and will interpolate a position in the buffer.
+ *
+ * The first order functions need to access data[pos] and data[pos + 1]
+ * The second order functions access data[pos - 1] to data[pos + 2]
+ * These data accesses must not result in an out of bounds error */
+
+/* 0:th order hold 'interpolation' (no interpolation) */
+template <typename T>
+inline T zeroth_int(T pos, const T* data)
+{
+    return data[static_cast<int>(pos)];
+}
+
+/* First order linear interpolation */
+template <typename T>
+inline T linear_int(T pos, const T* data)
+{
+    auto first = static_cast<int>(pos);
+    T frac = pos - std::floor(pos);
+    T d1 = data[first];
+    T d2 = data[first + 1];
+    return d1 + frac * (d2 - d1);
+}
+
+/* Normal cubic interpolation */
+template <typename T>
+inline T cubic_int(T pos, T* data)
+{
+    auto first = static_cast<int>(pos);
+    T frac = pos - std::floor(pos);
+
+    T d0 = data[first - 1];
+    T d1 = data[first];
+    T d2 = data[first + 1];
+    T d3 = data[first + 2];
+
+    T f2 = frac * frac;
+    T a0 = d3 - d2 - d0 + d1;
+    T a1 = d0 - d1 - a0;
+    T a2 = d2 - d0;
+    T a3 = d1;
+
+    return(a0 * frac * f2 + a1 * f2 + a2 * frac + a3);
+}
+
+/* Catmull-Rom splines, aka Hermite interpolation (Second order) */
+template <typename T>
+inline T catmull_rom_cubic_int(T pos, T* data)
+{
+    auto first = static_cast<int>(pos);
+    T frac = pos - std::floor(pos);
+
+    T d0 = data[first - 1];
+    T d1 = data[first];
+    T d2 = data[first + 1];
+    T d3 = data[first + 2];
+
+    T f2 = frac * frac;
+    T a0 = -0.5f * d0 + 1.5f * d1 - 1.5f * d2 + 0.5f * d3;
+    T a1 = d0 - 2.5f * d1 + 2.0f * d2 - 0.5f * d3;
+    T a2 = -0.5f * d0 + 0.5f * d2;
+    T a3 = d1;
+
+    return(a0 * frac * f2 + a1 * f2 + a2 * frac + a3);
+}
+
+/* Cosine interpolation, good for smooth transitions */
+template <typename T>
+inline T cosine_int(T pos, T* data)
+{
+    auto first = static_cast<int>(pos);
+    T frac = pos - std::floor(pos);
+    T d1 = data[first];
+    T d2 = data[first + 1];
+
+    T f2 = (1.0f - std::cos(frac * static_cast<T>(M_PI))) / 2.0f;
+    return(d1 * (1.0f - f2) + d2 * f2);
+}
 
 /* Simple class for modelling RC circuits */
 template<typename FloatType>

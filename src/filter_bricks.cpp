@@ -157,41 +157,41 @@ inline Coefficients calc_highshelf(float freq, float gain, float slope, float sa
 
 void BiquadFilterBrick::render()
 {
-    float freq = 20 * powf(2.0f, _cutoff_ctrl.value() * 10.0f);
-    //std::cout << "Frec: " << freq << ",.. " << _cutoff_ctrl.value() << std::endl;
-    float res = _res_q_ctrl.value();
-    float gain = _gain_ctrl.value() * 15.0f; // 15dB -/+ range for peaking and shelving modes
+    float freq = 20 * powf(2.0f, _ctrl_value(ControlInput::CUTOFF) * 10.0f);
+    float res = _ctrl_value(ControlInput::RESONANCE);
+    float gain = _ctrl_value(ControlInput::GAIN) * 15.0f; // 15dB -/+ range for peaking and shelving modes
+    float samplerate = this->samplerate();
     Coefficients new_coeff;
     switch (_mode)
     {
         case Mode::LOWPASS:
             res =  0.6f + 5.0f * res;
-            new_coeff = calc_lowpass(freq, res, _samplerate);
+            new_coeff = calc_lowpass(freq, res, samplerate);
             break;
 
         case Mode::HIGHPASS:
             res =  0.6f + 5.0f * res;
-            new_coeff = calc_highpass(freq, res, _samplerate);
+            new_coeff = calc_highpass(freq, res, samplerate);
             break;
 
         case Mode::BANDPASS:
-            new_coeff = calc_bandpass(freq, res, _samplerate);
+            new_coeff = calc_bandpass(freq, res, samplerate);
             break;
 
         case Mode::ALLPASS:
-            new_coeff = calc_allpass(freq, res, _samplerate);
+            new_coeff = calc_allpass(freq, res, samplerate);
             break;
 
         case Mode::PEAKING:
-            new_coeff = calc_peaking(freq, res, gain,_samplerate);
+            new_coeff = calc_peaking(freq, res, gain, samplerate);
             break;
 
         case Mode::LOW_SHELF:
-            new_coeff = calc_lowshelf(freq, res, gain,_samplerate);
+            new_coeff = calc_lowshelf(freq, res, gain, samplerate);
             break;
 
         case Mode::HIGH_SHELF:
-            new_coeff = calc_highshelf(freq, res, gain,_samplerate);
+            new_coeff = calc_highshelf(freq, res, gain, samplerate);
             break;
 
     }
@@ -200,7 +200,8 @@ void BiquadFilterBrick::render()
         _coeff[i].set(new_coeff[i]);
     }
 
-    const AudioBuffer& in = _audio_in.buffer();
+    const AudioBuffer& in = _input_buffer(0);
+    AudioBuffer& audio_out = _output_buffer(0);
     auto reg = _reg;
     for (int i = 0; i < PROC_BLOCK_SIZE; ++i)
     {
@@ -213,18 +214,22 @@ void BiquadFilterBrick::render()
         float out = in[i] * coeff[B0] + _reg[Z1];
         _reg[Z1] = in[i] * coeff[B1] +  _reg[Z2] - coeff[A1] * out;
         _reg[Z2] = in[i] * coeff[B2]- coeff[A2] * out;
-        _audio_out[i] = out;
+        audio_out[i] = out;
     }
     _reg = reg;
 }
 
 void SVFFilterBrick::render()
 {
-    const AudioBuffer& in = _audio_in.buffer();
-    float freq = 20 * powf(2.0f, _cutoff_ctrl.value() * 10.0f);
+    const auto& audio_in = _input_buffer(0);
+    auto& lowpass_out = _output_buffer(AudioOutput::LOWPASS);
+    auto& bandpass_out = _output_buffer(AudioOutput::BANDPASS);
+    auto& highpass_out = _output_buffer(AudioOutput::HIGHPASS);
+
+    float freq = 20 * powf(2.0f, _ctrl_value(ControlInput::CUTOFF) * 10.0f);
     freq = std::clamp(freq, 20.0f, 18000.0f);
-    float k = 2 - 2 * _res_ctrl.value();
-    _g_lag.set(std::tan(static_cast<float>(M_PI) * freq / _samplerate));
+    float k = 2 - 2 * _ctrl_value(ControlInput::RESONANCE);
+    _g_lag.set(std::tan(static_cast<float>(M_PI) * freq / samplerate()));
     auto reg = _reg;
     AudioBuffer g_lag = _g_lag.get_all();
     for (unsigned int i = 0; i < PROC_BLOCK_SIZE; ++i)
@@ -233,37 +238,38 @@ void SVFFilterBrick::render()
         float a1 = 1 / (1 + g * (g + k));
         float a2 = g * a1;
         float a3 = g * a2;
-        float v3 = in[i] - reg[1];
+        float v3 = audio_in[i] - reg[1];
         float v1 = a1 * reg[0] + a2 * v3;
         float v2 = reg[1] + a2 * reg[0] + a3 * v3;
         reg[0] = 2.0f * v1 - reg[0];
         reg[1] = 2.0f * v2 - reg[1];
 
-        _lowpass_out[i] = v2;
-        _bandpass_out[i] = v1;
-        _highpass_out[i] = in[i] - k * v1 - v2;
+        lowpass_out[i] = v2;
+        bandpass_out[i] = v1;
+        highpass_out[i] = audio_in[i] - k * v1 - v2;
     }
     _reg = reg;
 }
 
 void FixedFilterBrick::render()
 {
-    const AudioBuffer& in = _audio_in.buffer();
+    const AudioBuffer& audio_in = _input_buffer(0);
+    AudioBuffer& audio_out = _output_buffer(AudioOutput::FILTER_OUT);
     auto reg = _reg;
     for (int i = 0; i < PROC_BLOCK_SIZE; ++i)
     {
         /* Direct form 2 transposed */
-        float out = in[i] * _coeff[B0] + reg[Z1];
-        reg[Z1] = in[i] * _coeff[B1] +  reg[Z2] - _coeff[A1] * out;
-        reg[Z2] = in[i] * _coeff[B2]- _coeff[A2] * out;
-        _audio_out[i] = out;
+        float out = audio_in[i] * _coeff[B0] + reg[Z1];
+        reg[Z1] = audio_in[i] * _coeff[B1] + reg[Z2] - _coeff[A1] * out;
+        reg[Z2] = audio_in[i] * _coeff[B2] - _coeff[A2] * out;
+        audio_out[i] = out;
     }
     _reg = reg;
 }
 
 void FixedFilterBrick::set_lowpass(float freq, float q, bool clear)
 {
-    _coeff = calc_lowpass(freq, q, _samplerate);
+    _coeff = calc_lowpass(freq, q, samplerate());
     if (clear)
     {
         _reg = {0, 0};
@@ -272,7 +278,7 @@ void FixedFilterBrick::set_lowpass(float freq, float q, bool clear)
 
 void FixedFilterBrick::set_highpass(float freq, float q, bool clear)
 {
-    _coeff = calc_highpass(freq, q, _samplerate);
+    _coeff = calc_highpass(freq, q, samplerate());
     if (clear)
     {
         reset();
@@ -281,7 +287,7 @@ void FixedFilterBrick::set_highpass(float freq, float q, bool clear)
 
 void FixedFilterBrick::set_bandpass(float freq, float q, bool clear)
 {
-    _coeff = calc_bandpass(freq, q, _samplerate);
+    _coeff = calc_bandpass(freq, q, samplerate());
     if (clear)
     {
         reset();
@@ -290,7 +296,7 @@ void FixedFilterBrick::set_bandpass(float freq, float q, bool clear)
 
 void FixedFilterBrick::set_peaking(float freq, float gain, float q, bool clear)
 {
-    _coeff = calc_peaking(freq, gain, q, _samplerate);
+    _coeff = calc_peaking(freq, gain, q, samplerate());
     if (clear)
     {
         reset();
@@ -299,7 +305,7 @@ void FixedFilterBrick::set_peaking(float freq, float gain, float q, bool clear)
 
 void FixedFilterBrick::set_allpass(float freq, float q, bool clear)
 {
-    _coeff = calc_allpass(freq, q, _samplerate);
+    _coeff = calc_allpass(freq, q, samplerate());
     if (clear)
     {
         reset();
@@ -308,7 +314,7 @@ void FixedFilterBrick::set_allpass(float freq, float q, bool clear)
 
 void FixedFilterBrick::set_lowshelf(float freq, float gain, float q, bool clear)
 {
-    _coeff = calc_lowshelf(freq, gain, q, _samplerate);
+    _coeff = calc_lowshelf(freq, gain, q, samplerate());
     if (clear)
     {
         reset();
@@ -317,7 +323,7 @@ void FixedFilterBrick::set_lowshelf(float freq, float gain, float q, bool clear)
 
 void FixedFilterBrick::set_highshelf(float freq, float gain, float q, bool clear)
 {
-    _coeff = calc_highshelf(freq, gain, q, _samplerate);
+    _coeff = calc_highshelf(freq, gain, q, samplerate());
     if (clear)
     {
         reset();
@@ -336,11 +342,12 @@ inline double tanhXdX(const double& x)
 
 void MystransLadderFilter::render()
 {
-    const AudioBuffer& in = _audio_in.buffer();
-    float freq = 20 * powf(2.0f, _cutoff_ctrl.value() * 10.0f);
+    const auto& in = _input_buffer(0);
+    auto& audio_out = _output_buffer(0);
+    float freq = 20 * powf(2.0f, _ctrl_value(ControlInput::CUTOFF) * 10.0f);
     freq = std::clamp(freq, 20.0f, 22000.0f);
-    _freq_lag.set(std::tan(static_cast<float>(M_PI) * freq / _samplerate));
-    double r = (40.0/9.0) * _res_ctrl.value();
+    _freq_lag.set(std::tan(static_cast<float>(M_PI) * freq / samplerate()));
+    double r = (40.0/9.0) * _ctrl_value(ControlInput::RESONANCE);
 
     auto s = _states;
     auto zi = _zi;
@@ -384,7 +391,7 @@ void MystransLadderFilter::render()
         s[2] += 2 * f * (y1 - y2);
         s[3] += 2 * f * (y2 - t4 * y3);
 
-        _audio_out[i] = y3;
+        audio_out[i] = y3;
     }
     _zi = zi;
     _states = s;

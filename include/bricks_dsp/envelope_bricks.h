@@ -7,31 +7,30 @@
 namespace bricks {
 
 /* Linear slope ADSR envelope generated at audio rate */
-class AudioRateADSRBrick : public DspBrick
+class AudioRateADSRBrick : public DspBrickImpl <4, 0, 0, 1>
 {
 public:
-    enum ControlInputs
+    enum ControlInput
     {
         ATTACK = 0,
         DECAY,
         SUSTAIN,
-        RELEASE,
-        MAX_CONTROL_INPUTS,
+        RELEASE
     };
 
-    enum AudioOutputs
+    enum AudioOutput
     {
-        ENV_OUT = 0,
-        MAX_AUDIO_OUTS,
+        ENV_OUT = 0
     };
 
-    AudioRateADSRBrick(ControlPort attack, ControlPort decay,
-                       ControlPort sustain, ControlPort release) : _controls{attack, decay, sustain, release} {}
+    AudioRateADSRBrick() = default;
 
-    const AudioBuffer& audio_output(int n) override
+    AudioRateADSRBrick(const float* attack, const float* decay, const float* sustain, const float* release)
     {
-        assert(n < MAX_AUDIO_OUTS);
-        return _envelope;
+        set_control_input(ControlInput::ATTACK, attack);
+        set_control_input(ControlInput::DECAY, decay);
+        set_control_input(ControlInput::SUSTAIN, sustain);
+        set_control_input(ControlInput::RELEASE, release);
     }
 
     /* Not part of the general interface. Analogous to the gate signal on an analog
@@ -40,6 +39,12 @@ public:
     void gate(bool gate);
 
     bool finished() {return _state == EnvelopeState::OFF;}
+
+    void reset()
+    {
+        _state = EnvelopeState::OFF;
+        _level = 0.0f;
+    }
 
     void render() override;
 
@@ -53,38 +58,35 @@ private:
         RELEASE,
     };
 
-    std::array<ControlPort, MAX_CONTROL_INPUTS> _controls;
-    AudioBuffer _envelope;
     EnvelopeState _state{EnvelopeState::OFF};
-    float _level{0};
+    float         _level{0};
 };
 
 /* Control rate linear ADSR envelope with linear slopes */
-class LinearADSREnvelopeBrick : public DspBrick
+class LinearADSREnvelopeBrick : public DspBrickImpl<4, 1, 0, 0>
 {
 public:
-    enum ControlInputs
+    enum ControlInput
     {
         ATTACK = 0,
         DECAY,
         SUSTAIN,
-        RELEASE,
-        MAX_CONTROL_INPUTS,
+        RELEASE
     };
 
-    enum ControlOuts
+    enum ControlOutput
     {
-        ENV_OUT = 0,
-        MAX_CONTROL_OUTS,
+        ENV_OUT = 0
     };
 
-    LinearADSREnvelopeBrick(ControlPort attack, ControlPort decay,
-                      ControlPort sustain, ControlPort release) : _controls{attack, decay, sustain, release} {}
+    LinearADSREnvelopeBrick() = default;
 
-    const float& control_output(int n) override
+    LinearADSREnvelopeBrick(const float* attack, const float* decay, const float* sustain, const float* release)
     {
-        assert(n < MAX_CONTROL_OUTS);
-        return _level;
+        set_control_input(ControlInput::ATTACK, attack);
+        set_control_input(ControlInput::DECAY, decay);
+        set_control_input(ControlInput::SUSTAIN, sustain);
+        set_control_input(ControlInput::RELEASE, release);
     }
 
     /* Not part of the general interface. Analogous to the gate signal on an analog
@@ -93,6 +95,13 @@ public:
     void gate(bool gate);
 
     bool finished() {return _state == EnvelopeState::OFF;}
+
+    void reset()
+    {
+        _state = EnvelopeState::OFF;
+        _level = 0.0f;
+        _set_ctrl_value(ControlOutput::ENV_OUT, 0.0f);
+    }
 
     void render() override;
 
@@ -106,32 +115,36 @@ private:
         RELEASE,
     };
 
-    std::array<ControlPort, MAX_CONTROL_INPUTS> _controls;
     EnvelopeState _state{EnvelopeState::OFF};
-    float _level{0.0f};
+    float         _level{0};
 };
 
 /* ADSR Envelope intended for audio control with linear attack phase and
  * exponentially falling decay and release phases */
-class AudioADSREnvelopeBrick : public DspBrick
+class AudioADSREnvelopeBrick : public DspBrickImpl<4, 1, 0, 0>
 {
 public:
-    enum ControlOuts
+    enum ControlInput
     {
-        ENV_OUT = 0,
-        MAX_CONTROL_OUTS,
+        ATTACK = 0,
+        DECAY,
+        SUSTAIN,
+        RELEASE
     };
 
-    AudioADSREnvelopeBrick(ControlPort attack, ControlPort decay,
-                      ControlPort sustain, ControlPort release) : _attack(attack),
-                                                                  _decay(decay),
-                                                                  _sustain(sustain),
-                                                                  _release(release) {}
-
-    const float& control_output([[maybe_uninitialised]] int n) override
+    enum ControlOutput
     {
-        assert(n < MAX_CONTROL_OUTS);
-        return _level;
+        ENV_OUT = 0
+    };
+
+    AudioADSREnvelopeBrick() = default;
+
+    AudioADSREnvelopeBrick(const float* attack, const float* decay, const float* sustain, const float* release)
+    {
+        set_control_input(ControlInput::ATTACK, attack);
+        set_control_input(ControlInput::DECAY, decay);
+        set_control_input(ControlInput::SUSTAIN, sustain);
+        set_control_input(ControlInput::RELEASE, release);
     }
 
     /* Not part of the general interface. Analogous to the gate signal on an analog
@@ -140,6 +153,13 @@ public:
     void gate(bool gate);
 
     bool finished() {return _state == EnvelopeState::OFF;}
+
+    void reset()
+    {
+        _state = EnvelopeState::OFF;
+        _level = 0.0f;
+        _set_ctrl_value(ControlOutput::ENV_OUT, 0.0f);
+    }
 
     void render() override;
 
@@ -152,17 +172,13 @@ private:
         RELEASE,
     };
 
-    ControlPort _attack;
-    ControlPort _decay;
-    ControlPort _sustain;
-    ControlPort _release;
     EnvelopeState _state{EnvelopeState::OFF};
-    float _level{0.0f};
+    float         _level{0};
 };
 
 
 /* Control rate LFO  */
-class LfoBrick : public DspBrick
+class LfoBrick : public DspBrickImpl<1, 1, 0, 0>
 {
 public:
     enum class Waveform
@@ -176,26 +192,35 @@ public:
         RANDOM,      // lp filtered noise
     };
 
-    enum ControlOutputs
+    enum ControlInput
     {
-        LFO_OUT = 0,
-        MAX_CONTROL_OUTS,
+        RATE = 0
     };
 
-    LfoBrick(ControlPort rate) : _rate_port(rate) {}
-
-    const float& control_output(int n) override
+    enum ControlOutput
     {
-        assert(n < MAX_CONTROL_OUTS);
-        return _level;
+        LFO_OUT = 0
+    };
+
+    LfoBrick() = default;
+
+    LfoBrick(const float* rate)
+    {
+        set_control_input(ControlInput::RATE, rate);
     }
 
     void set_waveform(Waveform waveform) {_waveform = waveform;}
 
+    void reset() override
+    {
+        _phase = 0;
+        _level = 0;
+        _set_ctrl_value(ControlOutput::LFO_OUT, 0);
+    }
+
     void render() override;
 
 private:
-    ControlPort    _rate_port;
     float          _phase{0};
     float          _level{0};
     Waveform       _waveform{Waveform::TRIANGLE};
@@ -204,47 +229,53 @@ private:
 };
 
 /* Optimised LFO with only sine as waveform */
-class SineLfoBrick : public DspBrick
+class SineLfoBrick : public DspBrickImpl<1, 1, 0, 0>
 {
 public:
-    enum ControlOutputs
+    enum ControlInput
     {
-        LFO_OUT = 0,
-        MAX_CONTROL_OUTS,
+        RATE = 0
     };
 
-    SineLfoBrick(ControlPort rate) : _rate_port(rate) {}
-
-    const float& control_output(int n) override
+    enum ControlOutput
     {
-        assert(n < MAX_CONTROL_OUTS);
-        return _level;
+        LFO_OUT = 0
+    };
+
+    SineLfoBrick() = default;
+
+    SineLfoBrick(const float* rate)
+    {
+        set_control_input(ControlInput::RATE, rate);
     }
+
+    void reset() override {_phase = 0;}
 
     void render() override;
 
 private:
-    ControlPort _rate_port;
     float       _phase{0};
-    float       _level{0};
 };
 
 /* Optimised low frequency random generation */
-class RandLfoBrick : public DspBrick
+class RandLfoBrick : public DspBrickImpl<1, 1, 0, 0>
 {
 public:
-    enum ControlOutputs
+    enum ControlInput
     {
-        RAND_OUT = 0,
-        MAX_CONTROL_OUTS,
+        RATE = 0
     };
 
-    RandLfoBrick(ControlPort rate) : _rate_port(rate) {}
-
-    const float& control_output(int n) override
+    enum ControlOutput
     {
-        assert(n < MAX_CONTROL_OUTS);
-        return _level;
+        RAND_OUT = 0
+    };
+
+    RandLfoBrick() = default;
+
+    RandLfoBrick(const float* rate)
+    {
+        set_control_input(ControlInput::RATE, rate);
     }
 
     void set_samplerate(float samplerate) override;
@@ -252,18 +283,17 @@ public:
     void render() override
     {
         float out = _rand_device.get_norm() * GAIN_COMP;
-        _level = (1.0f - _coeff_a0) * out + _coeff_a0 * _level;
+        float level = (1.0f - _coeff_a0) * out + _coeff_a0 * _level;
+        _set_ctrl_value(ControlOutput::RAND_OUT, level);
+        _level = level;
     }
 
     static constexpr float LP_CUTOFF = 0.05f;
     static constexpr float GAIN_COMP = 100.0f;
 
 private:
-    ControlPort _rate_port;
-    float       _phase{0};
-    float       _level{0};
-    float       _coeff_a0{0};
-
+    float        _coeff_a0{0};
+    float        _level{0};
     RandomDevice _rand_device;
 };
 }// namespace bricks

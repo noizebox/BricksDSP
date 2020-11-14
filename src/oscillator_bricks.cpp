@@ -5,18 +5,18 @@
 
 namespace bricks {
 
-constexpr float OSC_BASE_FREQ = 20.0f;
-
 void OscillatorBrick::render()
 {
-    float base_freq = OSC_BASE_FREQ * powf(2.0f, _pitch_port.value() * 10.0f);
-    float phase_inc = base_freq / _samplerate;
+    float base_freq = control_to_freq(_ctrl_value(ControlInput::PITCH));
+    float phase_inc = base_freq / samplerate();
     float phase = _phase;
+    AudioBuffer& audio_out = _output_buffer(AudioOutput::OSC_OUT);
+
     switch (_waveform)
     {
         case Waveform::SAW:
         {
-            for (auto& sample : _buffer)
+            for (auto& sample : audio_out)
             {
                 phase += phase_inc;
                 if (phase > 0.5)
@@ -27,7 +27,7 @@ void OscillatorBrick::render()
         }
         case Waveform::PULSE:
         {
-            for (auto& sample : _buffer)
+            for (auto& sample : audio_out)
             {
                 phase += phase_inc;
                 if (phase > 0.5)
@@ -40,7 +40,7 @@ void OscillatorBrick::render()
         case Waveform::TRIANGLE:
         {
             int dir = _tri_dir;
-            for (auto& sample : _buffer)
+            for (auto& sample : audio_out)
             {
                 phase += phase_inc * dir * 2.0f;
                 if (phase > 0.5)
@@ -55,32 +55,34 @@ void OscillatorBrick::render()
 
 void FmOscillatorBrick::render()
 {
-    float base_freq = OSC_BASE_FREQ * powf(2, _pitch_port.value() * 10);
+    float base_freq = control_to_freq(_ctrl_value(ControlInput::PITCH));
     //_pitch_lag.set(_pitch_port.value());
-    float phase_inc = base_freq / _samplerate;
-    const AudioBuffer& fm_mod = _lin_fm_port.buffer();
+    float phase_inc = base_freq / samplerate();
     float phase = _phase;
+    const AudioBuffer& fm_mod = _input_buffer(AudioInput::LIN_FM);
+    AudioBuffer& audio_out = _output_buffer(AudioOutput::OSC_OUT);
+
     switch (_waveform)
     {
         case Waveform::SAW:
         {
-            for (int i = 0; i < _buffer.size(); ++i)
+            for (int i = 0; i < audio_out.size(); ++i)
             {
                 phase += phase_inc * (1.0f + fm_mod[i]);
                 if (phase > 0.5)
                     phase -= 1;
-                _buffer[i] = phase;
+                audio_out[i] = phase;
             }
         }
             break;
         case Waveform::PULSE:
         {
-            for (int i = 0; i < _buffer.size(); ++i)
+            for (int i = 0; i < audio_out.size(); ++i)
             {
                 phase += phase_inc * (1.0f + fm_mod[i]);
                 if (phase > 0.5)
                     phase -= 1;
-                _buffer[i] = std::signbit(phase) ? 0.5f : -0.5f;
+                audio_out[i] = std::signbit(phase) ? 0.5f : -0.5f;
             }
         }
             break;
@@ -88,12 +90,12 @@ void FmOscillatorBrick::render()
         case Waveform::TRIANGLE:
         {
             int dir = _tri_dir;
-            for (int i = 0; i < _buffer.size(); ++i)
+            for (int i = 0; i < audio_out.size(); ++i)
             {
                 phase += phase_inc * 2 * dir * (1.0f + fm_mod[i]);
                 if (phase > 0.5)
                     dir = dir * -1;
-                _buffer[i] = phase;
+                audio_out[i] = phase;
             }
             _tri_dir = dir;
         }
@@ -102,27 +104,21 @@ void FmOscillatorBrick::render()
     _phase = phase;
 }
 
-float cubic_herm_int(float A, float B, float C, float D, float pos)
-{
-    float a = -A/2.0f + (3.0f*B)/2.0f - (3.0f*C)/2.0f + D/2.0f;
-    float b = A - (5.0f*B)/2.0f + 2.0f*C - D / 2.0f;
-    float c = -A/2.0f + C/2.0f;
-    float d = B;
-
-    return a * pos * pos * pos + b * pos * pos + c * pos + d;
-}
-
 void WtOscillatorBrick::render()
 {
     /* If the samplerate it less than 80kHz, use the wavetables 1 octave above
      * which has less harmonics to make sure they dont alias when interpolated */
-    int wt_shift = _samplerate > 80000? 0 : _samplerate > 40000? 1 : 2;
-    float base_freq = OSC_BASE_FREQ * powf(2, _pitch_port.value() * 10);
-    float phase_inc = base_freq / _samplerate;
+    float sr = samplerate();
+    int wt_shift = sr > 80000? 0 : sr > 40000? 1 : 2;
+    float pitch = _ctrl_value(ControlInput::PITCH);
+    float base_freq = control_to_freq(pitch);
+    float phase_inc = base_freq / sr;
     float phase = _phase;
-    int oct = std::max(0, std::min(9, static_cast<int>(_pitch_port.value() * 10) + wt_shift));
+
+    int oct = std::max(0, std::min(9, static_cast<int>(pitch * 10) + wt_shift));
     float table_len = wavetables::lengths[oct];
     const float* table{nullptr};
+
     switch (_waveform)
     {
         case Waveform::SAW:
@@ -140,18 +136,15 @@ void WtOscillatorBrick::render()
     }
     assert(*table == 0.0f);
 
+    AudioBuffer& audio_out = _output_buffer(AudioOutput::OSC_OUT);
     for (int i = 0; i < PROC_BLOCK_SIZE; ++i)
     {
         phase += phase_inc;
         if (phase > 1.0f)
             phase -= 1.0f;
         float pos = phase * table_len;
-        int first = static_cast<int>(pos);
-        //int len = static_cast<int>(table_len);
-        float weight = pos - std::floor(pos);
-        float sample = table[first] + weight * (table[first + 1] - table[first]);
-        //float sample = cubic_herm_int(table[(first-1)%len],table[first], table[first+1], table[(first+2)%len], weight);
-        _buffer[i] = sample;
+        float sample = linear_int(pos, table);
+        audio_out[i] = sample;
     }
     _phase = phase;
 }
@@ -163,14 +156,16 @@ constexpr float BROWN_GAIN_CORR = 50.0f;
 
 void NoiseGeneratorBrick::render()
 {
-    for (auto& s : _buffer)
+    AudioBuffer& audio_out = _output_buffer(AudioOutput::NOISE_OUT);
+
+    for (auto& s : audio_out)
     {
         s = _rand_device.get_norm();
     }
     if (_waveform == Waveform::PINK)
     {
-        float hist = _buffer[PROC_BLOCK_SIZE - 1];
-        for (auto& s : _buffer)
+        float hist = audio_out[PROC_BLOCK_SIZE - 1];
+        for (auto& s : audio_out)
         {
             s *= PINK_GAIN_CORR;
             s = (1.0f - _pink_coeff_a0) * s + _pink_coeff_a0 * hist;
@@ -179,8 +174,8 @@ void NoiseGeneratorBrick::render()
     }
     if (_waveform == Waveform::BROWN)
     {
-        float hist = _buffer[PROC_BLOCK_SIZE - 1];
-        for (auto& s : _buffer)
+        float hist = audio_out[PROC_BLOCK_SIZE - 1];
+        for (auto& s : audio_out)
         {
             s *= BROWN_GAIN_CORR;
             s = (1.0f - _brown_coeff_a0) * s + _brown_coeff_a0 * hist;
@@ -193,7 +188,7 @@ void NoiseGeneratorBrick::set_samplerate(float samplerate)
 {
     _pink_coeff_a0 = std::exp(-2.0f * M_PI * PINK_CUTOFF_FREQ / samplerate);
     _brown_coeff_a0 = std::exp(-2.0f * M_PI * BROWN_CUTOFF_FREQ / samplerate);
-    DspBrick::set_samplerate(samplerate);
+    DspBrickImpl::set_samplerate(samplerate);
 }
 
 } // namespace bricks
