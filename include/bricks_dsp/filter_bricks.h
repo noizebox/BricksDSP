@@ -54,6 +54,7 @@ public:
     void reset() override
     {
         _reg.fill(0.0f);
+        _coeff.fill(ControlSmootherLinear());
     }
 
 private:
@@ -89,7 +90,7 @@ public:
 
     void reset() override
     {
-        // TODO - reset() on control smoothers.
+        _g_lag.reset();
         _reg.fill(0);
     }
 
@@ -163,7 +164,7 @@ class MystransLadderFilter : public DspBrickImpl<2, 0, 1, 1>
 
     void reset() override
     {
-        // TODO - reset() on control smoothers.
+        _freq_lag.reset();
         _states.fill(0);
     }
 

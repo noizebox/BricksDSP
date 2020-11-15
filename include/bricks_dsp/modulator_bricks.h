@@ -287,6 +287,12 @@ public:
         _delay = clamp(samplerate() * delay.count(), 0, _max_delay);
     }
 
+    void reset() override
+    {
+        _mod_lag.reset();
+        BasicDelay::reset();
+    }
+
     void render() override
     {
         _copy_audio_in(_input_buffer(DEFAULT_INPUT));
@@ -431,13 +437,7 @@ public:
         set_audio_input(0, audio_in);
     }
 
-    void reset() override
-    {
-        _down_phase = 0;
-        _up_phase = 0;
-        _delay_buffer.fill(0);
-        _downsampled_buffer.fill(0);
-    }
+    void reset() override;
 
     void render() override;
 

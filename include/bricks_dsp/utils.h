@@ -83,6 +83,12 @@ public:
         return values;
     };
 
+    void reset()
+    {
+        _lag = 0;
+        _step = 0;
+    }
+
     float step() {return _step;}
 
 private:
@@ -108,6 +114,12 @@ public:
         }
         return values;
     };
+
+    void reset()
+    {
+        _lag = 0;
+        _target = 0;
+    }
 
 private:
 // TODO - Room for tweaking.
