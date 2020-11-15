@@ -1,13 +1,11 @@
-#include "modulator_bricks.h"
 #include <algorithm>
 #include <cmath>
 
+#include "modulator_bricks.h"
 
 namespace bricks {
 
 constexpr float MAX_BIT_DEPTH = 24;
-constexpr float OSC_BASE_FREQ = 20.0f;
-
 
 /* Pade approximation of tanh, valid within [-3, 3] */
 inline float tanh_approx(const float& x)

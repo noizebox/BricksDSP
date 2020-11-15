@@ -17,11 +17,11 @@ public:
     {
         return (static_cast<float>(_device()) - FLOAT_MIN) / (FLOAT_MAX * 0.5f) - 1.0f;
     }
-    static constexpr float FLOAT_MIN = std::minstd_rand::min();
-    static constexpr float FLOAT_MAX = std::minstd_rand::max();
+    static constexpr float FLOAT_MIN = static_cast<float>(std::minstd_rand::min());
+    static constexpr float FLOAT_MAX = static_cast<float>(std::minstd_rand::max());
 
 private:
-    static uint32_t _seed;
+    static uint32_t  _seed;
     std::minstd_rand _device;
 };
 

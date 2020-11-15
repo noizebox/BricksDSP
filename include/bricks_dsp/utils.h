@@ -27,7 +27,7 @@ inline constexpr float note_to_control(int midi_note)
     return (midi_note - SHIFT_FACTOR) / SEMITONES_IN_RANGE;
 }
 
-/* Map a control input to a 0.1 per octave pitch control to a frequency in Hz */
+/* Map a control input to a frequency in Hz, assuming to a 0.1 per octave pitch control */
 inline float control_to_freq(float v)
 {
     constexpr float OSC_BASE_FREQ = 20.0f;
@@ -112,13 +112,13 @@ public:
 private:
 // TODO - Room for tweaking.
 static constexpr float TIMECONSTANTS_PER_BLOCK = 2.5;
-#ifdef LINUX
+#ifdef BRICKS_DSP_CONSTEXPR_MATH
 static constexpr float COEFF_A0 = std::exp(-1.0f * TIMECONSTANTS_PER_BLOCK / length);
 static constexpr float COEFF_B0 = 1 - COEFF_A0;
-#endif
-#ifdef WINDOWS
-static inline const float COEFF_A0 = std::exp(-1.0f * TIMECONSTANTS_PER_BLOCK / length);
-static inline const float COEFF_B0 = 1 - COEFF_A0;
+#else
+/* Close enough, for 16 samples the diff is ~1%, even less for larger block sizes */
+static constexpr float COEFF_A0 = 1.0f - TIMECONSTANTS_PER_BLOCK / length;
+static constexpr float COEFF_B0 = 1.0f - COEFF_A0;
 #endif
 
     float _target{0};

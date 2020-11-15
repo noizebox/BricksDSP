@@ -4,7 +4,11 @@
 #include "dsp_brick.h"
 namespace bricks {
 
-constexpr float DEFAULT_Q = 1 / 1.42f; //sqrtf(2.0f);
+#ifdef BRICKS_DSP_CONSTEXPR_MATH
+constexpr float DEFAULT_Q = 1 / sqrtf(2.0f);
+#else
+constexpr float DEFAULT_Q = 1 / 1.42f;
+#endif
 
 /* Standard Biquad */
 class BiquadFilterBrick : public DspBrickImpl<3, 0, 1, 1>
@@ -54,7 +58,6 @@ public:
 
 private:
     Mode                                 _mode{Mode::LOWPASS};
-    float                                _samplerate{DEFAULT_SAMPLERATE};
     std::array<ControlSmootherLinear, 5> _coeff;
     std::array<float ,2>                 _reg{0,0};
 };
@@ -84,7 +87,7 @@ public:
         set_audio_input(0, audio_in);
     }
 
-    void reset()
+    void reset() override
     {
         // TODO - reset() on control smoothers.
         _reg.fill(0);
@@ -122,7 +125,7 @@ public:
     void set_lowshelf(float freq, float gain, float slope = DEFAULT_Q, bool clear = true);
     void set_highshelf(float freq, float gain, float slope = DEFAULT_Q, bool clear = true);
 
-    void reset()
+    void reset() override
     {
         _reg = {0, 0};
     }
@@ -158,7 +161,7 @@ class MystransLadderFilter : public DspBrickImpl<2, 0, 1, 1>
 
     void render() override;
 
-    void reset()
+    void reset() override
     {
         // TODO - reset() on control smoothers.
         _states.fill(0);

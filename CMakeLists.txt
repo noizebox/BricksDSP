@@ -40,6 +40,11 @@ else()
     target_compile_definitions(bricks_dsp PUBLIC LINUX)
 endif()
 
+# Compile time constants can use functions from <cmath>, non-standard GCC feature
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    target_compile_definitions(bricks_dsp PUBLIC BRICKS_DSP_CONSTEXPR_MATH)
+endif()
+
 if(BRICKS_DSP_INTERNAL_AUDIO_BUFFERS)
     target_compile_definitions(bricks_dsp PUBLIC BRICKS_DSP_INTERNAL_BUFFERS)
 endif()

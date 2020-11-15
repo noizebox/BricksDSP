@@ -40,7 +40,7 @@ public:
 
     bool finished() {return _state == EnvelopeState::OFF;}
 
-    void reset()
+    void reset() override
     {
         _state = EnvelopeState::OFF;
         _level = 0.0f;
@@ -96,7 +96,7 @@ public:
 
     bool finished() {return _state == EnvelopeState::OFF;}
 
-    void reset()
+    void reset() override
     {
         _state = EnvelopeState::OFF;
         _level = 0.0f;
@@ -154,7 +154,7 @@ public:
 
     bool finished() {return _state == EnvelopeState::OFF;}
 
-    void reset()
+    void reset() override
     {
         _state = EnvelopeState::OFF;
         _level = 0.0f;
