@@ -11,7 +11,7 @@ constexpr float DEFAULT_Q = 1 / 1.42f;
 #endif
 
 template<typename FloatType>
-struct GeneralBiquadCoeff
+struct BiquadCoefficients
 {
     FloatType a1;
     FloatType a2;
@@ -21,18 +21,18 @@ struct GeneralBiquadCoeff
 };
 
 template<typename FloatType>
-struct GeneralBiquadReg
+struct BiquadRegisters
 {
     FloatType z1;
     FloatType z2;
 };
 
-/* Direct form 2 transposed biquad */
+/* Direct form 2 transposed biquad calculation */
 template <typename FloatType, int BlockSize>
-void do_df2_biquad(const AlignedArray<FloatType, BlockSize>& in,
-                   AlignedArray<FloatType, BlockSize>& out,
-                   const GeneralBiquadCoeff<FloatType>& coeff,
-                   GeneralBiquadReg<FloatType>& registers)
+void render_df2_biquad(const AlignedArray<float, BlockSize>& in,
+                       AlignedArray<float, BlockSize>& out,
+                       const BiquadCoefficients<FloatType>& coeff,
+                       BiquadRegisters<FloatType>& registers)
 {
     auto reg = registers;
     for (int i = 0; i < in.size(); ++i)
@@ -45,10 +45,12 @@ void do_df2_biquad(const AlignedArray<FloatType, BlockSize>& in,
     registers = reg;
 }
 
-using Coefficients = GeneralBiquadCoeff<float>;
-using BiquadRegisters = GeneralBiquadReg<float>;
+using Coefficients = BiquadCoefficients<float>;
+using Registers = BiquadRegisters<float>;
 
-/* Standard Biquad */
+/* Standard Biquad with coefficent smoothing
+ * This one should be deprecated, biquads should only really be used for fixed filters
+ * as they generally don't take modulations well. */
 class BiquadFilterBrick : public DspBrickImpl<3, 0, 1, 1>
 {
 public:
@@ -98,7 +100,7 @@ public:
 private:
     Mode                                 _mode{Mode::LOWPASS};
     std::array<ControlSmootherLinear, 5> _coeff;
-    BiquadRegisters                      _reg{0,0};
+    Registers                            _reg{0,0};
 };
 
 /* State variable filter with multiple outs from Andrew Simper, Cytomic,
@@ -171,10 +173,76 @@ public:
 
 private:
     Coefficients    _coeff{0,0,0,0,0};
-    BiquadRegisters _reg{0,0};
+    Registers       _reg{0,0};
 };
 
+/* Fixed Biquad with non-modulated filter parameters and variable number of stages */
+template<int stages, typename FloatType = float>
+class FixedBiquadBrick : public DspBrickImpl<0, 0, 1, 1>
+{
+public:
+    enum AudioOutput
+    {
+        FILTER_OUT = 0
+    };
 
+    FixedBiquadBrick() = default;
+
+    FixedBiquadBrick(const AudioBuffer* audio_in)
+    {
+        set_audio_input(0, audio_in);
+    }
+
+    void set_coeffs(const std::array<BiquadCoefficients<FloatType>, stages>& coeffs)
+    {
+        _coeff = coeffs;
+    }
+
+    void render()
+    {
+        const AudioBuffer& audio_in = _input_buffer(0);
+        AudioBuffer& audio_out = _output_buffer(AudioOutput::FILTER_OUT);
+        /* Can't partially specialise a member function, this is a workaround */
+        if constexpr (stages == 1)
+        {
+            render_df2_biquad<FloatType, PROC_BLOCK_SIZE>(audio_in, audio_out, _coeff[0], _reg[0]);
+        }
+        else if constexpr (stages % 2 == 0)
+        {
+            /* With an even number of stages, first render to the buffer, then ping pong
+             * between audio_out and buffer to avoid an extra copy in the end */
+            AudioBuffer buffer;
+            render_df2_biquad<FloatType, PROC_BLOCK_SIZE>(audio_in, buffer, _coeff[0], _reg[0]);
+            for (int i = 1; i < stages; ++i)
+            {
+                const AudioBuffer& in = i % 2 ? buffer : audio_out;
+                AudioBuffer& out = i % 2 ? audio_out : buffer;
+                render_df2_biquad<FloatType, PROC_BLOCK_SIZE>(in, out, _coeff[i], _reg[i]);
+            }
+        }
+        else
+        {
+            /* With an odd number of stages, first render to audio_out */
+            AudioBuffer buffer;
+            render_df2_biquad<FloatType, PROC_BLOCK_SIZE>(audio_in, audio_out, _coeff[0], _reg[0]);
+            for (int i = 1; i < stages; ++i)
+            {
+                const AudioBuffer& in = i % 2 ? audio_out: buffer;
+                AudioBuffer& out = i % 2 ? buffer : audio_out;
+                render_df2_biquad<FloatType, PROC_BLOCK_SIZE>(in, out, _coeff[i], _reg[i]);
+            }
+        }
+    }
+
+    void reset() override
+    {
+        _reg.fill({0, 0});
+    }
+
+private:
+    std::array<BiquadCoefficients<FloatType>, stages>   _coeff{0};
+    std::array<BiquadRegisters<FloatType>, stages>      _reg{0};
+};
 
 /* Topology-preserving (zero delay) ladder with non-linearities
  * From https://www.kvraudio.com/forum/viewtopic.php?t=349859

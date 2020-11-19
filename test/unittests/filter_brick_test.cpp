@@ -95,3 +95,38 @@ TEST_F(FixedFilterBrickTest, AllpassTest)
     ASSERT_LT(sum, 1.0f);
     ASSERT_GT(sum, 0.01f);
 }
+
+class FixedBiquadBrickTest : public ::testing::Test
+{
+protected:
+    FixedBiquadBrickTest() {}
+
+    void SetUp()
+    {
+        make_test_sq_wave(_buffer);
+    }
+
+    AudioBuffer           _buffer;
+    FixedBiquadBrick<3>   _test_module{&_buffer};
+    const AudioBuffer*    _out_buffer{_test_module.audio_output(FixedFilterBrick::FILTER_OUT)};
+};
+
+TEST_F(FixedBiquadBrickTest, OperationalTest)
+{
+    auto coeff = calc_lowpass(2000, DEFAULT_Q, DEFAULT_SAMPLERATE);
+    std::array<Coefficients, 3> coeffs;
+    coeffs.fill(coeff);
+
+    make_test_sq_wave(_buffer);
+    _test_module.set_coeffs(coeffs);
+    _test_module.render();
+    float sum = 0;
+    for (auto sample : *_out_buffer)
+    {
+        sum += std::abs(sample);
+    }
+    /* Basic sanity check, filter does not run amok or output zeroes */
+    sum /= PROC_BLOCK_SIZE;
+    ASSERT_LT(sum, 1.0f);
+    ASSERT_GT(sum, 0.01f);
+}

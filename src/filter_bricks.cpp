@@ -257,7 +257,7 @@ void FixedFilterBrick::render()
 {
     const AudioBuffer& audio_in = _input_buffer(0);
     AudioBuffer& audio_out = _output_buffer(AudioOutput::FILTER_OUT);
-    do_df2_biquad(audio_in, audio_out, _coeff, _reg);
+    render_df2_biquad(audio_in, audio_out, _coeff, _reg);
 }
 
 void FixedFilterBrick::set_lowpass(float freq, float q, bool clear)
