@@ -10,6 +10,44 @@ constexpr float DEFAULT_Q = 1 / sqrtf(2.0f);
 constexpr float DEFAULT_Q = 1 / 1.42f;
 #endif
 
+template<typename FloatType>
+struct GeneralBiquadCoeff
+{
+    FloatType a1;
+    FloatType a2;
+    FloatType b0;
+    FloatType b1;
+    FloatType b2;
+};
+
+template<typename FloatType>
+struct GeneralBiquadReg
+{
+    FloatType z1;
+    FloatType z2;
+};
+
+/* Direct form 2 transposed biquad */
+template <typename FloatType, int BlockSize>
+void do_df2_biquad(const AlignedArray<FloatType, BlockSize>& in,
+                   AlignedArray<FloatType, BlockSize>& out,
+                   const GeneralBiquadCoeff<FloatType>& coeff,
+                   GeneralBiquadReg<FloatType>& registers)
+{
+    auto reg = registers;
+    for (int i = 0; i < in.size(); ++i)
+    {
+        float out_val = in[i] * coeff.b0 + reg.z1;
+        reg.z1 = in[i] * coeff.b1 + reg.z2 - coeff.a1 * out_val;
+        reg.z2 = in[i] * coeff.b2 - coeff.a2 * out_val;
+        out[i] = out_val;
+    }
+    registers = reg;
+}
+
+using Coefficients = GeneralBiquadCoeff<float>;
+using BiquadRegisters = GeneralBiquadReg<float>;
+
 /* Standard Biquad */
 class BiquadFilterBrick : public DspBrickImpl<3, 0, 1, 1>
 {
@@ -53,14 +91,14 @@ public:
 
     void reset() override
     {
-        _reg.fill(0.0f);
+        _reg = {0, 0};
         _coeff.fill(ControlSmootherLinear());
     }
 
 private:
     Mode                                 _mode{Mode::LOWPASS};
     std::array<ControlSmootherLinear, 5> _coeff;
-    std::array<float ,2>                 _reg{0,0};
+    BiquadRegisters                      _reg{0,0};
 };
 
 /* State variable filter with multiple outs from Andrew Simper, Cytomic,
@@ -91,13 +129,13 @@ public:
     void reset() override
     {
         _g_lag.reset();
-        _reg.fill(0);
+        _reg = {0, 0};
     }
 
     void render() override;
 
 private:
-    std::array<float ,2> _reg{0,0};
+    std::array<float, 2>  _reg{0,0};
     ControlSmootherLinear _g_lag;
 };
 
@@ -132,9 +170,11 @@ public:
     }
 
 private:
-    std::array<float, 5> _coeff{0,0,0,0,0};
-    std::array<float, 2> _reg{0,0};
+    Coefficients    _coeff{0,0,0,0,0};
+    BiquadRegisters _reg{0,0};
 };
+
+
 
 /* Topology-preserving (zero delay) ladder with non-linearities
  * From https://www.kvraudio.com/forum/viewtopic.php?t=349859

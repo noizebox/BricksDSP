@@ -19,8 +19,6 @@ enum REGISTERS
     Z2,
 };
 
-using Coefficients = std::array<float, 5>;
-
 /* Coefficient generation from http://www.musicdsp.org/files/Audio-EQ-Cookbook.txt */
 inline Coefficients calc_lowpass(float freq, float q, float samplerate)
 {
@@ -32,11 +30,11 @@ inline Coefficients calc_lowpass(float freq, float q, float samplerate)
     float norm = 1.0f / (1.0f + alpha);
     float b0 = (1.0f - w0_cos) / 2.0f * norm;
 
-    coeff[A1] = -2.0f * w0_cos * norm;
-    coeff[A2] = (1 - alpha) * norm;
-    coeff[B0] = b0;
-    coeff[B1] = (1 - w0_cos) * norm;
-    coeff[B2] = b0;
+    coeff.a1 = -2.0f * w0_cos * norm;
+    coeff.a2 = (1 - alpha) * norm;
+    coeff.b0 = b0;
+    coeff.b1 = (1 - w0_cos) * norm;
+    coeff.b2 = b0;
     return coeff;
 };
 
@@ -50,11 +48,11 @@ inline Coefficients calc_highpass(float freq, float q, float samplerate)
     float norm = 1.0f / (1.0f + alpha);
     float b0 = (1.0f + w0_cos) / 2.0f * norm;
 
-    coeff[A1] = -2.0f * w0_cos * norm;
-    coeff[A2] = (1 - alpha) * norm;
-    coeff[B0] = b0;
-    coeff[B1] = -(1 + w0_cos) * norm;
-    coeff[B2] = b0;
+    coeff.a1 = -2.0f * w0_cos * norm;
+    coeff.a2 = (1 - alpha) * norm;
+    coeff.b0 = b0;
+    coeff.b1 = -(1 + w0_cos) * norm;
+    coeff.b2 = b0;
     return coeff;
 };
 
@@ -68,11 +66,11 @@ inline Coefficients calc_bandpass(float freq, float q, float samplerate)
     float norm = 1.0f / (1.0f + alpha);
     float b0 = alpha * norm;
 
-    coeff[A1] = -2.0f * w0_cos * norm;
-    coeff[A2] = (1 - alpha) * norm;
-    coeff[B0] = b0;
-    coeff[B1] = 0.0f;
-    coeff[B2] = -b0;
+    coeff.a1 = -2.0f * w0_cos * norm;
+    coeff.a2 = (1 - alpha) * norm;
+    coeff.b0 = b0;
+    coeff.b1 = 0.0f;
+    coeff.b2 = -b0;
     return coeff;
 };
 
@@ -87,11 +85,11 @@ inline Coefficients calc_allpass(float freq, float q, float samplerate)
     float a1 =  -2.0f * w0_cos * norm;
     float b0 = (1.0f - alpha) * norm;
 
-    coeff[A1] = a1;
-    coeff[A2] = b0;
-    coeff[B0] = b0;
-    coeff[B1] = a1;
-    coeff[B2] = 1.0f;
+    coeff.a1 = a1;
+    coeff.a2 = b0;
+    coeff.b0 = b0;
+    coeff.b1 = a1;
+    coeff.b2 = 1.0f;
     return coeff;
 };
 
@@ -107,11 +105,11 @@ inline Coefficients calc_peaking(float freq, float gain, float q,  float sampler
     float norm = 1.0f / (1.0f + alpha / A);
     float b0 = (1.0f + alpha * A) * norm;
 
-    coeff[A1] = -2.0f * w0_cos * norm;
-    coeff[A2] = (1 - alpha / A) * norm;
-    coeff[B0] = b0;
-    coeff[B1] = -2.0f * w0_cos * norm;
-    coeff[B2] = (1.0f - alpha * A) * norm;
+    coeff.a1 = -2.0f * w0_cos * norm;
+    coeff.a2 = (1 - alpha / A) * norm;
+    coeff.b0 = b0;
+    coeff.b1 = -2.0f * w0_cos * norm;
+    coeff.b2 = (1.0f - alpha * A) * norm;
     return coeff;
 };
 
@@ -127,11 +125,11 @@ inline Coefficients calc_lowshelf(float freq, float gain, float slope, float sam
     float A_dec_cos_w0 = (A - 1.0f) * w0_cos;
     float norm = 1.0f / ((A + 1.0f) + A_dec_cos_w0 + A2_sqrt_alpha);
 
-    coeff[A1] = -2.0f * (A - 1.0f + A_inc_cos_w0) * norm;
-    coeff[A2] = (A + 1.0f + A_dec_cos_w0 - A2_sqrt_alpha) * norm;
-    coeff[B0] = A * (A + 1.0f - A_dec_cos_w0 + A2_sqrt_alpha) * norm;
-    coeff[B1] = 2.0f * A * (A - 1.0f - A_inc_cos_w0) * norm;
-    coeff[B2] = A * (A + 1.0f - A_dec_cos_w0 - A2_sqrt_alpha) * norm;
+    coeff.a1 = -2.0f * (A - 1.0f + A_inc_cos_w0) * norm;
+    coeff.a2 = (A + 1.0f + A_dec_cos_w0 - A2_sqrt_alpha) * norm;
+    coeff.b0 = A * (A + 1.0f - A_dec_cos_w0 + A2_sqrt_alpha) * norm;
+    coeff.b1 = 2.0f * A * (A - 1.0f - A_inc_cos_w0) * norm;
+    coeff.b2 = A * (A + 1.0f - A_dec_cos_w0 - A2_sqrt_alpha) * norm;
     return coeff;
 };
 
@@ -147,11 +145,11 @@ inline Coefficients calc_highshelf(float freq, float gain, float slope, float sa
     float A_dec_cos_w0 = (A - 1.0f) * w0_cos;
     float norm = 1.0f / ((A + 1.0f) - A_dec_cos_w0 + A2_sqrt_alpha);
 
-    coeff[A1] = 2.0f * (A - 1.0f - A_inc_cos_w0) * norm;
-    coeff[A2] = (A + 1.0f - A_dec_cos_w0 - A2_sqrt_alpha) * norm;
-    coeff[B0] = A * (A + 1.0f + A_dec_cos_w0 + A2_sqrt_alpha) * norm;
-    coeff[B1] = -2.0f * A * (A - 1.0f + A_inc_cos_w0) * norm;
-    coeff[B2] = A * (A + 1.0f + A_dec_cos_w0 - A2_sqrt_alpha) * norm;
+    coeff.a1 = 2.0f * (A - 1.0f - A_inc_cos_w0) * norm;
+    coeff.a2 = (A + 1.0f - A_dec_cos_w0 - A2_sqrt_alpha) * norm;
+    coeff.b0 = A * (A + 1.0f + A_dec_cos_w0 + A2_sqrt_alpha) * norm;
+    coeff.b1 = -2.0f * A * (A - 1.0f + A_inc_cos_w0) * norm;
+    coeff.b2 = A * (A + 1.0f + A_dec_cos_w0 - A2_sqrt_alpha) * norm;
     return coeff;
 };
 
@@ -195,10 +193,12 @@ void BiquadFilterBrick::render()
             break;
 
     }
-    for (size_t i = 0; i < _coeff.size(); ++i)
-    {
-        _coeff[i].set(new_coeff[i]);
-    }
+
+    _coeff[0].set(new_coeff.a1);
+    _coeff[1].set(new_coeff.a2);
+    _coeff[2].set(new_coeff.b0);
+    _coeff[3].set(new_coeff.b1);
+    _coeff[4].set(new_coeff.b2);
 
     const AudioBuffer& in = _input_buffer(0);
     AudioBuffer& audio_out = _output_buffer(0);
@@ -206,14 +206,16 @@ void BiquadFilterBrick::render()
     for (int i = 0; i < PROC_BLOCK_SIZE; ++i)
     {
         Coefficients coeff;
-        for (size_t c = 0; c < coeff.size(); ++c)
-        {
-            coeff[c] = _coeff[c].get();
-        }
+        coeff.a1 = _coeff[0].get();
+        coeff.a2 = _coeff[1].get();
+        coeff.b0 = _coeff[2].get();
+        coeff.b1 = _coeff[3].get();
+        coeff.b2 = _coeff[4].get();
+
         /* Direct form 2 transposed */
-        float out = in[i] * coeff[B0] + _reg[Z1];
-        _reg[Z1] = in[i] * coeff[B1] +  _reg[Z2] - coeff[A1] * out;
-        _reg[Z2] = in[i] * coeff[B2]- coeff[A2] * out;
+        float out = in[i] * coeff.b0 + _reg.z1;
+        _reg.z1 = in[i] * coeff.b1 +  _reg.z2 - coeff.a1 * out;
+        _reg.z2 = in[i] * coeff.b2- coeff.a2 * out;
         audio_out[i] = out;
     }
     _reg = reg;
@@ -255,16 +257,7 @@ void FixedFilterBrick::render()
 {
     const AudioBuffer& audio_in = _input_buffer(0);
     AudioBuffer& audio_out = _output_buffer(AudioOutput::FILTER_OUT);
-    auto reg = _reg;
-    for (int i = 0; i < PROC_BLOCK_SIZE; ++i)
-    {
-        /* Direct form 2 transposed */
-        float out = audio_in[i] * _coeff[B0] + reg[Z1];
-        reg[Z1] = audio_in[i] * _coeff[B1] + reg[Z2] - _coeff[A1] * out;
-        reg[Z2] = audio_in[i] * _coeff[B2] - _coeff[A2] * out;
-        audio_out[i] = out;
-    }
-    _reg = reg;
+    do_df2_biquad(audio_in, audio_out, _coeff, _reg);
 }
 
 void FixedFilterBrick::set_lowpass(float freq, float q, bool clear)
