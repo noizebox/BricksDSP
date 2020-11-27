@@ -201,12 +201,8 @@ TEST(UpSamplerTest, TestLinearUpSampler)
         i = val = !val;
     }
     linear_upsample<8, 32>(buffer, upsampled, mem);
-    for (auto i : upsampled)
-    {
-        std::cout << i << ", ";
-    }
 
-        EXPECT_FLOAT_EQ(0.25, upsampled[0]);
+    EXPECT_FLOAT_EQ(0.25, upsampled[0]);
     EXPECT_FLOAT_EQ(0.50, upsampled[1]);
     EXPECT_FLOAT_EQ(0.75, upsampled[2]);
     EXPECT_FLOAT_EQ(1.0,  upsampled[3]);
