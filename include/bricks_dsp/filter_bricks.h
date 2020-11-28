@@ -33,7 +33,7 @@ inline float render_biquad_sample(float in,
                                   const BiquadCoefficients<FloatType>& coeff,
                                   BiquadRegisters<FloatType>& reg)
 {
-    float out = in * coeff.b0 + reg.z1;
+    FloatType out = in * coeff.b0 + reg.z1;
     reg.z1 = in * coeff.b1 + reg.z2 - coeff.a1 * out;
     reg.z2 = in * coeff.b2 - coeff.a2 * out;
     return out;
@@ -145,7 +145,7 @@ private:
     Registers       _reg{0,0};
 };
 
-/* Fixed Biquad with non-modulated filter parameters and templaated number of stages */
+/* Fixed Biquad with non-modulated filter parameters and templated number of stages */
 template<int stages, typename FloatType = float>
 class MultiStageFilterBrick : public DspBrickImpl<0, 0, 1, 1>
 {
@@ -173,11 +173,7 @@ public:
         AudioBuffer& audio_out = _output_buffer(AudioOutput::FILTER_OUT);
         auto regs = _reg;
         /* Can't partially specialise a member function, this is a workaround */
-        if constexpr (stages == 1)
-        {
-            render_df2_biquad<FloatType, PROC_BLOCK_SIZE>(audio_in, audio_out, _coeff[0], regs[0]);
-        }
-        else if constexpr (stages % 2 == 0)
+        if constexpr (stages % 2 == 0)
         {
             /* With an even number of stages, first render to the buffer, then ping pong
              * between audio_out and buffer to avoid an extra copy in the end */
@@ -272,7 +268,7 @@ public:
     }
 
 private:
-    static_assert(stages >= 2, "Need at least 2 stages to be useful");
+    static_assert(stages >= 2, "Needs at least 2 stages to be useful");
     std::array<BiquadCoefficients<FloatType>, stages>   _coeff;
     std::array<BiquadRegisters<FloatType>, stages>      _reg;
     std::array<FloatType, stages>                       _pipeline;
