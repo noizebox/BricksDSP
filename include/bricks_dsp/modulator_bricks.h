@@ -296,7 +296,8 @@ public:
     void render() override
     {
         _copy_audio_in(_input_buffer(DEFAULT_INPUT));
-        _mod_lag.set(clamp(_ctrl_value(ControlInput::DELAY_MOD), 0.0f, 1.0f));
+        auto mod_lag = _mod_lag;
+        mod_lag.set(clamp(_ctrl_value(ControlInput::DELAY_MOD), 0.0f, 1.0f));
         auto& audio_out = _output_buffer(AudioOutput::DELAY_OUT);
 
         for (int i = 0; i < PROC_BLOCK_SIZE; ++i)
@@ -314,6 +315,7 @@ public:
             else if constexpr (type == InterpolationType::CR_CUB)
                 audio_out[i] = catmull_rom_cubic_int(read_index, _buffer);
         }
+        _mod_lag = mod_lag;
     }
 
 private:

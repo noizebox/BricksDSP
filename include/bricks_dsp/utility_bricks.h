@@ -48,11 +48,12 @@ public:
         {
             _gain_lag.set(to_db_approx(gain));
         }
-        AudioBuffer gains = _gain_lag.get_all();
+        auto gain_lag = _gain_lag;
         for (int s = 0; s < audio_out.size(); ++s)
         {
-            audio_out[s] = audio_in[s] * gains[s];
+            audio_out[s] = audio_in[s] * gain_lag.get();
         }
+        _gain_lag = gain_lag;
     }
 
 private:
@@ -106,12 +107,13 @@ public:
                 _gain_lags[i].set(to_db_approx(gain));
             }
 
-            AudioBuffer gain_lag = _gain_lags[i].get_all();
+            auto gain_lag = _gain_lags[i];
             const auto& audio_in = this_template::_input_buffer(i);
             for (int s = 0; s < audio_out.size(); ++s)
             {
-                audio_out[s] += audio_in[s] * gain_lag[i];
+                audio_out[s] += audio_in[s] * gain_lag.get();
             }
+            _gain_lags[i] = gain_lag;
         }
     }
 

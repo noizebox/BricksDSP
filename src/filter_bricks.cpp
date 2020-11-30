@@ -233,10 +233,10 @@ void SVFFilterBrick::render()
     float k = 2 - 2 * _ctrl_value(ControlInput::RESONANCE);
     _g_lag.set(std::tan(static_cast<float>(M_PI) * freq / samplerate()));
     auto reg = _reg;
-    AudioBuffer g_lag = _g_lag.get_all();
+    auto g_lag = _g_lag;
     for (unsigned int i = 0; i < PROC_BLOCK_SIZE; ++i)
     {
-        float g = g_lag[i];
+        float g = g_lag.get();
         float a1 = 1 / (1 + g * (g + k));
         float a2 = g * a1;
         float a3 = g * a2;
@@ -251,6 +251,7 @@ void SVFFilterBrick::render()
         highpass_out[i] = audio_in[i] - k * v1 - v2;
     }
     _reg = reg;
+    _g_lag = g_lag;
 }
 
 void FixedFilterBrick::render()
@@ -344,10 +345,11 @@ void MystransLadderFilter::render()
 
     auto s = _states;
     auto zi = _zi;
+    auto freq_lag = _freq_lag;
 
     for(int i = 0; i < PROC_BLOCK_SIZE; ++i)
     {
-        double f = _freq_lag.get();
+        double f = freq_lag.get();
         // input with half delay, for non-linearities
         double ih = 0.5 * (in[i] + zi);
         zi = in[i];
@@ -388,6 +390,7 @@ void MystransLadderFilter::render()
     }
     _zi = zi;
     _states = s;
+    _freq_lag = freq_lag;
 }
 
 } // namepspace bricks
