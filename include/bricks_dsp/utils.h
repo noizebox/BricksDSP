@@ -306,7 +306,6 @@ void linear_upsample(const AlignedArray<float, from_size>& audio_in,
 }
 
 
-
 } // namespace bricks
 
 #endif //BRICKS_DSP_UTILS_H

@@ -5,6 +5,12 @@
 
 #include <benchmark/benchmark.h>
 
+#ifdef __SSE__
+#include <xmmintrin.h>
+#define denormals_intrinsic() _mm_setcsr(0x9FC0)
+#else
+#define denormals_intrinsic()
+#endif
 #include "bricks_dsp/bricks.h"
 
 namespace bricks_bench {
@@ -124,6 +130,8 @@ std::unique_ptr<T> make_brick_array_args(const std::array<float, ctrl_inputs>& c
 template<typename T, int ctrl_inputs, int audio_inputs, AudioType audio_type, bool array_args = false>
 static void BrickBM(benchmark::State& state)
 {
+    denormals_intrinsic();
+
     std::array<float, ctrl_inputs> ctrl_signals;
     std::array<bricks::AudioBuffer, audio_inputs> audio_signals;
     auto audio_data = get_audio_data(audio_type);
