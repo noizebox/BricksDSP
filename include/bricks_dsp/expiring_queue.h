@@ -38,7 +38,7 @@ private:
 
     int decrement(int index, int dist)
     {
-        index - dist;
+        index -= dist;
         if (index < 0) {index = length;}
         return index;
     }
