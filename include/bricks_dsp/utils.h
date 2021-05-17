@@ -27,7 +27,7 @@ inline constexpr float note_to_control(int midi_note)
     return (midi_note - SHIFT_FACTOR) / SEMITONES_IN_RANGE;
 }
 
-/* Map a control input to a 0.1 per octave pitch control to a frequency in Hz */
+/* Map a control input to a frequency in Hz, assuming to a 0.1 per octave pitch control */
 inline float control_to_freq(float v)
 {
     constexpr float OSC_BASE_FREQ = 20.0f;
@@ -83,6 +83,12 @@ public:
         return values;
     };
 
+    void reset()
+    {
+        _lag = 0;
+        _step = 0;
+    }
+
     float step() {return _step;}
 
 private:
@@ -109,16 +115,22 @@ public:
         return values;
     };
 
+    void reset()
+    {
+        _lag = 0;
+        _target = 0;
+    }
+
 private:
 // TODO - Room for tweaking.
 static constexpr float TIMECONSTANTS_PER_BLOCK = 2.5;
-#ifdef LINUX
+#ifdef BRICKS_DSP_CONSTEXPR_MATH
 static constexpr float COEFF_A0 = std::exp(-1.0f * TIMECONSTANTS_PER_BLOCK / length);
 static constexpr float COEFF_B0 = 1 - COEFF_A0;
-#endif
-#ifdef WINDOWS
-static inline const float COEFF_A0 = std::exp(-1.0f * TIMECONSTANTS_PER_BLOCK / length);
-static inline const float COEFF_B0 = 1 - COEFF_A0;
+#else
+/* Close enough, for 16 samples the diff is ~1%, even less for larger block sizes */
+static constexpr float COEFF_A0 = 1.0f - TIMECONSTANTS_PER_BLOCK / length;
+static constexpr float COEFF_B0 = 1.0f - COEFF_A0;
 #endif
 
     float _target{0};
@@ -247,6 +259,95 @@ private:
     FloatType _reg{0};
     FloatType _coeff{0};
 };
+
+/* Simple up and downsampling functions, these dont do any filtering and are
+ * stateless, so don't need to be in a class */
+template<int from_size, int to_size>
+void skip_downsample(const AlignedArray<float, from_size>& audio_in,
+                     AlignedArray<float, to_size>& audio_out)
+{
+    static_assert(from_size % to_size == 0);
+    constexpr int factor = from_size / to_size;
+
+    for (int i = 0; i < audio_out.size(); ++i)
+    {
+        audio_out[i] = audio_in[i * factor];
+    }
+}
+
+template<int from_size, int to_size>
+void zero_stuff_upsample(const AlignedArray<float, from_size>& audio_in,
+                         AlignedArray<float, to_size>& audio_out)
+{
+    static_assert(to_size % from_size == 0);
+    constexpr int factor =  to_size / from_size;
+
+    for (int i = 0; i < audio_out.size(); i += factor)
+    {
+        audio_out[i] = audio_in[i / factor];
+        for (int j = 1; j < factor; ++j)
+        {
+            audio_out[i + j] = 0;
+        }
+    }
+}
+
+template<size_t ... Is>
+constexpr std::array<float, sizeof...(Is)> make_weight_array(std::index_sequence<Is...>)
+{
+    constexpr float scale = (1.0f / sizeof...(Is));
+    return std::array<float, sizeof...(Is)>{scale + scale * Is...};
+}
+
+/* This is maybe too clever for its own good as it generates the same assembly (gcc10 & clang10)
+ * as the less fancy-template version below, despite all the work trying to explicitly
+ * create a constexpr array of weights, the compiler figured it out on it own :) */
+template<int from_size, int to_size>
+void linear_upsample_clever(const AlignedArray<float, from_size>& audio_in,
+                            AlignedArray<float, to_size>& audio_out,
+                            float& prev_value)
+{
+    static_assert(to_size % from_size == 0);
+    constexpr int factor = to_size / from_size;
+    constexpr std::array<float, factor> WEIGHTS{make_weight_array(std::make_index_sequence<factor>{})};
+
+    float prev = prev_value;
+
+    for (int i = 0; i < from_size; ++i)
+    {
+        float value = audio_in[i];
+        for (int j = 0; j < factor; ++j)
+        {
+            float w = WEIGHTS[j];
+            audio_out[i * factor + j] = value * w + prev * (1.0f - w);
+        }
+        prev = value;
+    }
+    prev_value = prev;
+}
+
+template<int from_size, int to_size>
+void linear_upsample(const AlignedArray<float, from_size>& audio_in,
+                     AlignedArray<float, to_size>& audio_out,
+                     float& prev_value)
+{
+    static_assert(to_size % from_size == 0);
+    constexpr int factor = to_size / from_size;
+
+    float prev = prev_value;
+    for (int i = 0; i < audio_in.size(); ++i)
+    {
+        float value = audio_in[i];
+        float step = (value - prev) / static_cast<float>(factor);
+        for (int j = 0; j < factor; ++j)
+        {
+            audio_out[i * factor + j] = prev + (step * (j + 1.0f));
+        }
+        prev = value;
+    }
+    prev_value = prev;
+}
+
 
 } // namespace bricks
 

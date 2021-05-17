@@ -4,6 +4,7 @@
 #include "bricks_dsp/dsp_brick.h"
 #include "bricks_dsp/utils.h"
 #include "random_device.cpp"
+#include "test_utils.h"
 
 using namespace bricks;
 
@@ -197,4 +198,57 @@ TEST(RCHighPassTest, TestOperation)
 
     /* Give a reasonable margin of error */
     ASSERT_NEAR(0.2f, output[12], 0.05);
+}
+
+TEST(DownSamplerTest, TestSkipDownsampler)
+{
+    AudioBuffer buffer;
+    make_test_sq_wave(buffer);
+    AlignedArray<float, PROC_BLOCK_SIZE / 4> downsampled;
+    skip_downsample<32,8>(buffer, downsampled);
+
+    for (auto sample :  downsampled)
+    {
+        EXPECT_GT(std::abs(sample), 0);
+    }
+}
+
+TEST(UpSamplerTest, TestZeroStuffUpSampler)
+{
+    AlignedArray<float, PROC_BLOCK_SIZE / 4> buffer;
+    AudioBuffer upsampled;
+    buffer.fill(1);
+    zero_stuff_upsample<8, 32>(buffer, upsampled);
+
+    for (int i = 0; i < upsampled.size(); i += 4)
+    {
+        EXPECT_FLOAT_EQ(1, upsampled[i]);
+        EXPECT_FLOAT_EQ(0, upsampled[i + 1]);
+        EXPECT_FLOAT_EQ(0, upsampled[i + 2]);
+        EXPECT_FLOAT_EQ(0, upsampled[i + 3]);
+    }
+}
+
+TEST(UpSamplerTest, TestLinearUpSampler)
+{
+    AlignedArray<float, PROC_BLOCK_SIZE / 4> buffer;
+    AudioBuffer upsampled;
+    bool val = false;
+    float mem = 0;
+    /* prepare a square wave */
+    for (auto& i : buffer)
+    {
+        i = val = !val;
+    }
+    linear_upsample<8, 32>(buffer, upsampled, mem);
+
+    EXPECT_FLOAT_EQ(0.25, upsampled[0]);
+    EXPECT_FLOAT_EQ(0.50, upsampled[1]);
+    EXPECT_FLOAT_EQ(0.75, upsampled[2]);
+    EXPECT_FLOAT_EQ(1.0,  upsampled[3]);
+    EXPECT_FLOAT_EQ(0.75, upsampled[4]);
+    EXPECT_FLOAT_EQ(0.5,  upsampled[5]);
+    EXPECT_FLOAT_EQ(0.25, upsampled[6]);
+    EXPECT_FLOAT_EQ(0.0,  upsampled[7]);
+
 }

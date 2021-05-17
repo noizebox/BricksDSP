@@ -1,13 +1,11 @@
-#include "modulator_bricks.h"
 #include <algorithm>
 #include <cmath>
 
+#include "modulator_bricks.h"
 
 namespace bricks {
 
 constexpr float MAX_BIT_DEPTH = 24;
-constexpr float OSC_BASE_FREQ = 20.0f;
-
 
 /* Pade approximation of tanh, valid within [-3, 3] */
 inline float tanh_approx(const float& x)
@@ -254,8 +252,7 @@ void ModulatedDelayBrick::set_max_delay_time(float max_delay_seconds)
 
 void ModulatedDelayBrick::reset()
 {
-    _delay_time_lag.set(1.0f),
-    _delay_time_lag.get_all();
+    _delay_time_lag.reset();
     std::fill(_buffer, _buffer + _max_samples, 0.0f);
 }
 
@@ -301,6 +298,14 @@ void BitRateReducerBrick::render()
     {
         audio_out[i] = static_cast<float>(static_cast<int>(audio_in[i] * bit_gain)) * gain_red;
     }
+}
+
+void SampleRateReducerBrick::reset()
+{
+    _down_phase = 0;
+    _up_phase = 0;
+    _delay_buffer.fill(0);
+    _downsampled_buffer.fill(0);
 }
 
 void SampleRateReducerBrick::render()

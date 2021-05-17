@@ -46,7 +46,7 @@ public:
         return _data[i];
     }
 
-    int size() const {return length;}
+    constexpr int size() const {return length;}
     value_type* data() {return _data;}
     const value_type* data() const {return _data;}
 

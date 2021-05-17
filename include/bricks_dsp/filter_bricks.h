@@ -4,9 +4,61 @@
 #include "dsp_brick.h"
 namespace bricks {
 
-constexpr float DEFAULT_Q = 1 / 1.42f; //sqrtf(2.0f);
+#ifdef BRICKS_DSP_CONSTEXPR_MATH
+constexpr float DEFAULT_Q = 1 / sqrtf(2.0f);
+#else
+constexpr float DEFAULT_Q = 1 / 1.42f;
+#endif
 
-/* Standard Biquad */
+template<typename FloatType>
+struct BiquadCoefficients
+{
+    FloatType a1;
+    FloatType a2;
+    FloatType b0;
+    FloatType b1;
+    FloatType b2;
+};
+
+template<typename FloatType>
+struct BiquadRegisters
+{
+    FloatType z1;
+    FloatType z2;
+};
+
+/* Direct form 2 transposed biquad calculation */
+template <typename FloatType>
+inline float render_biquad_sample(float in,
+                                  const BiquadCoefficients<FloatType>& coeff,
+                                  BiquadRegisters<FloatType>& reg)
+{
+    FloatType out = in * coeff.b0 + reg.z1;
+    reg.z1 = in * coeff.b1 + reg.z2 - coeff.a1 * out;
+    reg.z2 = in * coeff.b2 - coeff.a2 * out;
+    return out;
+}
+
+template <typename FloatType, int BlockSize>
+void render_df2_biquad(const AlignedArray<float, BlockSize>& in,
+                       AlignedArray<float, BlockSize>& out,
+                       const BiquadCoefficients<FloatType>& coeff,
+                       BiquadRegisters<FloatType>& registers)
+{
+    auto reg = registers;
+    for (int i = 0; i < in.size(); ++i)
+    {
+        out[i] = render_biquad_sample(in[i], coeff, reg);
+    }
+    registers = reg;
+}
+
+using Coefficients = BiquadCoefficients<float>;
+using Registers = BiquadRegisters<float>;
+
+/* Standard Biquad with coefficent smoothing
+ * This one should be deprecated, biquads should only really be used for fixed filters
+ * as they generally don't take modulations well. */
 class BiquadFilterBrick : public DspBrickImpl<3, 0, 1, 1>
 {
 public:
@@ -49,15 +101,179 @@ public:
 
     void reset() override
     {
-        _reg.fill(0.0f);
+        _reg = {0, 0};
+        _coeff.fill(ControlSmootherLinear());
     }
 
 private:
     Mode                                 _mode{Mode::LOWPASS};
-    float                                _samplerate{DEFAULT_SAMPLERATE};
     std::array<ControlSmootherLinear, 5> _coeff;
-    std::array<float ,2>                 _reg{0,0};
+    Registers                            _reg{0,0};
 };
+
+/* Standard Biquad with non-modulated filter parameters */
+class FixedFilterBrick : public DspBrickImpl<0, 0, 1, 1>
+{
+public:
+    enum AudioOutput
+    {
+        FILTER_OUT = 0
+    };
+
+    FixedFilterBrick(const AudioBuffer* audio_in)
+    {
+        set_audio_input(0, audio_in);
+    }
+
+    void render() override;
+
+    void set_lowpass(float freq, float q = DEFAULT_Q, bool clear = true);
+    void set_highpass(float freq, float q = DEFAULT_Q, bool clear = true);
+    void set_bandpass(float freq, float q = DEFAULT_Q, bool clear = true);
+    void set_peaking(float freq, float gain, float q = DEFAULT_Q, bool clear = true);
+    void set_allpass(float freq, float q = DEFAULT_Q, bool clear = true);
+    void set_lowshelf(float freq, float gain, float slope = DEFAULT_Q, bool clear = true);
+    void set_highshelf(float freq, float gain, float slope = DEFAULT_Q, bool clear = true);
+
+    void reset() override
+    {
+        _reg = {0, 0};
+    }
+
+private:
+    Coefficients    _coeff{0,0,0,0,0};
+    Registers       _reg{0,0};
+};
+
+/* Fixed Biquad with non-modulated filter parameters and templated number of stages */
+template<int stages, typename FloatType = float>
+class MultiStageFilterBrick : public DspBrickImpl<0, 0, 1, 1>
+{
+public:
+    enum AudioOutput
+    {
+        FILTER_OUT = 0
+    };
+
+    MultiStageFilterBrick() = default;
+
+    MultiStageFilterBrick(const AudioBuffer* audio_in)
+    {
+        set_audio_input(0, audio_in);
+    }
+
+    void set_coeffs(const std::array<BiquadCoefficients<FloatType>, stages>& coeffs)
+    {
+        _coeff = coeffs;
+    }
+
+    void render() override
+    {
+        const AudioBuffer& audio_in = _input_buffer(0);
+        AudioBuffer& audio_out = _output_buffer(AudioOutput::FILTER_OUT);
+        auto regs = _reg;
+        /* Can't partially specialise a member function, this is a workaround */
+        if constexpr (stages % 2 == 0)
+        {
+            /* With an even number of stages, first render to the buffer, then ping pong
+             * between audio_out and buffer to avoid an extra copy in the end */
+            AudioBuffer buffer;
+            render_df2_biquad<FloatType, PROC_BLOCK_SIZE>(audio_in, buffer, _coeff[0], regs[0]);
+            for (int i = 1; i < stages; ++i)
+            {
+                const AudioBuffer& in = i % 2 ? buffer : audio_out;
+                AudioBuffer& out = i % 2 ? audio_out : buffer;
+                render_df2_biquad<FloatType, PROC_BLOCK_SIZE>(in, out, _coeff[i], regs[i]);
+            }
+        }
+        else
+        {
+            /* With an odd number of stages, first render to audio_out, then ping-pong
+             * between buffer and audio out */
+            AudioBuffer buffer;
+            render_df2_biquad<FloatType, PROC_BLOCK_SIZE>(audio_in, audio_out, _coeff[0], regs[0]);
+            for (int i = 1; i < stages; ++i)
+            {
+                const AudioBuffer& in = i % 2 ? audio_out: buffer;
+                AudioBuffer& out = i % 2 ? buffer : audio_out;
+                render_df2_biquad<FloatType, PROC_BLOCK_SIZE>(in, out, _coeff[i], regs[i]);
+            }
+        }
+        _reg = regs;
+    }
+
+    void reset() override
+    {
+        _reg.fill({0, 0});
+    }
+
+private:
+    std::array<BiquadCoefficients<FloatType>, stages>   _coeff;
+    std::array<BiquadRegisters<FloatType>, stages>      _reg;
+};
+
+/* Fixed filter with non-modulated filter parameters and stages calculated
+ * in parallel, adds 1 sample delay per stage but allows for much more
+ * cpu-efficient processing */
+template<int stages, typename FloatType = float>
+class PipelinedFilterBrick : public DspBrickImpl<0, 0, 1, 1>
+{
+public:
+    enum AudioOutput
+    {
+        FILTER_OUT = 0
+    };
+
+    PipelinedFilterBrick() = default;
+
+    PipelinedFilterBrick(const AudioBuffer* audio_in)
+    {
+        set_audio_input(0, audio_in);
+    }
+
+    void set_coeffs(const std::array<BiquadCoefficients<FloatType>, stages>& coeffs)
+    {
+        _coeff = coeffs;
+    }
+
+    void render() override
+    {
+        const AudioBuffer& audio_in = _input_buffer(0);
+        AudioBuffer& audio_out = _output_buffer(AudioOutput::FILTER_OUT);
+        auto pipeline = _pipeline;
+        auto regs = _reg;
+
+        for (int i = 0; i < PROC_BLOCK_SIZE; ++i)
+        {
+            pipeline[0] = audio_in[i];
+            for (int s = 0; s < stages; ++s)
+            {
+                pipeline[s] = render_biquad_sample<FloatType>(pipeline[s], _coeff[s], regs[s]);
+            }
+            audio_out[i] = pipeline[stages - 1];
+            // advance buffer 1 sample
+            for (int s = stages - 1; s > 0 ; --s)
+            {
+                pipeline[s] = pipeline[s - 1];
+            }
+        }
+        _pipeline = pipeline;
+        _reg = regs;
+    }
+
+    void reset() override
+    {
+        _reg.fill({0, 0});
+        _pipeline.fill(0);
+    }
+
+private:
+    static_assert(stages >= 2, "Needs at least 2 stages to be useful");
+    std::array<BiquadCoefficients<FloatType>, stages>   _coeff;
+    std::array<BiquadRegisters<FloatType>, stages>      _reg;
+    std::array<FloatType, stages>                       _pipeline;
+};
+
 
 /* State variable filter with multiple outs from Andrew Simper, Cytomic,
  * adapted from https://cytomic.com/files/dsp/SvfLinearTrapOptimised2.pdf */
@@ -84,52 +300,17 @@ public:
         set_audio_input(0, audio_in);
     }
 
-    void reset()
+    void reset() override
     {
-        // TODO - reset() on control smoothers.
-        _reg.fill(0);
-    }
-
-    void render() override;
-
-private:
-    std::array<float ,2> _reg{0,0};
-    ControlSmootherLinear _g_lag;
-};
-
-
-/* Standard Biquad with non-modulated filter parameters */
-class FixedFilterBrick : public DspBrickImpl<0, 0, 1, 1>
-{
-public:
-    enum AudioOutput
-    {
-        FILTER_OUT = 0
-    };
-
-    FixedFilterBrick(const AudioBuffer* audio_in)
-    {
-        set_audio_input(0, audio_in);
-    }
-
-    void render() override;
-
-    void set_lowpass(float freq, float q = DEFAULT_Q, bool clear = true);
-    void set_highpass(float freq, float q = DEFAULT_Q, bool clear = true);
-    void set_bandpass(float freq, float q = DEFAULT_Q, bool clear = true);
-    void set_peaking(float freq, float gain, float q = DEFAULT_Q, bool clear = true);
-    void set_allpass(float freq, float q = DEFAULT_Q, bool clear = true);
-    void set_lowshelf(float freq, float gain, float slope = DEFAULT_Q, bool clear = true);
-    void set_highshelf(float freq, float gain, float slope = DEFAULT_Q, bool clear = true);
-
-    void reset()
-    {
+        _g_lag.reset();
         _reg = {0, 0};
     }
 
+    void render() override;
+
 private:
-    std::array<float, 5> _coeff{0,0,0,0,0};
-    std::array<float, 2> _reg{0,0};
+    std::array<float, 2>  _reg{0,0};
+    ControlSmootherLinear _g_lag;
 };
 
 /* Topology-preserving (zero delay) ladder with non-linearities
@@ -158,9 +339,9 @@ class MystransLadderFilter : public DspBrickImpl<2, 0, 1, 1>
 
     void render() override;
 
-    void reset()
+    void reset() override
     {
-        // TODO - reset() on control smoothers.
+        _freq_lag.reset();
         _states.fill(0);
     }
 

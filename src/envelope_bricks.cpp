@@ -1,6 +1,7 @@
 #include <cmath>
 
 #include "envelope_bricks.h"
+
 namespace bricks {
 
 constexpr float SHORTEST_ENVELOPE_TIME = 1.0e-5f;

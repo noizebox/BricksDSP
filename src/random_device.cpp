@@ -4,7 +4,7 @@ namespace bricks {
 
 constexpr uint32_t INITIAL_SEED = 12345;
 
-uint32_t RandomDevice::_seed;
+uint32_t RandomDevice::_seed = INITIAL_SEED;
 
 RandomDevice::RandomDevice()
 {
