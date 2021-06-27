@@ -82,12 +82,16 @@ private:
 };
 
 /* Clone of Soft Distortion Sustainer circuit from Roland AG5 pedal */
-class SustainerBrick : public DspBrickImpl<1, 0, 1, 1>
+class SustainerBrick : public DspBrickImpl<5, 0, 1, 1>
 {
 public:
     enum ControlInput
     {
-        GAIN = 0
+        GAIN = 0,
+        ASYMMETRY,
+        THIRD,
+        FOURTH,
+        FIFTH
     };
 
     enum AudioOutput
@@ -115,6 +119,7 @@ private:
     bool            _plot;
 
     RCStage<double>  _op_hp;
+    RCStage<double>  _op_lp;
     RCStage<double>  _env_hp;
     RCStage<double>  _env_lp;
 };

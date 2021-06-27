@@ -253,6 +253,11 @@ public:
         return input - _reg;
     }
 
+    FloatType state() const
+    {
+        return _reg;
+    }
+
     void reset() {_reg = 0;}
 
 private:

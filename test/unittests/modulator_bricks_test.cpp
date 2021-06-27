@@ -74,6 +74,44 @@ TEST_F(AASaturationBrickTest, OperationTest)
     }
 }
 
+class SustainerBrickTest : public ::testing::Test
+{
+protected:
+    SustainerBrickTest() {}
+
+    void SetUp()
+    {
+        make_test_sq_wave(_buffer);
+    }
+
+    AudioBuffer          _buffer;
+    float                _gain;
+    SustainerBrick       _test_module{&_gain, &_buffer};
+    const AudioBuffer&   _out_buffer{*_test_module.audio_output(SustainerBrick::AudioOutput::SUSTAIN_OUT)};
+};
+
+TEST_F(SustainerBrickTest, OperationTest)
+{
+    _gain = 0.2;
+    _test_module.render();
+    float rms = 0;
+    for (auto sample : _out_buffer)
+    {
+        rms += sample * sample;
+    }
+    EXPECT_GT(0, rms);
+
+    rms = 0;
+    _gain = 1;
+    _test_module.render();
+    for (auto sample : _out_buffer)
+    {
+        rms += sample * sample;
+    }
+    EXPECT_GT(3, rms);
+}
+
+
 class FixedDelayBrickTest : public ::testing::Test
 {
 protected:

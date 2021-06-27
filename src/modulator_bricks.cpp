@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <cmath>
+#include <iostream>
 
 #include "modulator_bricks.h"
 
@@ -23,6 +24,15 @@ inline double tanh_antiderivative(const double& x)
 inline float sigm(const float& x)
 {
     return x / std::sqrt(1 + x * x);
+}
+
+/* A harder clipped version of the above */
+inline float sigm_hard(float x)
+{
+    constexpr float HARDNESS = 1.0;
+
+    float x_t = x + HARDNESS * x * x * x;
+    return x_t / std::sqrt(1 + x_t * x_t);
 }
 
 /* Integral of the above sigmoid clipping function */
@@ -144,6 +154,7 @@ void SustainerBrick::set_samplerate(float samplerate)
     DspBrickImpl::set_samplerate(samplerate);
     /* Values directly from the schematic */
     _op_hp.set(470.0 * 0.001, samplerate, true);
+    _op_lp.set(33 * 0.000000250, samplerate, true);
     _env_hp.set((22.2 + 2.2) * 0.00068, samplerate, true);
     _env_lp.set(470.0 * 0.00022, samplerate, true);
 }
@@ -151,6 +162,7 @@ void SustainerBrick::set_samplerate(float samplerate)
 void SustainerBrick::reset()
 {
     _op_hp.reset();
+    _op_lp.reset();
     _env_hp.reset();
     _env_lp.reset();
 }
@@ -159,18 +171,29 @@ constexpr float DIODE_THRESHOLD = 0.5;
 constexpr float OP_FB_RES = 470;
 constexpr float JFET_OPEN_RES = 47000;
 constexpr float JFET_V_CUTOFF = 5;
+constexpr float CLIP_ASYMMETRY = 0.3;
 
-constexpr float ENV_OPEN_RC = 2.2 * 0.00022;
+constexpr float OPEN_LOOP_OP_GAIN = 400;
+
+constexpr float ENV_OPEN_RC = 2.2 * (0.00022 + 0.00068);
 constexpr float ENV_CLOSED_RC = 470 * 0.00022;
+
+constexpr float OP_INTERNAL_LOWPASS = 33 * 0.000000250;
 
 void SustainerBrick::render()
 {
     float gain = 20 * to_db_approx(_ctrl_value(ControlInput::GAIN));
+    float asymmetry = _ctrl_value(ControlInput::ASYMMETRY);
+    float third_param = _ctrl_value(ControlInput::THIRD);
+    float fourth_param = _ctrl_value(ControlInput::FOURTH);
+    float time_param = _ctrl_value(ControlInput::FIFTH) + 0.05f;
+
     const AudioBuffer& audio_in = _input_buffer(DEFAULT_INPUT);
     AudioBuffer& audio_out = _output_buffer(AudioOutput::SUSTAIN_OUT);
     float op_gain = _op_gain;
     float fet_gain = _fet_gain;
     bool plot = true;
+
 
     for (int i = 0; i < PROC_BLOCK_SIZE; ++i)
     {
@@ -179,42 +202,84 @@ void SustainerBrick::render()
 
         // non-inv amp with soft clip
         float op_out = _op_hp.render_hp(x) * op_gain;
+
+        float audio_out_sample = sigm_hard(bricks::clamp(op_out * 0.5f + asymmetry, -3.0, 3.0f));
+        float op_clip = audio_out_sample * 5.0f * third_param;
+        //float op_clip = 1.0f * bricks::clamp(op_out + asymmetry, -3.0, 3.0f)- asymmetry;
+        //float op_clip = JFET_V_CUTOFF * (sigm(op_out * (1.0f/JFET_V_CUTOFF) + asymmetry) - asymmetry);
+
+        //op_clip = _op_lp.render_lp(op_clip);
+
+        audio_out[i] = audio_out_sample;
+
+        // calc feedback env follower,
+        float env_in = _env_hp.render_hp(op_clip);
+
+        // Simplest diode model (hard knee)
+        // If diode is conducting, R5 and C3 forms a lp filter
+        // If diode it not conducting, C3 is discharged through R3
+        // In schematic only the negative side is considered (half wave rectified)
+        float rect;
+        float cur_env = _env_lp.state();
+
+        if (env_in < -1.0f * (cur_env + DIODE_THRESHOLD))
+        {
+            rect = - (env_in + DIODE_THRESHOLD);
+            _env_lp.set_approx(ENV_OPEN_RC * time_param * 40.0f, samplerate(), false);
+        }
+        else
+        {
+            rect = 0.0f;
+            _env_lp.set_approx(ENV_CLOSED_RC * time_param * 30.0f, samplerate(), false);
+        }
+
+        fet_gain = _env_lp.render_lp(rect);
+        float gain_ctrl = bricks::clamp(fet_gain * 15.0f * fourth_param, 0, JFET_V_CUTOFF);
+
+        // calc new op-gain
+        //op_gain = 1 + ((JFET_V_CUTOFF - gain_ctrl) * 4 * fourth_param * JFET_OPEN_RES / (OP_FB_RES * JFET_V_CUTOFF));
+        op_gain = 1.0f + (JFET_V_CUTOFF - gain_ctrl) / JFET_V_CUTOFF * OPEN_LOOP_OP_GAIN;
+
+        //op_gain = 50;
+
+
+        if (plot)
+        {
+            std::cout << "SDD: gain: "<< gain << ", op_gain: " << op_gain << ", gain_ctrl: " << gain_ctrl << std::endl;
+            plot = false;
+        }
+    }
+    _op_gain = op_gain;
+    _fet_gain = fet_gain;
+
+/*
+    // Old version
+    for (int i = 0; i < PROC_BLOCK_SIZE; ++i)
+    {
+        // gain control
+        float x = audio_in[i] * gain;
+
+        // non-inv amp with soft clip
+        float op_out = _op_hp.render_hp(x) * op_gain;
         //float op_clip = 5.0f * tanh_approx(bricks::clamp(op_out * 0.5f, -3.0, 3.0f));
-        float op_clip = JFET_V_CUTOFF * sigm(op_out * (1.0f/JFET_V_CUTOFF));
+        float op_clip = JFET_V_CUTOFF * sigm(op_out * (1.0f/JFET_V_CUTOFF) + asymmetry);
         audio_out[i] = op_clip;
 
         // calc feedback env follower,
         float env = _env_hp.render_hp(op_clip);
 
         // Simplest diode model (hard knee)
-        // If diode is conducting, R5 and C3 forms a lp filter
-        // If diode it not conducting, C3 is discharged through R3
-        float rect;
-        if ((env ) > DIODE_THRESHOLD)
-        {
-            rect = env - DIODE_THRESHOLD;
-            _env_lp.set_approx(ENV_OPEN_RC, samplerate(), false);
-        }
-        else
-        {
-            rect = 0.0f;
-            _env_lp.set_approx(ENV_CLOSED_RC, samplerate(), false);
-        }
+        float rect = env > DIODE_THRESHOLD? env - DIODE_THRESHOLD : 0.0f;
 
-        fet_gain = _env_lp.render_lp(rect);
-        float gain_ctrl = bricks::clamp(fet_gain * 10.0f, 0, JFET_V_CUTOFF);
+        float gain_ctrl = bricks::clamp(_env_lp.render_lp(rect) * 10.0f, 0, JFET_V_CUTOFF);
 
         // calc new op-gain
         op_gain = 1 + ((JFET_V_CUTOFF - gain_ctrl) * JFET_OPEN_RES / (OP_FB_RES * JFET_V_CUTOFF));
+        //std::cout << "op_clip: " << op_clip << ", op_gain: "<< op_gain << ", op_out: "<< op_out << std::endl;
 
-        if (plot)
-        {
-            //std::cout << "SDD: gain: "<< gain << ", op_gain: " << op_gain << ", gain_ctrl: " << gain_ctrl << std::endl;
-            plot = false;
-        }
     }
     _op_gain = op_gain;
-    _fet_gain = fet_gain;
+*/
 }
 
 
