@@ -120,6 +120,7 @@ public:
         FILTER_OUT = 0
     };
 
+    FixedFilterBrick() = default;
     FixedFilterBrick(const AudioBuffer* audio_in)
     {
         set_audio_input(0, audio_in);
@@ -292,6 +293,8 @@ public:
         BANDPASS,
         HIGHPASS
     };
+
+    SVFFilterBrick() = default;
 
     SVFFilterBrick(const float* cutoff, const float* resonance, const AudioBuffer* audio_in)
     {
