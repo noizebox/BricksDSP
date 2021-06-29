@@ -167,13 +167,15 @@ void SustainerBrick::reset()
     _env_lp.reset();
 }
 
-constexpr float DIODE_THRESHOLD = 0.5;
+constexpr float DIODE_THRESHOLD = 0.66;
 constexpr float OP_FB_RES = 470;
 constexpr float JFET_OPEN_RES = 47000;
 constexpr float JFET_V_CUTOFF = 5;
 constexpr float CLIP_ASYMMETRY = 0.3;
+constexpr float SLEWRATE = 0.18;
 
-constexpr float OPEN_LOOP_OP_GAIN = 400;
+constexpr float OPEN_LOOP_OP_GAIN = 300;
+constexpr float OUTPUT_GAIN = 4;
 
 constexpr float ENV_OPEN_RC = 2.2 * (0.00022 + 0.00068);
 constexpr float ENV_CLOSED_RC = 470 * 0.00022;
@@ -182,18 +184,27 @@ constexpr float OP_INTERNAL_LOWPASS = 33 * 0.000000250;
 
 void SustainerBrick::render()
 {
-    float gain = 20 * to_db_approx(_ctrl_value(ControlInput::GAIN));
-    float asymmetry = _ctrl_value(ControlInput::ASYMMETRY);
-    float third_param = _ctrl_value(ControlInput::THIRD);
-    float fourth_param = _ctrl_value(ControlInput::FOURTH);
-    float time_param = _ctrl_value(ControlInput::FIFTH) + 0.05f;
+    float gain = 10 * to_db_approx(_ctrl_value(ControlInput::GAIN));
+    float asymmetry = CLIP_ASYMMETRY;
+    float compression_param = _ctrl_value(ControlInput::COMPRESSION);
+    float time_param = _ctrl_value(ControlInput::TIME) + 0.02f;
+    time_param *= time_param;
+
+    float slewrate = _ctrl_value(ControlInput::SIXTH) < 0.5? SLEWRATE : 100.0f;
+
+    //float lp_cutoff = _ctrl_value(ControlInput::FOURTH);
+    //_op_lp.set_approx(33 * 0.0000030 *(1 + 4.0f *lp_cutoff) , samplerate(), false);
 
     const AudioBuffer& audio_in = _input_buffer(DEFAULT_INPUT);
     AudioBuffer& audio_out = _output_buffer(AudioOutput::SUSTAIN_OUT);
     float op_gain = _op_gain;
     float fet_gain = _fet_gain;
+    float prev_audio_out = _prev_op_out;
+    float lag_hist = _lag_hist;
     bool plot = true;
 
+    // scale down the gain with less compression for better controls
+    gain *= (1.0f - 0.6 * compression_param);
 
     for (int i = 0; i < PROC_BLOCK_SIZE; ++i)
     {
@@ -202,15 +213,20 @@ void SustainerBrick::render()
 
         // non-inv amp with soft clip
         float op_out = _op_hp.render_hp(x) * op_gain;
+        float audio_out_sample = sigm_hard(op_out * 0.5f + asymmetry) - asymmetry;
 
-        float audio_out_sample = sigm_hard(bricks::clamp(op_out * 0.5f + asymmetry, -3.0, 3.0f));
-        float op_clip = audio_out_sample * 5.0f * third_param;
-        //float op_clip = 1.0f * bricks::clamp(op_out + asymmetry, -3.0, 3.0f)- asymmetry;
-        //float op_clip = JFET_V_CUTOFF * (sigm(op_out * (1.0f/JFET_V_CUTOFF) + asymmetry) - asymmetry);
+        // Slew rate method 2, filter sample by diff of prev sample, actually gives a decent lp
+        float diff = std::abs(audio_out_sample - prev_audio_out) - slewrate;
+        float slew_diff = std::clamp(diff * 8, 0.0f, 0.90f);
+        audio_out_sample = audio_out_sample * (1.0f - slew_diff) + prev_audio_out * slew_diff;
+        prev_audio_out = audio_out_sample;
 
-        //op_clip = _op_lp.render_lp(op_clip);
+        //audio_out_sample = _op_lp.render_lp(audio_out_sample);
 
-        audio_out[i] = audio_out_sample;
+        float op_clip = audio_out_sample * JFET_V_CUTOFF * compression_param;
+
+
+        audio_out[i] = audio_out_sample * OUTPUT_GAIN;
 
         // calc feedback env follower,
         float env_in = _env_hp.render_hp(op_clip);
@@ -225,61 +241,31 @@ void SustainerBrick::render()
         if (env_in < -1.0f * (cur_env + DIODE_THRESHOLD))
         {
             rect = - (env_in + DIODE_THRESHOLD);
-            _env_lp.set_approx(ENV_OPEN_RC * time_param * 40.0f, samplerate(), false);
+            _env_lp.set_approx(ENV_OPEN_RC * time_param * 90.0f, samplerate(), false);
         }
         else
         {
             rect = 0.0f;
-            _env_lp.set_approx(ENV_CLOSED_RC * time_param * 30.0f, samplerate(), false);
+            _env_lp.set_approx(ENV_CLOSED_RC * time_param * 90.0f, samplerate(), false);
         }
 
-        fet_gain = _env_lp.render_lp(rect);
-        float gain_ctrl = bricks::clamp(fet_gain * 15.0f * fourth_param, 0, JFET_V_CUTOFF);
+        fet_gain = _env_lp.render_lp(std::min(rect, JFET_V_CUTOFF + 1));
+        float gain_ctrl = bricks::clamp(fet_gain * 2.5f, 0, JFET_V_CUTOFF);
 
         // calc new op-gain
-        //op_gain = 1 + ((JFET_V_CUTOFF - gain_ctrl) * 4 * fourth_param * JFET_OPEN_RES / (OP_FB_RES * JFET_V_CUTOFF));
-        op_gain = 1.0f + (JFET_V_CUTOFF - gain_ctrl) / JFET_V_CUTOFF * OPEN_LOOP_OP_GAIN;
-
-        //op_gain = 50;
-
+        op_gain = 1.0f + 0.9f * (JFET_V_CUTOFF - gain_ctrl) / JFET_V_CUTOFF * OPEN_LOOP_OP_GAIN;
 
         if (plot)
         {
-            std::cout << "SDD: gain: "<< gain << ", op_gain: " << op_gain << ", gain_ctrl: " << gain_ctrl << std::endl;
+            //std::cout << "SDD: gain: "<< gain << ", op_gain: " << op_gain << ", gain_ctrl: " << gain_ctrl << ", rect: " << rect << std::endl;
             plot = false;
         }
     }
     _op_gain = op_gain;
     _fet_gain = fet_gain;
+    _prev_op_out = prev_audio_out;
+    _lag_hist = lag_hist;
 
-/*
-    // Old version
-    for (int i = 0; i < PROC_BLOCK_SIZE; ++i)
-    {
-        // gain control
-        float x = audio_in[i] * gain;
-
-        // non-inv amp with soft clip
-        float op_out = _op_hp.render_hp(x) * op_gain;
-        //float op_clip = 5.0f * tanh_approx(bricks::clamp(op_out * 0.5f, -3.0, 3.0f));
-        float op_clip = JFET_V_CUTOFF * sigm(op_out * (1.0f/JFET_V_CUTOFF) + asymmetry);
-        audio_out[i] = op_clip;
-
-        // calc feedback env follower,
-        float env = _env_hp.render_hp(op_clip);
-
-        // Simplest diode model (hard knee)
-        float rect = env > DIODE_THRESHOLD? env - DIODE_THRESHOLD : 0.0f;
-
-        float gain_ctrl = bricks::clamp(_env_lp.render_lp(rect) * 10.0f, 0, JFET_V_CUTOFF);
-
-        // calc new op-gain
-        op_gain = 1 + ((JFET_V_CUTOFF - gain_ctrl) * JFET_OPEN_RES / (OP_FB_RES * JFET_V_CUTOFF));
-        //std::cout << "op_clip: " << op_clip << ", op_gain: "<< op_gain << ", op_out: "<< op_out << std::endl;
-
-    }
-    _op_gain = op_gain;
-*/
 }
 
 
