@@ -187,7 +187,7 @@ void SustainerBrick::render()
     float gain = 10 * to_db_approx(_ctrl_value(ControlInput::GAIN));
     float asymmetry = CLIP_ASYMMETRY;
     float compression_param = _ctrl_value(ControlInput::COMPRESSION);
-    float time_param = _ctrl_value(ControlInput::TIME) + 0.02f;
+    float time_param = 1.0f - _ctrl_value(ControlInput::TIME) + 0.02f;
     time_param *= time_param;
 
     float slewrate = _ctrl_value(ControlInput::SIXTH) < 0.5? SLEWRATE : 100.0f;
