@@ -2,6 +2,7 @@
 #define BRICKS_DSP_BRICKS_H
 
 #include "dsp_brick.h"
+#include "analyzer_bricks.h"
 #include "envelope_bricks.h"
 #include "filter_bricks.h"
 #include "modulator_bricks.h"

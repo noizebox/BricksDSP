@@ -88,6 +88,13 @@ BENCHMARK_TEMPLATE(BrickBM, bricks::FmOscillatorBrick, 1, 1, AudioType::NOISE);
 BENCHMARK_TEMPLATE(BrickBM, bricks::WtOscillatorBrick, 1, 0, AudioType::NOISE);
 BENCHMARK_TEMPLATE(BrickBM, bricks::NoiseGeneratorBrick, 0, 0, AudioType::NOISE);
 
+/* Analysis bricks */
+BENCHMARK_TEMPLATE(BrickBM, bricks::MeterBrick<1>, 0, 1, AudioType::NOISE);
+BENCHMARK_TEMPLATE(BrickBM, bricks::MeterBrick<1>, 0, 1, AudioType::SINE);
+BENCHMARK_TEMPLATE(BrickBM, bricks::MeterBrick<1>, 0, 1, AudioType::SILENCE);
+BENCHMARK_TEMPLATE(BrickBM, bricks::MeterBrick<2>, 0, 1, AudioType::NOISE);
+BENCHMARK_TEMPLATE(BrickBM, bricks::MeterBrick<4>, 0, 1, AudioType::NOISE);
+
 /* Utility bricks */
 BENCHMARK_TEMPLATE(BrickBM, bricks::VcaBrick<Response::LINEAR>, 1, 1, AudioType::NOISE);
 BENCHMARK_TEMPLATE(BrickBM, bricks::VcaBrick<Response::LOG>, 1, 1, AudioType::NOISE);

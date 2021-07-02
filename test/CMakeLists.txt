@@ -3,6 +3,7 @@ enable_testing()
 
 # Test sources
 SET(TEST_SOURCES  unittests/test_utils.cpp
+                  unittests/analyzer_bricks_test.cpp
                   unittests/utility_bricks_test.cpp
                   unittests/utilities_test.cpp
                   unittests/envelope_bricks_test.cpp
