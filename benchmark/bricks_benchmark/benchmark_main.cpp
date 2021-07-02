@@ -64,9 +64,9 @@ BENCHMARK_TEMPLATE(BrickBM, bricks::AASaturationBrick<ClipType::SOFT>, 1, 1, Aud
 BENCHMARK_TEMPLATE(BrickBM, bricks::AASaturationBrick<ClipType::SOFT>, 1, 1, AudioType::SINE);
 BENCHMARK_TEMPLATE(BrickBM, bricks::AASaturationBrick<ClipType::SOFT>, 1, 1, AudioType::NOISE);
 
-BENCHMARK_TEMPLATE(BrickBM, bricks::SustainerBrick, 1, 1, AudioType::NOISE);
-BENCHMARK_TEMPLATE(BrickBM, bricks::SustainerBrick, 1, 1, AudioType::SINE);
-BENCHMARK_TEMPLATE(BrickBM, bricks::SustainerBrick, 1, 1, AudioType::SILENCE);
+BENCHMARK_TEMPLATE(BrickBM, bricks::SustainerBrick, 4, 2, AudioType::NOISE);
+BENCHMARK_TEMPLATE(BrickBM, bricks::SustainerBrick, 4, 2, AudioType::SINE);
+BENCHMARK_TEMPLATE(BrickBM, bricks::SustainerBrick, 4, 2, AudioType::SILENCE);
 
 BENCHMARK_TEMPLATE(BrickBM, bricks::FixedDelayBrick<InterpolationType::NONE>, 0, 1, AudioType::NOISE);
 BENCHMARK_TEMPLATE(BrickBM, bricks::FixedDelayBrick<InterpolationType::LIN>, 0, 1, AudioType::NOISE);
