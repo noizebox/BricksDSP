@@ -90,7 +90,7 @@ public:
         GAIN = 0,
         ASYMMETRY,
         COMPRESSION,
-        FOURTH,
+        STEREO_MODE,
         TIME,
         SIXTH
     };

@@ -190,10 +190,7 @@ void SustainerBrick::render()
     float time_param = 1.0f - _ctrl_value(ControlInput::TIME) + 0.02f;
     time_param *= time_param;
 
-    float slewrate = _ctrl_value(ControlInput::SIXTH) < 0.5? SLEWRATE : 100.0f;
-
-    //float lp_cutoff = _ctrl_value(ControlInput::FOURTH);
-    //_op_lp.set_approx(33 * 0.0000030 *(1 + 4.0f *lp_cutoff) , samplerate(), false);
+    //float slewrate = 100;
 
     const AudioBuffer& audio_in = _input_buffer(DEFAULT_INPUT);
     AudioBuffer& audio_out = _output_buffer(AudioOutput::SUSTAIN_OUT);
@@ -204,7 +201,7 @@ void SustainerBrick::render()
     bool plot = true;
 
     // scale down the gain with less compression for better controls
-    gain *= (1.0f - 0.6 * compression_param);
+    gain *= (1.0f - 0.6f * (1.0f - compression_param));
 
     for (int i = 0; i < PROC_BLOCK_SIZE; ++i)
     {
@@ -216,10 +213,10 @@ void SustainerBrick::render()
         float audio_out_sample = sigm_hard(op_out * 0.5f + asymmetry) - asymmetry;
 
         // Slew rate method 2, filter sample by diff of prev sample, actually gives a decent lp
-        float diff = std::abs(audio_out_sample - prev_audio_out) - slewrate;
+        /*float diff = std::abs(audio_out_sample - prev_audio_out) - slewrate;
         float slew_diff = std::clamp(diff * 8, 0.0f, 0.90f);
         audio_out_sample = audio_out_sample * (1.0f - slew_diff) + prev_audio_out * slew_diff;
-        prev_audio_out = audio_out_sample;
+        prev_audio_out = audio_out_sample;*/
 
         //audio_out_sample = _op_lp.render_lp(audio_out_sample);
 

@@ -76,7 +76,6 @@ public:
                 if (!triggered)
                 {
                     _block_index = 0; // restart block
-                    //std::cout << "Triggered "<< sample << ", " << prev << ", " << trig_level << std::endl;
                     triggered = true;
                 }
             }
@@ -86,7 +85,6 @@ public:
                 _block[_block_index++] = sample;
                 if (_block_index >= _block.size())
                 {
-                    // std::cout << "pushing block\n";
                     _rt_data->push(_block);
                     _block_index = 0;
                     triggered = false;
@@ -155,14 +153,14 @@ public:
         }
         float rms = std::sqrt((skip / static_cast<float>(PROC_BLOCK_SIZE)) * sq_sum);
         _rms_smoother.set(from_db_approx(rms));
-        _peak_smoother.set(std::max(max, -min));
+        _peak_smoother.set(from_db_approx(std::max(max, -min)));
         _set_ctrl_value(ControlOutput::RMS, _rms_smoother.get());
         _set_ctrl_value(ControlOutput::PEAK, _peak_smoother.get());
     }
 
 private:
-    ControlSmootherLag _rms_smoother;
-    ControlSmootherLag _peak_smoother;
+    OnePoleLag<PROC_BLOCK_SIZE / 4>  _rms_smoother;
+    OnePoleLag<PROC_BLOCK_SIZE / 4>  _peak_smoother;
 };
 
 }// namespace bricks
