@@ -190,7 +190,7 @@ constexpr float ENV_CLOSED_RC = 470 * 0.00022;
 
 constexpr float OP_INTERNAL_LOWPASS = 33 * 0.000000250;
 
-constexpr float STEREO_MIX_FACTOR = 0.6;
+constexpr float STEREO_MIX_FACTOR = 0.8;
 
 /* Simulate component variation by having slightly different values on left and right channels */
 constexpr float COMPONENT_VARIATION = 0.03;
