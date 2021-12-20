@@ -56,61 +56,6 @@ void render_df2_biquad(const AlignedArray<float, BlockSize>& in,
 using Coefficients = BiquadCoefficients<float>;
 using Registers = BiquadRegisters<float>;
 
-/* Standard Biquad with coefficent smoothing
- * This one should be deprecated, biquads should only really be used for fixed filters
- * as they generally don't take modulations well. */
-class BiquadFilterBrick : public DspBrickImpl<3, 0, 1, 1>
-{
-public:
-    enum class Mode
-    {
-        LOWPASS,
-        BANDPASS,
-        HIGHPASS,
-        ALLPASS,
-        PEAKING,
-        LOW_SHELF,
-        HIGH_SHELF
-    };
-    enum ControlInput
-    {
-        CUTOFF = 0,
-        RESONANCE,
-        GAIN
-    };
-
-    enum AudioOutput
-    {
-        FILTER_OUT = 0
-    };
-
-    BiquadFilterBrick(const float* cutoff, const float* resonance, const float* gain, const AudioBuffer* audio_in)
-    {
-        set_control_input(ControlInput::CUTOFF, cutoff);
-        set_control_input(ControlInput::RESONANCE, resonance);
-        set_control_input(ControlInput::GAIN, gain);
-        set_audio_input(0, audio_in);
-    }
-
-    void render() override;
-
-    void set_mode(Mode mode)
-    {
-        _mode = mode;
-    }
-
-    void reset() override
-    {
-        _reg = {0, 0};
-        _coeff.fill(ControlSmootherLinear());
-    }
-
-private:
-    Mode                                 _mode{Mode::LOWPASS};
-    std::array<ControlSmootherLinear, 5> _coeff;
-    Registers                            _reg{0,0};
-};
-
 /* Standard Biquad with non-modulated filter parameters */
 class FixedFilterBrick : public DspBrickImpl<0, 0, 1, 1>
 {
@@ -125,15 +70,12 @@ public:
         set_audio_input(0, audio_in);
     }
 
-    void render() override;
+    void set_coeffs(const Coefficients& coeffs)
+    {
+        _coeff = coeffs;
+    }
 
-    void set_lowpass(float freq, float q = DEFAULT_Q, bool clear = true);
-    void set_highpass(float freq, float q = DEFAULT_Q, bool clear = true);
-    void set_bandpass(float freq, float q = DEFAULT_Q, bool clear = true);
-    void set_peaking(float freq, float gain, float q = DEFAULT_Q, bool clear = true);
-    void set_allpass(float freq, float q = DEFAULT_Q, bool clear = true);
-    void set_lowshelf(float freq, float gain, float slope = DEFAULT_Q, bool clear = true);
-    void set_highshelf(float freq, float gain, float slope = DEFAULT_Q, bool clear = true);
+    void render() override;
 
     void reset() override
     {
