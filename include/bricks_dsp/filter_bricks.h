@@ -56,61 +56,6 @@ void render_df2_biquad(const AlignedArray<float, BlockSize>& in,
 using Coefficients = BiquadCoefficients<float>;
 using Registers = BiquadRegisters<float>;
 
-/* Standard Biquad with coefficent smoothing
- * This one should be deprecated, biquads should only really be used for fixed filters
- * as they generally don't take modulations well. */
-class BiquadFilterBrick : public DspBrickImpl<3, 0, 1, 1>
-{
-public:
-    enum class Mode
-    {
-        LOWPASS,
-        BANDPASS,
-        HIGHPASS,
-        ALLPASS,
-        PEAKING,
-        LOW_SHELF,
-        HIGH_SHELF
-    };
-    enum ControlInput
-    {
-        CUTOFF = 0,
-        RESONANCE,
-        GAIN
-    };
-
-    enum AudioOutput
-    {
-        FILTER_OUT = 0
-    };
-
-    BiquadFilterBrick(const float* cutoff, const float* resonance, const float* gain, const AudioBuffer* audio_in)
-    {
-        set_control_input(ControlInput::CUTOFF, cutoff);
-        set_control_input(ControlInput::RESONANCE, resonance);
-        set_control_input(ControlInput::GAIN, gain);
-        set_audio_input(0, audio_in);
-    }
-
-    void render() override;
-
-    void set_mode(Mode mode)
-    {
-        _mode = mode;
-    }
-
-    void reset() override
-    {
-        _reg = {0, 0};
-        _coeff.fill(ControlSmootherLinear());
-    }
-
-private:
-    Mode                                 _mode{Mode::LOWPASS};
-    std::array<ControlSmootherLinear, 5> _coeff;
-    Registers                            _reg{0,0};
-};
-
 /* Standard Biquad with non-modulated filter parameters */
 class FixedFilterBrick : public DspBrickImpl<0, 0, 1, 1>
 {
@@ -126,15 +71,12 @@ public:
         set_audio_input(0, audio_in);
     }
 
-    void render() override;
+    void set_coeffs(const Coefficients& coeffs)
+    {
+        _coeff = coeffs;
+    }
 
-    void set_lowpass(float freq, float q = DEFAULT_Q, bool clear = true);
-    void set_highpass(float freq, float q = DEFAULT_Q, bool clear = true);
-    void set_bandpass(float freq, float q = DEFAULT_Q, bool clear = true);
-    void set_peaking(float freq, float gain, float q = DEFAULT_Q, bool clear = true);
-    void set_allpass(float freq, float q = DEFAULT_Q, bool clear = true);
-    void set_lowshelf(float freq, float gain, float slope = DEFAULT_Q, bool clear = true);
-    void set_highshelf(float freq, float gain, float slope = DEFAULT_Q, bool clear = true);
+    void render() override;
 
     void reset() override
     {
@@ -276,6 +218,66 @@ private:
 };
 
 
+/* Fixed filter with templated number of parallel paths.
+ * More efficient for multiple voices/channels */
+template<int channel_count, typename FloatType = float>
+class ParallelFilterBrick : public DspBrickImpl<0, 0, channel_count, channel_count>
+{
+    using this_template = DspBrickImpl<0, 0, channel_count, channel_count>;
+
+public:
+    ParallelFilterBrick() = default;
+
+    template <class ...T>
+    explicit ParallelFilterBrick(T... inputs)
+    {
+        static_assert(sizeof...(inputs) == channel_count);
+        std::array<const AudioBuffer*, channel_count> audio_ins = {{inputs...}};
+        for (int i = 0; i < channel_count; ++i)
+        {
+            this_template::set_audio_input(i, audio_ins[i]);
+        }
+    }
+
+    void set_coeffs(BiquadCoefficients<FloatType>& coeffs)
+    {
+        _coeff = coeffs;
+    }
+
+    void render() override
+    {
+        std::array<const AudioBuffer*, channel_count>  inputs;
+        std::array<AudioBuffer*, channel_count>        outputs;
+
+        for (int i = 0; i < channel_count; ++i)
+        {
+            inputs[i] = &this_template::_input_buffer(i);
+            outputs[i] = &this_template::_output_buffer(i);
+        }
+
+        auto regs = _reg;
+
+        for (int s = 0; s < PROC_BLOCK_SIZE; ++s)
+        {
+            for (int c = 0; c < channel_count; ++c)
+            {
+                outputs[c]->data()[s] = render_biquad_sample<FloatType>(inputs[c]->data()[s], _coeff, regs[c]);
+            }
+        }
+        _reg = regs;
+    }
+
+    void reset() override
+    {
+        _reg.fill({0, 0});
+    }
+
+private:
+    BiquadCoefficients<FloatType>   _coeff;
+    std::array<BiquadRegisters<FloatType>, channel_count>    _reg;
+};
+
+
 /* State variable filter with multiple outs from Andrew Simper, Cytomic,
  * adapted from https://cytomic.com/files/dsp/SvfLinearTrapOptimised2.pdf */
 class SVFFilterBrick : public DspBrickImpl<2, 0, 1, 3>
@@ -353,6 +355,148 @@ private:
     double                 _zi;
     std::array<double, 4>  _states{0, 0, 0, 0};
 };
+
+/* Coefficient generation from http://www.musicdsp.org/files/Audio-EQ-Cookbook.txt */
+template <typename  FloatType = float>
+BiquadCoefficients<FloatType> calc_lowpass(float freq, float q, float samplerate)
+{
+    BiquadCoefficients<FloatType> coeff;
+    FloatType w0 = 2.0f * static_cast<FloatType>(M_PI) * freq / samplerate;
+    FloatType w0_cos = std::cos(w0);
+    FloatType w0_sin = std::sin(w0);
+    FloatType alpha = w0_sin / q;
+    FloatType norm = 1.0f / (1.0f + alpha);
+    FloatType b0 = (1.0f - w0_cos) / 2.0f * norm;
+
+    coeff.a1 = -2.0f * w0_cos * norm;
+    coeff.a2 = (1 - alpha) * norm;
+    coeff.b0 = b0;
+    coeff.b1 = (1 - w0_cos) * norm;
+    coeff.b2 = b0;
+    return coeff;
+};
+
+template <typename  FloatType = float>
+BiquadCoefficients<FloatType> calc_highpass(float freq, float q, float samplerate)
+{
+    BiquadCoefficients<FloatType> coeff;
+    FloatType w0 = 2.0f * static_cast<FloatType>(M_PI) * freq / samplerate;
+    FloatType w0_cos = std::cos(w0);
+    FloatType w0_sin = std::sin(w0);
+    FloatType alpha = w0_sin / q;
+    FloatType norm = 1.0f / (1.0f + alpha);
+    FloatType b0 = (1.0f + w0_cos) / 2.0f * norm;
+
+    coeff.a1 = -2.0f * w0_cos * norm;
+    coeff.a2 = (1 - alpha) * norm;
+    coeff.b0 = b0;
+    coeff.b1 = -(1 + w0_cos) * norm;
+    coeff.b2 = b0;
+    return coeff;
+};
+
+template <typename  FloatType = float>
+inline BiquadCoefficients<FloatType> calc_bandpass(float freq, float q, float samplerate)
+{
+    BiquadCoefficients<FloatType> coeff;
+    float w0 = 2.0f * static_cast<float>(M_PI) * freq / samplerate;
+    float w0_cos = std::cos(w0);
+    float w0_sin = std::sin(w0);
+    float alpha = w0_sin / q;
+    float norm = 1.0f / (1.0f + alpha);
+    float b0 = alpha * norm;
+
+    coeff.a1 = -2.0f * w0_cos * norm;
+    coeff.a2 = (1 - alpha) * norm;
+    coeff.b0 = b0;
+    coeff.b1 = 0.0f;
+    coeff.b2 = -b0;
+    return coeff;
+};
+
+template <typename  FloatType = float>
+inline BiquadCoefficients<FloatType> calc_allpass(float freq, float q, float samplerate)
+{
+    BiquadCoefficients<FloatType> coeff;
+    float w0 = 2.0f * static_cast<float>(M_PI) * freq / samplerate;
+    float w0_cos = std::cos(w0);
+    float w0_sin = std::sin(w0);
+    float alpha = w0_sin / q;
+    float norm = 1.0f / (1.0f + alpha);
+    float a1 =  -2.0f * w0_cos * norm;
+    float b0 = (1.0f - alpha) * norm;
+
+    coeff.a1 = a1;
+    coeff.a2 = b0;
+    coeff.b0 = b0;
+    coeff.b1 = a1;
+    coeff.b2 = 1.0f;
+    return coeff;
+};
+
+/* freq in Hz, gain in dB */
+template <typename  FloatType = float>
+inline BiquadCoefficients<FloatType> calc_peaking(float freq, float gain, float q,  float samplerate)
+{
+    BiquadCoefficients<FloatType> coeff;
+    float A = powf(10.0f, gain / 40.0f) ;
+    float w0 = 2.0f * static_cast<float>(M_PI) * freq / samplerate;
+    float w0_cos = std::cos(w0);
+    float w0_sin = std::sin(w0);
+    float alpha = w0_sin / q;
+    float norm = 1.0f / (1.0f + alpha / A);
+    float b0 = (1.0f + alpha * A) * norm;
+
+    coeff.a1 = -2.0f * w0_cos * norm;
+    coeff.a2 = (1 - alpha / A) * norm;
+    coeff.b0 = b0;
+    coeff.b1 = -2.0f * w0_cos * norm;
+    coeff.b2 = (1.0f - alpha * A) * norm;
+    return coeff;
+};
+
+template <typename  FloatType = float>
+inline BiquadCoefficients<FloatType> calc_lowshelf(float freq, float gain, float slope, float samplerate)
+{
+    BiquadCoefficients<FloatType> coeff;
+    float A = powf(10.0f, gain / 40.0f);
+    float w0 = 2.0f * static_cast<float>(M_PI) * freq / samplerate;
+    float w0_cos = std::cos(w0);
+    float w0_sin = std::sin(w0);
+    float A2_sqrt_alpha = 2.0f * w0_sin * std::sqrt((A * A + 1.0f) * (1.0f / slope - 1.0f) + 2.0f * A);
+    float A_inc_cos_w0 = (A + 1.0f) * w0_cos;
+    float A_dec_cos_w0 = (A - 1.0f) * w0_cos;
+    float norm = 1.0f / ((A + 1.0f) + A_dec_cos_w0 + A2_sqrt_alpha);
+
+    coeff.a1 = -2.0f * (A - 1.0f + A_inc_cos_w0) * norm;
+    coeff.a2 = (A + 1.0f + A_dec_cos_w0 - A2_sqrt_alpha) * norm;
+    coeff.b0 = A * (A + 1.0f - A_dec_cos_w0 + A2_sqrt_alpha) * norm;
+    coeff.b1 = 2.0f * A * (A - 1.0f - A_inc_cos_w0) * norm;
+    coeff.b2 = A * (A + 1.0f - A_dec_cos_w0 - A2_sqrt_alpha) * norm;
+    return coeff;
+};
+
+template <typename  FloatType = float>
+inline BiquadCoefficients<FloatType> calc_highshelf(float freq, float gain, float slope, float samplerate)
+{
+    BiquadCoefficients<FloatType> coeff;
+    float A = powf(10.0f, gain / 40.0f);
+    float w0 = 2.0f * static_cast<float>(M_PI) * freq / samplerate;
+    float w0_cos = std::cos(w0);
+    float w0_sin = std::sin(w0);
+    float A2_sqrt_alpha = 2.0f * w0_sin * std::sqrt((A * A + 1.0f) * (1.0f / slope - 1.0f) + 2.0f * A);
+    float A_inc_cos_w0 = (A + 1.0f) * w0_cos;
+    float A_dec_cos_w0 = (A - 1.0f) * w0_cos;
+    float norm = 1.0f / ((A + 1.0f) - A_dec_cos_w0 + A2_sqrt_alpha);
+
+    coeff.a1 = 2.0f * (A - 1.0f - A_inc_cos_w0) * norm;
+    coeff.a2 = (A + 1.0f - A_dec_cos_w0 - A2_sqrt_alpha) * norm;
+    coeff.b0 = A * (A + 1.0f + A_dec_cos_w0 + A2_sqrt_alpha) * norm;
+    coeff.b1 = -2.0f * A * (A - 1.0f + A_inc_cos_w0) * norm;
+    coeff.b2 = A * (A + 1.0f + A_dec_cos_w0 - A2_sqrt_alpha) * norm;
+    return coeff;
+};
+
 
 }// namespace bricks
 

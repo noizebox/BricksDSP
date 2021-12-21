@@ -33,7 +33,7 @@ public:
         }
         /* Parameter modulation */
         _cutoff -= 0.00001;
-        return _amp.audio_output(VcaBrick<Response::LINEAR>::VCA_OUT);
+        return *_amp.audio_output(VcaBrick<Response::LINEAR>::VCA_OUT);
     }
 
     void note_on() {_env.gate(true);}
@@ -53,15 +53,15 @@ private:
     float _gain{1.0f};
 
 
-    LfoBrick                          _lfo{_rate};
-    AudioADSREnvelopeBrick            _env{_attack, _decay, _sustain, _release};
-    WtOscillatorBrick                 _osc{_pitch};
-    WtOscillatorBrick                 _osc2{_pitch_2};
+    LfoBrick                          _lfo{&_rate};
+    AudioADSREnvelopeBrick            _env{&_attack, &_decay, &_sustain, &_release};
+    WtOscillatorBrick                 _osc{&_pitch};
+    WtOscillatorBrick                 _osc2{&_pitch_2};
     AudioSummerBrick<2>               _mixer{_osc.audio_output(WtOscillatorBrick::OSC_OUT), _osc2.audio_output(WtOscillatorBrick::OSC_OUT)};
-    SVFFilterBrick                    _filt{_env.control_output(0), _res, _mixer.audio_output(AudioSummerBrick<2>::SUM_OUT)};
-    AASaturationBrick<ClipType::SOFT> _dist{_clip, _filt.audio_output(BiquadFilterBrick::FILTER_OUT)};
-    ControlMultiplierBrick<2>         _amp_level{VOLUME, _env.control_output(LinearADSREnvelopeBrick::ENV_OUT)};
-    VcaBrick<Response::LINEAR>        _amp{_amp_level.control_output(ControlMultiplierBrick<2>::MULT_OUT), _dist.audio_output(BiquadFilterBrick::FILTER_OUT)};
+    SVFFilterBrick                    _filt{_env.control_output(0), &_res, _mixer.audio_output(AudioSummerBrick<2>::SUM_OUT)};
+    AASaturationBrick<ClipType::SOFT> _dist{&_clip, _filt.audio_output(SVFFilterBrick::LOWPASS)};
+    ControlMultiplierBrick<2>         _amp_level{&VOLUME, _env.control_output(LinearADSREnvelopeBrick::ENV_OUT)};
+    VcaBrick<Response::LINEAR>        _amp{_amp_level.control_output(ControlMultiplierBrick<2>::MULT_OUT), _dist.audio_output(SVFFilterBrick::LOWPASS)};
 
     /* The order of creation automatically becomes a valid process order */
     std::vector<DspBrick*> _audio_graph{&_lfo, &_env, &_osc, &_osc2, &_mixer, &_filt, &_dist, &_amp_level, &_amp};

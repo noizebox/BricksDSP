@@ -31,10 +31,6 @@ BENCHMARK_TEMPLATE(BrickBM, bricks::FixedFilterBrick, 0, 1, AudioType::SILENCE);
 BENCHMARK_TEMPLATE(BrickBM, bricks::FixedFilterBrick, 0, 1, AudioType::NOISE);
 BENCHMARK_TEMPLATE(BrickBM, bricks::FixedFilterBrick, 0, 1, AudioType::SINE);
 
-BENCHMARK_TEMPLATE(BrickBM, bricks::BiquadFilterBrick, 3, 1, AudioType::SILENCE);
-BENCHMARK_TEMPLATE(BrickBM, bricks::BiquadFilterBrick, 3, 1, AudioType::SINE);
-BENCHMARK_TEMPLATE(BrickBM, bricks::BiquadFilterBrick, 3, 1, AudioType::NOISE);
-
 BENCHMARK_TEMPLATE(BrickBM, bricks::MultiStageFilterBrick<1, float>, 0, 1, AudioType::NOISE);
 BENCHMARK_TEMPLATE(BrickBM, bricks::MultiStageFilterBrick<2, float>, 0, 1, AudioType::NOISE);
 BENCHMARK_TEMPLATE(BrickBM, bricks::MultiStageFilterBrick<4, float>, 0, 1, AudioType::NOISE);
@@ -44,6 +40,11 @@ BENCHMARK_TEMPLATE(BrickBM, bricks::MultiStageFilterBrick<1, double>, 0, 1, Audi
 BENCHMARK_TEMPLATE(BrickBM, bricks::PipelinedFilterBrick<2>, 0, 1, AudioType::NOISE);
 BENCHMARK_TEMPLATE(BrickBM, bricks::PipelinedFilterBrick<4>, 0, 1, AudioType::NOISE);
 BENCHMARK_TEMPLATE(BrickBM, bricks::PipelinedFilterBrick<8>, 0, 1, AudioType::NOISE);
+
+BENCHMARK_TEMPLATE(BrickBM, bricks::ParallelFilterBrick<1>, 0, 1, AudioType::NOISE);
+BENCHMARK_TEMPLATE(BrickBM, bricks::ParallelFilterBrick<2>, 0, 2, AudioType::NOISE);
+BENCHMARK_TEMPLATE(BrickBM, bricks::ParallelFilterBrick<4>, 0, 4, AudioType::NOISE);
+BENCHMARK_TEMPLATE(BrickBM, bricks::ParallelFilterBrick<8>, 0, 8, AudioType::NOISE);
 
 BENCHMARK_TEMPLATE(BrickBM, bricks::SVFFilterBrick, 2, 1, AudioType::SILENCE);
 BENCHMARK_TEMPLATE(BrickBM, bricks::SVFFilterBrick, 2, 1, AudioType::SINE);

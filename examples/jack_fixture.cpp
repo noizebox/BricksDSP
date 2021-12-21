@@ -70,7 +70,7 @@ public:
         _filt.render();
         _dist.render();
         _amp.render();
-        out = _amp.audio_output(0);
+        out = *_amp.audio_output(0);
     }
 
 private:
@@ -87,12 +87,12 @@ private:
     float _res{0.97f};
     float _clip{1.f};
     float _gain{0.2f};
-    WtOscillatorBrick           _osc{_pitch};
-    WtOscillatorBrick           _osc2{_pitch_2};
+    WtOscillatorBrick           _osc{&_pitch};
+    WtOscillatorBrick           _osc2{&_pitch_2};
     AudioSummerBrick<2>         _mixer{_osc.audio_output(WtOscillatorBrick::OSC_OUT), _osc2.audio_output(WtOscillatorBrick::OSC_OUT)};
-    SVFFilterBrick              _filt{_cutoff, _res, _mixer.audio_output(AudioSummerBrick<2>::SUM_OUT)};
-    AASaturationBrick           _dist{_clip, _filt.audio_output(BiquadFilterBrick::FILTER_OUT)};
-    VcaBrick<Response::LINEAR>  _amp{_gain, _dist.audio_output(BiquadFilterBrick::FILTER_OUT)};
+    SVFFilterBrick              _filt{&_cutoff, &_res, _mixer.audio_output(AudioSummerBrick<2>::SUM_OUT)};
+    AASaturationBrick<ClipType::SOFT>  _dist{&_clip, _filt.audio_output(SVFFilterBrick::LOWPASS)};
+    VcaBrick<Response::LINEAR>  _amp{&_gain, _dist.audio_output(SVFFilterBrick::LOWPASS)};
 };
 
 Processor processor;
