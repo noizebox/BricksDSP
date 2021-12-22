@@ -248,7 +248,7 @@ public:
         }
     }
 
-    void set_coeffs(BiquadCoefficients<FloatType>& coeffs)
+    void set_coeffs(const BiquadCoefficients<FloatType>& coeffs)
     {
         _coeff = coeffs;
     }
