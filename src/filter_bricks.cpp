@@ -38,6 +38,69 @@ void SVFFilterBrick::render()
     _g_lag = g_lag;
 }
 
+void FixedFilterBrick::set_lowpass(float freq, float q, bool clear)
+{
+    _coeff = calc_lowpass(freq, q, samplerate());
+    if (clear)
+    {
+        _reg = {0, 0};
+    }
+}
+
+void FixedFilterBrick::set_highpass(float freq, float q, bool clear)
+{
+    _coeff = calc_highpass(freq, q, samplerate());
+    if (clear)
+    {
+        reset();
+    }
+}
+
+void FixedFilterBrick::set_bandpass(float freq, float q, bool clear)
+{
+    _coeff = calc_bandpass(freq, q, samplerate());
+    if (clear)
+    {
+        reset();
+    }
+}
+
+void FixedFilterBrick::set_peaking(float freq, float gain, float q, bool clear)
+{
+    _coeff = calc_peaking(freq, gain, q, samplerate());
+    if (clear)
+    {
+        reset();
+    }
+}
+
+void FixedFilterBrick::set_allpass(float freq, float q, bool clear)
+{
+    _coeff = calc_allpass(freq, q, samplerate());
+    if (clear)
+    {
+        reset();
+    }
+}
+
+void FixedFilterBrick::set_lowshelf(float freq, float gain, float q, bool clear)
+{
+    _coeff = calc_lowshelf(freq, gain, q, samplerate());
+    if (clear)
+    {
+        reset();
+    }
+}
+
+void FixedFilterBrick::set_highshelf(float freq, float gain, float q, bool clear)
+{
+    _coeff = calc_highshelf(freq, gain, q, samplerate());
+    if (clear)
+    {
+        reset();
+    }
+}
+
 void FixedFilterBrick::render()
 {
     const AudioBuffer& audio_in = _input_buffer(0);
