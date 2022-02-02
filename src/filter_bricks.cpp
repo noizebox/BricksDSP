@@ -13,7 +13,7 @@ void SVFFilterBrick::render()
     auto& highpass_out = _output_buffer(AudioOutput::HIGHPASS);
 
     float freq = 20 * powf(2.0f, _ctrl_value(ControlInput::CUTOFF) * 10.0f);
-    freq = std::clamp(freq, 20.0f, 18000.0f);
+    freq = std::clamp(freq, 5.0f, 19000.0f);
     float k = 2 - 2 * _ctrl_value(ControlInput::RESONANCE);
     _g_lag.set(std::tan(static_cast<float>(M_PI) * freq / samplerate()));
     auto reg = _reg;
