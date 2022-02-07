@@ -34,7 +34,7 @@ target_include_directories(bricks_dsp PRIVATE src)
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
     set(EXTRA_COMPILER_FLAGS "-Wall" "/std:c++17")
-    target_compile_definitions(bricks_dsp PUBLIC /D WINDOWS /D _USE_MATH_DEFINES)
+    target_compile_definitions(bricks_dsp PUBLIC /D WINDOWS /D _USE_MATH_DEFINES NOMINMAX)
 else()
     set(EXTRA_COMPILER_FLAGS -Wall -fno-rtti -ffast-math -march=native -fpic)
     target_compile_definitions(bricks_dsp PUBLIC LINUX)

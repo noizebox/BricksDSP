@@ -190,7 +190,7 @@ constexpr float ENV_CLOSED_RC = 470 * 0.00022;
 
 constexpr float OP_INTERNAL_LOWPASS = 33 * 0.000000250;
 
-constexpr float STEREO_MIX_FACTOR = 0.8;
+constexpr float STEREO_MIX_FACTOR = 0.85;
 
 /* Simulate component variation by having slightly different values on left and right channels */
 constexpr float COMPONENT_VARIATION = 0.03;
@@ -290,7 +290,7 @@ void SustainerBrick::render()
         if (env_in_r < -1.0f * (cur_env_r + DIODE_THRESHOLD * COMP_VAR_3))
         {
             rect_r = - (env_in_r + DIODE_THRESHOLD * COMP_VAR_3);
-            env_lp[RIGHT].set_approx(ENV_OPEN_RC * COMP_VAR_2 * time_param, samplerate(), false);
+            env_lp[RIGHT].set_approx(ENV_OPEN_RC * time_param, samplerate(), false);
         }
         else
         {
