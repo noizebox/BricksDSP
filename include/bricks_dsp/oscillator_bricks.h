@@ -39,12 +39,18 @@ public:
 
     void set_waveform(Waveform waveform) {_waveform = waveform;}
 
+    void set_samplerate(float samplerate) override
+    {
+        _samplerate_inv = 1.0f / samplerate;
+    }
+
     void reset() override {_phase = 0.0f;}
 
     void render() override;
 
 private:
     ControlSmootherLag  _pitch_lag;
+    float               _samplerate_inv{1.0 / DEFAULT_SAMPLERATE};
     float               _phase{0};
     Waveform            _waveform{Waveform::SAW};
     int                 _tri_dir{1};
@@ -87,12 +93,18 @@ public:
 
     void set_waveform(Waveform waveform) {_waveform = waveform;}
 
+    void set_samplerate(float samplerate) override
+    {
+        _samplerate_inv = 1.0f / samplerate;
+    }
+
     void reset() override {_phase = 0.0f;}
 
     void render() override;
 
 private:
     ControlSmootherLag  _pitch_lag;
+    float               _samplerate_inv{1.0 / DEFAULT_SAMPLERATE};
     float               _phase{0};
     Waveform            _waveform{Waveform::SAW};
     int                 _tri_dir{1};
@@ -130,13 +142,21 @@ public:
 
     void set_waveform(Waveform waveform) {_waveform = waveform;}
 
+    void set_samplerate(float samplerate) override
+    {
+        _samplerate = samplerate;
+        _samplerate_inv = 1.0f / samplerate;
+    }
+
     void reset() override {_phase = 0.0f;}
 
     void render() override;
 
 private:
-    float               _phase{0};
-    Waveform            _waveform{Waveform::SAW};
+    float           _samplerate{DEFAULT_SAMPLERATE};
+    float           _samplerate_inv{1.0 / DEFAULT_SAMPLERATE};
+    float           _phase{0};
+    Waveform        _waveform{Waveform::SAW};
 };
 
 /* Noise generator with 3 levels of lp filtering */

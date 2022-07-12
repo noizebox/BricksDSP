@@ -302,6 +302,11 @@ public:
         set_audio_input(0, audio_in);
     }
 
+    void set_samplerate(float samplerate) override
+    {
+        _samplerate_inv = 1.0f / samplerate;
+    }
+
     void reset() override
     {
         _g_lag.reset();
@@ -311,6 +316,7 @@ public:
     void render() override;
 
 private:
+    float                 _samplerate_inv {1.0f / DEFAULT_SAMPLERATE};
     std::array<float, 2>  _reg{0,0};
     ControlSmootherLinear _g_lag;
 };
@@ -341,6 +347,11 @@ class MystransLadderFilter : public DspBrickImpl<2, 0, 1, 1>
 
     void render() override;
 
+    void set_samplerate(float samplerate) override
+    {
+        _samplerate_inv = 1.0f / samplerate;
+    }
+
     void reset() override
     {
         _freq_lag.reset();
@@ -350,6 +361,7 @@ class MystransLadderFilter : public DspBrickImpl<2, 0, 1, 1>
 private:
     ControlSmootherLinear  _freq_lag;
     double                 _zi;
+    float                  _samplerate_inv{1.0 / DEFAULT_SAMPLERATE};
     std::array<double, 4>  _states{0, 0, 0, 0};
 };
 

@@ -110,13 +110,13 @@ public:
     void set_samplerate(float samplerate) override;
 
 private:
-    float           _op_gain{0.0f};
-    float           _fet_gain{0.0f};
-    bool            _plot;
-
+    float            _op_gain{0.0f};
+    float            _fet_gain{0.0f};
+    bool             _plot;
     RCStage<double>  _op_hp;
     RCStage<double>  _env_hp;
     RCStage<double>  _env_lp;
+    float            _samplerate{DEFAULT_SAMPLERATE};
 };
 
 /* Delay audio one process block, used to break circular dependencies from feedback
@@ -166,7 +166,7 @@ public:
 
     void set_samplerate(float samplerate) override
     {
-        DspBrickImpl::set_samplerate(samplerate);
+        _samplerate = samplerate;
         set_max_delay_time(_max_delay_time);
     }
 
@@ -177,7 +177,7 @@ public:
 
     void set_max_delay_time(std::chrono::duration<float> delay)
     {
-        int samples = samplerate() * delay.count();
+        int samples = _samplerate * delay.count();
         /* Samples is rounded up to nearest multiple of PROC_BLOCK_SIZE + 1 more */
         _max_samples = (samples / PROC_BLOCK_SIZE + 2) * PROC_BLOCK_SIZE;
         _max_delay = samples;
@@ -208,6 +208,7 @@ protected:
     int                         _max_delay{0};
     int                         _max_samples{0};
     int                         _write_index{PROC_BLOCK_SIZE};
+    float                       _samplerate{DEFAULT_SAMPLERATE};
     float*                      _buffer{nullptr};
 
 private:
@@ -243,7 +244,7 @@ public:
 
     void set_delay_time(std::chrono::duration<float> delay)
     {
-        set_delay_samples(samplerate() * delay.count());
+        set_delay_samples(_samplerate * delay.count());
     }
 
     /* Note that this can still be a fraction if interpolation is not NONE */
@@ -322,7 +323,7 @@ public:
 
     void set_delay_time(std::chrono::duration<float> delay)
     {
-        _delay = clamp(samplerate() * delay.count(), 0, _max_delay);
+        _delay = clamp(_samplerate * delay.count(), 0, _max_delay);
     }
 
     void reset() override
@@ -406,7 +407,7 @@ public:
 
     void set_samplerate(float samplerate) override
     {
-        DspBrickImpl::set_samplerate(samplerate);
+        _samplerate = samplerate;
         set_max_delay_time(_max_seconds);
     }
 
@@ -418,6 +419,7 @@ public:
 
 private:
     ControlSmootherLinear _delay_time_lag;
+    float               _samplerate{DEFAULT_SAMPLERATE};
     float               _max_seconds;
     int                 _max_samples;
     int                 _rec_head;
@@ -477,6 +479,11 @@ public:
         set_audio_input(0, audio_in);
     }
 
+    void set_samplerate(float samplerate) override
+    {
+        _samplerate_inv = 1.0f / samplerate;
+    }
+
     void reset() override;
 
     void render() override;
@@ -484,6 +491,7 @@ public:
 private:
     static constexpr int SAMPLE_DELAY = 2;
 
+    float           _samplerate_inv{1.0 / DEFAULT_SAMPLERATE};
     float           _down_phase{0.0f};
     float           _up_phase{0.0f};
 

@@ -15,7 +15,7 @@ void SVFFilterBrick::render()
     float freq = 20 * powf(2.0f, _ctrl_value(ControlInput::CUTOFF) * 10.0f);
     freq = std::clamp(freq, 20.0f, 18000.0f);
     float k = 2 - 2 * _ctrl_value(ControlInput::RESONANCE);
-    _g_lag.set(std::tan(static_cast<float>(M_PI) * freq / samplerate()));
+    _g_lag.set(std::tan(static_cast<float>(M_PI) * freq * _samplerate_inv));
     auto reg = _reg;
     auto g_lag = _g_lag;
     for (unsigned int i = 0; i < PROC_BLOCK_SIZE; ++i)
@@ -60,8 +60,8 @@ void MystransLadderFilter::render()
     const auto& in = _input_buffer(0);
     auto& audio_out = _output_buffer(0);
     float freq = 20 * powf(2.0f, _ctrl_value(ControlInput::CUTOFF) * 10.0f);
-    freq = std::clamp(freq, 20.0f, 22000.0f);
-    _freq_lag.set(std::tan(static_cast<float>(M_PI) * freq / samplerate()));
+    freq = clamp(freq, 20.0f, 22000.0f);
+    _freq_lag.set(std::tan(static_cast<float>(M_PI) * freq * _samplerate_inv));
     double r = (40.0/9.0) * _ctrl_value(ControlInput::RESONANCE);
 
     auto s = _states;

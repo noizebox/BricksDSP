@@ -8,7 +8,7 @@ namespace bricks {
 void OscillatorBrick::render()
 {
     float base_freq = control_to_freq(_ctrl_value(ControlInput::PITCH));
-    float phase_inc = base_freq / samplerate();
+    float phase_inc = base_freq * _samplerate_inv;
     float phase = _phase;
     AudioBuffer& audio_out = _output_buffer(AudioOutput::OSC_OUT);
 
@@ -57,7 +57,7 @@ void FmOscillatorBrick::render()
 {
     float base_freq = control_to_freq(_ctrl_value(ControlInput::PITCH));
     //_pitch_lag.set(_pitch_port.value());
-    float phase_inc = base_freq / samplerate();
+    float phase_inc = base_freq * _samplerate_inv;
     float phase = _phase;
     const AudioBuffer& fm_mod = _input_buffer(AudioInput::LIN_FM);
     AudioBuffer& audio_out = _output_buffer(AudioOutput::OSC_OUT);
@@ -108,11 +108,11 @@ void WtOscillatorBrick::render()
 {
     /* If the samplerate it less than 80kHz, use the wavetables 1 octave above
      * which has less harmonics to make sure they dont alias when interpolated */
-    float sr = samplerate();
+    float sr = _samplerate;
     int wt_shift = sr > 80000? 0 : sr > 40000? 1 : 2;
     float pitch = _ctrl_value(ControlInput::PITCH);
     float base_freq = control_to_freq(pitch);
-    float phase_inc = base_freq / sr;
+    float phase_inc = base_freq * _samplerate_inv;
     float phase = _phase;
 
     int oct = std::max(0, std::min(9, static_cast<int>(pitch * 10) + wt_shift));
@@ -188,7 +188,6 @@ void NoiseGeneratorBrick::set_samplerate(float samplerate)
 {
     _pink_coeff_a0 = std::exp(-2.0f * M_PI * PINK_CUTOFF_FREQ / samplerate);
     _brown_coeff_a0 = std::exp(-2.0f * M_PI * BROWN_CUTOFF_FREQ / samplerate);
-    DspBrickImpl::set_samplerate(samplerate);
 }
 
 } // namespace bricks

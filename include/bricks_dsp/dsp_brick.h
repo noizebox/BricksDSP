@@ -39,7 +39,7 @@ public:
 
     virtual void render() = 0;
 
-    virtual void set_samplerate(float samplerate) = 0;
+    virtual void set_samplerate(float samplerate) {};
 
     virtual void reset() {};
 
@@ -71,10 +71,6 @@ template <int ctrl_ins, int ctrl_outs, int audio_ins, int audio_outs>
 class DspBrickImpl : public DspBrick
 {
 public:
-    virtual void set_samplerate(float samplerate) override {_samplerate = samplerate;}
-
-    float samplerate() const {return _samplerate;}
-
     int n_control_inputs() const final {return ctrl_ins;}
 
     int n_control_outputs() const final {return ctrl_outs;}
@@ -154,7 +150,6 @@ protected:
     }
 
 private:
-    float _samplerate{DEFAULT_SAMPLERATE};
     std::array<const float*, ctrl_ins>          _ctrl_ins;
     std::array<float, ctrl_outs>                _ctrl_outs;
     std::array<const AudioBuffer*, audio_ins>   _audio_ins;

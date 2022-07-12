@@ -40,6 +40,11 @@ public:
 
     bool finished() {return _state == EnvelopeState::OFF;}
 
+    void set_samplerate(float samplerate) override
+    {
+        _samplerate = samplerate;
+    }
+
     void reset() override
     {
         _state = EnvelopeState::OFF;
@@ -60,6 +65,7 @@ private:
 
     EnvelopeState _state{EnvelopeState::OFF};
     float         _level{0};
+    float         _samplerate{DEFAULT_SAMPLERATE};
 };
 
 /* Control rate linear ADSR envelope with linear slopes */
@@ -96,6 +102,11 @@ public:
 
     bool finished() {return _state == EnvelopeState::OFF;}
 
+    void set_samplerate(float samplerate) override
+    {
+        _samplerate = samplerate;
+    }
+
     void reset() override
     {
         _state = EnvelopeState::OFF;
@@ -117,6 +128,7 @@ private:
 
     EnvelopeState _state{EnvelopeState::OFF};
     float         _level{0};
+    float         _samplerate{DEFAULT_SAMPLERATE};
 };
 
 /* ADSR Envelope intended for audio control with linear attack phase and
@@ -154,6 +166,11 @@ public:
 
     bool finished() {return _state == EnvelopeState::OFF;}
 
+    void set_samplerate(float samplerate) override
+    {
+        _samplerate = samplerate;
+    }
+
     void reset() override
     {
         _state = EnvelopeState::OFF;
@@ -174,6 +191,7 @@ private:
 
     EnvelopeState _state{EnvelopeState::OFF};
     float         _level{0};
+    float         _samplerate{DEFAULT_SAMPLERATE};
 };
 
 
@@ -211,6 +229,11 @@ public:
 
     void set_waveform(Waveform waveform) {_waveform = waveform;}
 
+    void set_samplerate(float samplerate) override
+    {
+        _samplerate_inv = 1.0f / samplerate;
+    }
+
     void reset() override
     {
         _phase = 0;
@@ -221,6 +244,7 @@ public:
     void render() override;
 
 private:
+    float          _samplerate_inv{1.0 / DEFAULT_SAMPLERATE};
     float          _phase{0};
     float          _level{0};
     Waveform       _waveform{Waveform::TRIANGLE};
@@ -249,12 +273,18 @@ public:
         set_control_input(ControlInput::RATE, rate);
     }
 
+    void set_samplerate(float samplerate) override
+    {
+        _samplerate_inv = 1.0f / samplerate;
+    }
+
     void reset() override {_phase = 0;}
 
     void render() override;
 
 private:
-    float       _phase{0};
+    float _samplerate_inv{1.0 / DEFAULT_SAMPLERATE};
+    float _phase{0};
 };
 
 /* Optimised low frequency random generation */
