@@ -80,6 +80,8 @@ BENCHMARK_TEMPLATE(BrickBM, bricks::ModDelayBrick<InterpolationType::CR_CUB>, 1,
 
 BENCHMARK_TEMPLATE(BrickBM, bricks::ModulatedDelayBrick, 1, 1, AudioType::NOISE);
 
+BENCHMARK_TEMPLATE(BrickBM, bricks::AllpassDelayBrick<InterpolationType::NONE, 500>, 2, 1, AudioType::NOISE);
+
 BENCHMARK_TEMPLATE(BrickBM, bricks::BitRateReducerBrick, 1, 1, AudioType::NOISE);
 BENCHMARK_TEMPLATE(BrickBM, bricks::SampleRateReducerBrick, 1, 1, AudioType::NOISE);
 

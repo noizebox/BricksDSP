@@ -169,6 +169,35 @@ TEST_F(ModulatedDelayBrickTest, OperationTest)
     assert_buffer(_out_buffer, 0.0f);
 }
 
+class AllpassDelayBrickTest : public ::testing::Test
+{
+protected:
+    AllpassDelayBrickTest() {}
+
+    void SetUp()
+    {
+        fill_buffer(_buffer, 0.0f);
+        _buffer[0] = 1.0;
+    }
+
+    AudioBuffer          _buffer;
+    float                _delay_time{1.0};
+    float                _gain{0.5};
+    AllpassDelayBrick<InterpolationType::NONE, 4>  _test_module{&_delay_time, &_gain, &_buffer};
+    const AudioBuffer&   _out_buffer{*_test_module.audio_output(AllpassDelayBrick<InterpolationType::NONE, 100>::DELAY_OUT)};
+};
+
+TEST_F(AllpassDelayBrickTest, OperationTest)
+{
+    _test_module.render();
+    EXPECT_FLOAT_EQ(_out_buffer[0], -0.5f);
+    EXPECT_FLOAT_EQ(_out_buffer[1], 0.0f);
+    EXPECT_FLOAT_EQ(_out_buffer[2], 0.0f);
+    EXPECT_FLOAT_EQ(_out_buffer[3], 0.0f);
+    EXPECT_FLOAT_EQ(_out_buffer[4], 0.75f); // Second impulse here
+    EXPECT_FLOAT_EQ(_out_buffer[5], 0.0f);
+}
+
 class BitRateReducerBrickTest : public ::testing::Test
 {
 protected:

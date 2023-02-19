@@ -431,6 +431,81 @@ private:
     float*              _rec_times{nullptr};
 };
 
+/* Schroeder Allpass delay for diffusion in reverbs and delays.
+ * Currently only implemented with no interpolation - i.e. for
+ * non-modulated delays.
+ * Can probably be more efficiently interpolated using block based
+ * processing for fixed delays */
+template<InterpolationType type, int length>
+class AllpassDelayBrick : public DspBrickImpl<2, 0, 1, 1>
+{
+public:
+    enum ControlInput
+    {
+        DELAY_TIME = 0,
+        G_COEFF
+    };
+
+    enum AudioOutput
+    {
+        DELAY_OUT = 0
+    };
+
+    AllpassDelayBrick(const float* delay_time, const float* g_coeff, const AudioBuffer* audio_in)
+    {
+        set_control_input(ControlInput::DELAY_TIME, delay_time);
+        set_control_input(ControlInput::G_COEFF, g_coeff);
+        set_audio_input(0, audio_in);
+        reset();
+    }
+
+    void reset() override
+    {
+        _buffer.fill(0.0f);
+    }
+
+    void render() override
+    {
+        const auto& in = _input_buffer(0);
+        auto& audio_out = _output_buffer(0);
+
+        float mod = clamp(_ctrl_value(ControlInput::DELAY_TIME), 0.0f, 1.0f);
+        float gain = _ctrl_value(ControlInput::G_COEFF);
+        int mod_int = mod * length;
+        int write_index = _write_index;
+
+        for (int i = 0; i < PROC_BLOCK_SIZE; ++i)
+        {
+            float delay_out;
+            if constexpr (type == InterpolationType::NONE)
+            {
+                unsigned index = (write_index + mod_int);
+                while (index >= length)
+                {
+                    index -= length;
+                }
+                delay_out = _buffer[index];
+            }
+
+            float delay_in = in[i] + gain * delay_out;
+            _buffer[write_index++] = delay_in;
+            if (write_index >= length)
+            {
+                write_index = 0;
+            }
+
+            audio_out[i] = delay_out + -1.0f * gain * delay_in;
+        }
+
+        _write_index = write_index;
+    }
+
+private:
+    int _write_index{0};
+    std::array<float, length> _buffer;
+};
+
+
 /* Reduce the bit depth continuously from 24 to 1 */
 class BitRateReducerBrick : public DspBrickImpl<1, 0, 1, 1>
 {
