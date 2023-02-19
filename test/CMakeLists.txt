@@ -1,3 +1,4 @@
+set(GOOGLETEST_VERSION "1.12")
 add_subdirectory(gtest/googletest)
 enable_testing()
 
