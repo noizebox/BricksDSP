@@ -217,6 +217,27 @@ inline T cosine_int(T pos, T* data)
     return(d1 * (1.0f - f2) + d2 * f2);
 }
 
+/* First order allpass interpolator */
+template <typename T>
+class AllpassInterpolator
+{
+public:
+    T interpolate(T pos, const T* data)
+    {
+        auto first = static_cast<int>(pos);
+        T frac = pos - first;
+        T d1 = data[first];
+        T d2 = data[first + 1];
+        T coeff = (static_cast<T>(1.0) - frac) / (static_cast<T>(1.0) + frac);
+
+        _state = coeff * (d2 - _state) + d1;
+        return _state;
+    }
+
+private:
+    T _state{0};
+};
+
 /* Simple class for modelling RC circuits */
 template<typename FloatType>
 class RCStage

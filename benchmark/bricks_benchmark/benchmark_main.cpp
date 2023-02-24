@@ -73,10 +73,12 @@ BENCHMARK_TEMPLATE(BrickBM, bricks::FixedDelayBrick<InterpolationType::NONE>, 0,
 BENCHMARK_TEMPLATE(BrickBM, bricks::FixedDelayBrick<InterpolationType::LIN>, 0, 1, AudioType::NOISE);
 BENCHMARK_TEMPLATE(BrickBM, bricks::FixedDelayBrick<InterpolationType::CUBIC>, 0, 1, AudioType::NOISE);
 BENCHMARK_TEMPLATE(BrickBM, bricks::FixedDelayBrick<InterpolationType::CR_CUB>, 0, 1, AudioType::NOISE);
+BENCHMARK_TEMPLATE(BrickBM, bricks::FixedDelayBrick<InterpolationType::ALLPASS>, 0, 1, AudioType::NOISE);
 
 BENCHMARK_TEMPLATE(BrickBM, bricks::ModDelayBrick<InterpolationType::LIN>, 1, 1, AudioType::NOISE);
 BENCHMARK_TEMPLATE(BrickBM, bricks::ModDelayBrick<InterpolationType::CUBIC>, 1, 1, AudioType::NOISE);
 BENCHMARK_TEMPLATE(BrickBM, bricks::ModDelayBrick<InterpolationType::CR_CUB>, 1, 1, AudioType::NOISE);
+BENCHMARK_TEMPLATE(BrickBM, bricks::ModDelayBrick<InterpolationType::ALLPASS>, 1, 1, AudioType::NOISE);
 
 BENCHMARK_TEMPLATE(BrickBM, bricks::ModulatedDelayBrick, 1, 1, AudioType::NOISE);
 

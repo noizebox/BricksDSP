@@ -63,7 +63,6 @@ TEST(LinearInterpolatorTest, TestOperation)
     ASSERT_FLOAT_EQ(1.0f, buffer[PROC_BLOCK_SIZE / 2 -1]);
 }
 
-
 TEST(OnePoleLagTest, TestOperation)
 {
     OnePoleLag<16> _module_under_test;
@@ -158,6 +157,19 @@ TEST(InterpolatorTest, TestCosine)
 
     EXPECT_GE(cosine_int(7.0f, INT_DATA.data()), 0.5);
     EXPECT_LE(cosine_int(7.0f, INT_DATA.data()), 1);
+}
+
+TEST(InterpolatorTest, TestAllpass)
+{
+    AllpassInterpolator<float> interpolator;
+    AudioBuffer buffer;
+    make_test_sine_wave(buffer);
+    EXPECT_NEAR(std::sin(0.75), interpolator.interpolate(0.5, buffer.data()), 0.1);
+    EXPECT_NEAR(std::sin(1.25), interpolator.interpolate(1.5, buffer.data()), 0.1);
+    EXPECT_NEAR(std::sin(1.75), interpolator.interpolate(2.5, buffer.data()), 0.1);
+    EXPECT_NEAR(std::sin(2.25), interpolator.interpolate(3.5, buffer.data()), 0.1);
+    EXPECT_NEAR(std::sin(2.75), interpolator.interpolate(4.5, buffer.data()), 0.1);
+    EXPECT_NEAR(std::sin(3.25), interpolator.interpolate(5.5, buffer.data()), 0.1);
 }
 
 TEST(RCLowPassTest, TestOperation)

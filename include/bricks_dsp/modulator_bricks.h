@@ -20,7 +20,8 @@ enum class InterpolationType
     NONE,
     LIN,
     CUBIC,
-    CR_CUB
+    CR_CUB,
+    ALLPASS
 };
 
 /* Simple and cheap sample-by sample clipper with a choice of tanh saturation or brickwall clipping */
@@ -258,6 +259,8 @@ public:
         _copy_audio_in(_input_buffer(DEFAULT_INPUT));
         auto read_index = _get_read_index();
         auto& audio_out = _output_buffer(AudioOutput::DELAY_OUT);
+        auto inter = _int;
+
         for (int i = 0; i < PROC_BLOCK_SIZE; ++i)
         {
             assert(read_index <= _max_samples + PROC_BLOCK_SIZE);
@@ -274,7 +277,13 @@ public:
 
             else if constexpr (type == InterpolationType::CR_CUB)
                 audio_out[i] = catmull_rom_cubic_int(read_index++, _buffer);
+
+            else if constexpr (type == InterpolationType::ALLPASS)
+                audio_out[i] = inter.interpolate(read_index++, _buffer);
         }
+
+        _int = inter;
+
     }
 
 private:
@@ -287,6 +296,7 @@ private:
     }
 
     DelayIndex  _delay{0};
+    AllpassInterpolator<float> _int;
 };
 
 
@@ -338,6 +348,7 @@ public:
         auto mod_lag = _mod_lag;
         mod_lag.set(clamp(_ctrl_value(ControlInput::DELAY_MOD), 0.0f, 1.0f));
         auto& audio_out = _output_buffer(AudioOutput::DELAY_OUT);
+        auto inter = _int;
 
         for (int i = 0; i < PROC_BLOCK_SIZE; ++i)
         {
@@ -353,8 +364,12 @@ public:
 
             else if constexpr (type == InterpolationType::CR_CUB)
                 audio_out[i] = catmull_rom_cubic_int(read_index, _buffer);
+
+            else if constexpr (type == InterpolationType::ALLPASS)
+                audio_out[i] = inter.interpolate(read_index++, _buffer);
         }
         _mod_lag = mod_lag;
+        _int = inter;
     }
 
 private:
@@ -366,6 +381,7 @@ private:
 
     ControlSmootherLinear _mod_lag;
     float                 _delay{0};
+    AllpassInterpolator<float> _int;
 };
 
 
@@ -479,7 +495,7 @@ public:
             float delay_out;
             if constexpr (type == InterpolationType::NONE)
             {
-                unsigned index = (write_index + mod_int);
+                int index = (write_index + mod_int);
                 while (index >= length)
                 {
                     index -= length;
