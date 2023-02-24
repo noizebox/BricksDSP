@@ -15,15 +15,6 @@ enum class ClipType
     HARD
 };
 
-enum class InterpolationType
-{
-    NONE,
-    LIN,
-    CUBIC,
-    CR_CUB,
-    ALLPASS
-};
-
 /* Simple and cheap sample-by sample clipper with a choice of tanh saturation or brickwall clipping */
 template <ClipType type>
 class SaturationBrick : public DspBrickImpl<1, 0, 1, 1>
@@ -222,7 +213,7 @@ private:
 /* Fixed delay line with selectable interpolation. For efficient memory usage,
  * do not use with a max delay much longer than the actual delay used.
  * Changing the delay line while running is safe but will cause artifacts */
-template <InterpolationType type>
+template <typename Interpolator>
 class FixedDelayBrick : public BasicDelay
 {
 public:
@@ -259,35 +250,19 @@ public:
         _copy_audio_in(_input_buffer(DEFAULT_INPUT));
         auto read_index = _get_read_index();
         auto& audio_out = _output_buffer(AudioOutput::DELAY_OUT);
-        auto inter = _int;
+        auto inter = _interpolator;
 
         for (int i = 0; i < PROC_BLOCK_SIZE; ++i)
         {
             assert(read_index <= _max_samples + PROC_BLOCK_SIZE);
             assert(read_index >= 0);
-
-            if constexpr (type == InterpolationType::NONE)
-                audio_out[i] = _buffer[read_index++];
-
-            else if constexpr (type == InterpolationType::LIN)
-                audio_out[i] = linear_int(read_index++, _buffer);
-
-            else if constexpr (type == InterpolationType::CUBIC)
-                audio_out[i] = cubic_int(read_index++, _buffer);
-
-            else if constexpr (type == InterpolationType::CR_CUB)
-                audio_out[i] = catmull_rom_cubic_int(read_index++, _buffer);
-
-            else if constexpr (type == InterpolationType::ALLPASS)
-                audio_out[i] = inter.interpolate(read_index++, _buffer);
+            audio_out[i] = inter.interpolate(read_index++, _buffer);
         }
-
-        _int = inter;
-
+        _interpolator = inter;
     }
 
 private:
-    using DelayIndex = std::conditional_t<type == InterpolationType::NONE, int, float>;
+    using DelayIndex = std::conditional_t<std::is_same_v<Interpolator, ZerothInterpolation<>>, int, float>;
 
     DelayIndex _get_read_index()
     {
@@ -295,8 +270,8 @@ private:
         return pos >= 0? pos : _max_samples + pos;
     }
 
-    DelayIndex  _delay{0};
-    AllpassInterpolator<float> _int;
+    DelayIndex   _delay{0};
+    Interpolator _interpolator;
 };
 
 
@@ -304,7 +279,7 @@ private:
  * and slow modulations. Think chorus/flanger/reverb as this modulates
  * the delay offset directly.
  * For heavy, tape-like modulation. Use the delay line below instead */
-template <InterpolationType type>
+template <typename Interpolator>
 class ModDelayBrick : public BasicDelay
 {
 public:
@@ -348,7 +323,7 @@ public:
         auto mod_lag = _mod_lag;
         mod_lag.set(clamp(_ctrl_value(ControlInput::DELAY_MOD), 0.0f, 1.0f));
         auto& audio_out = _output_buffer(AudioOutput::DELAY_OUT);
-        auto inter = _int;
+        auto inter = _interpolator;
 
         for (int i = 0; i < PROC_BLOCK_SIZE; ++i)
         {
@@ -356,20 +331,10 @@ public:
             auto read_index = _get_read_index(delay);
             assert(read_index < _max_samples + PROC_BLOCK_SIZE);
 
-            if constexpr (type == InterpolationType::LIN)
-                audio_out[i] = linear_int(read_index, _buffer);
-
-            else if constexpr (type == InterpolationType::CUBIC)
-                audio_out[i] = cubic_int(read_index, _buffer);
-
-            else if constexpr (type == InterpolationType::CR_CUB)
-                audio_out[i] = catmull_rom_cubic_int(read_index, _buffer);
-
-            else if constexpr (type == InterpolationType::ALLPASS)
-                audio_out[i] = inter.interpolate(read_index++, _buffer);
+            audio_out[i] = inter.interpolate(read_index++, _buffer);
         }
         _mod_lag = mod_lag;
-        _int = inter;
+        _interpolator = inter;
     }
 
 private:
@@ -381,7 +346,7 @@ private:
 
     ControlSmootherLinear _mod_lag;
     float                 _delay{0};
-    AllpassInterpolator<float> _int;
+    Interpolator          _interpolator;
 };
 
 
@@ -452,7 +417,7 @@ private:
  * non-modulated delays.
  * Can probably be more efficiently interpolated using block based
  * processing for fixed delays */
-template<InterpolationType type, int length>
+template<int length>
 class AllpassDelayBrick : public DspBrickImpl<2, 0, 1, 1>
 {
 public:
@@ -492,16 +457,12 @@ public:
 
         for (int i = 0; i < PROC_BLOCK_SIZE; ++i)
         {
-            float delay_out;
-            if constexpr (type == InterpolationType::NONE)
+            int index = (write_index + mod_int);
+            while (index >= length)
             {
-                int index = (write_index + mod_int);
-                while (index >= length)
-                {
-                    index -= length;
-                }
-                delay_out = _buffer[index];
+                index -= length;
             }
+            float delay_out = _buffer[index];
 
             float delay_in = in[i] + gain * delay_out;
             _buffer[write_index++] = delay_in;

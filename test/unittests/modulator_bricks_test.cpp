@@ -85,8 +85,8 @@ protected:
     }
 
     AudioBuffer          _buffer;
-    FixedDelayBrick<InterpolationType::LIN>  _test_module{&_buffer, std::chrono::milliseconds(200)};
-    const AudioBuffer&   _out_buffer{*_test_module.audio_output(FixedDelayBrick<InterpolationType::CUBIC>::DELAY_OUT)};
+    FixedDelayBrick<LinearInterpolation<float>>  _test_module{&_buffer, std::chrono::milliseconds(200)};
+    const AudioBuffer&   _out_buffer{*_test_module.audio_output(FixedDelayBrick<LinearInterpolation<float>>::DELAY_OUT)};
 };
 
 TEST_F(FixedDelayBrickTest, OperationTest)
@@ -136,8 +136,9 @@ protected:
 
     AudioBuffer          _buffer;
     float                _delay_mod{0};
-    ModDelayBrick<InterpolationType::CUBIC>  _test_module{&_delay_mod, &_buffer, std::chrono::milliseconds(200)};
-    const AudioBuffer&   _out_buffer{*_test_module.audio_output(ModDelayBrick<InterpolationType::LIN>::DELAY_OUT)};
+    ModDelayBrick<CubicInterpolation<float>>  _test_module{&_delay_mod, &_buffer, std::chrono::milliseconds(200)};
+    const AudioBuffer&   _out_buffer{*_test_module.audio_output(ModDelayBrick<CubicInterpolation<float>>::DELAY_OUT)};
+
 };
 
 TEST_F(ModDelayBrickTest, OperationTest)
@@ -183,8 +184,8 @@ protected:
     AudioBuffer          _buffer;
     float                _delay_time{1.0};
     float                _gain{0.5};
-    AllpassDelayBrick<InterpolationType::NONE, 4>  _test_module{&_delay_time, &_gain, &_buffer};
-    const AudioBuffer&   _out_buffer{*_test_module.audio_output(AllpassDelayBrick<InterpolationType::NONE, 100>::DELAY_OUT)};
+    AllpassDelayBrick<4>  _test_module{&_delay_time, &_gain, &_buffer};
+    const AudioBuffer&   _out_buffer{*_test_module.audio_output(AllpassDelayBrick<4>::DELAY_OUT)};
 };
 
 TEST_F(AllpassDelayBrickTest, OperationTest)

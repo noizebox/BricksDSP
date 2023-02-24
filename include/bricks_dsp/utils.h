@@ -164,7 +164,7 @@ inline T linear_int(T pos, const T* data)
 
 /* Normal cubic interpolation */
 template <typename T>
-inline T cubic_int(T pos, T* data)
+inline T cubic_int(T pos, const T* data)
 {
     auto first = static_cast<int>(pos);
     T frac = pos - std::floor(pos);
@@ -185,7 +185,7 @@ inline T cubic_int(T pos, T* data)
 
 /* Catmull-Rom splines, aka Hermite interpolation (Second order) */
 template <typename T>
-inline T catmull_rom_cubic_int(T pos, T* data)
+inline T catmull_rom_cubic_int(T pos, const T* data)
 {
     auto first = static_cast<int>(pos);
     T frac = pos - std::floor(pos);
@@ -206,7 +206,7 @@ inline T catmull_rom_cubic_int(T pos, T* data)
 
 /* Cosine interpolation, good for smooth transitions */
 template <typename T>
-inline T cosine_int(T pos, T* data)
+inline T cosine_int(T pos, const T* data)
 {
     auto first = static_cast<int>(pos);
     T frac = pos - std::floor(pos);
@@ -217,9 +217,64 @@ inline T cosine_int(T pos, T* data)
     return(d1 * (1.0f - f2) + d2 * f2);
 }
 
+template <typename T = float>
+class ZerothInterpolation
+{
+public:
+    inline T interpolate(T pos, const T* data)
+    {
+        return data[static_cast<int>(pos)];
+    }
+    /* Overload to avoid a float to int conversion */
+    inline T interpolate(int pos, const T* data)
+    {
+        return data[pos];
+    }
+};
+
+template <typename T = float>
+class LinearInterpolation
+{
+public:
+    inline T interpolate(T pos, const T* data)
+    {
+        return linear_int<T>(pos, data);
+    }
+};
+
+template <typename T = float>
+class CubicInterpolation
+{
+public:
+    inline T interpolate(T pos, const T* data)
+    {
+        return cubic_int<T>(pos, data);
+    }
+};
+
+template <typename T = float>
+class CRCubicInterpolation
+{
+public:
+    inline T interpolate(T pos, const T* data)
+    {
+        return catmull_rom_cubic_int<T>(pos, data);
+    }
+};
+
+template <typename T = float>
+class CosineInterpolation
+{
+public:
+    inline T interpolate(T pos, const T* data)
+    {
+        return cosine_int<T>(pos, data);
+    }
+};
+
 /* First order allpass interpolator */
 template <typename T>
-class AllpassInterpolator
+class AllpassInterpolation
 {
 public:
     T interpolate(T pos, const T* data)

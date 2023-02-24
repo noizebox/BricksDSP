@@ -161,7 +161,7 @@ TEST(InterpolatorTest, TestCosine)
 
 TEST(InterpolatorTest, TestAllpass)
 {
-    AllpassInterpolator<float> interpolator;
+    AllpassInterpolation<float> interpolator;
     AudioBuffer buffer;
     make_test_sine_wave(buffer);
     EXPECT_NEAR(std::sin(0.75), interpolator.interpolate(0.5, buffer.data()), 0.1);
