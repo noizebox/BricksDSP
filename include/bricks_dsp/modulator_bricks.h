@@ -308,7 +308,13 @@ public:
 
     void set_delay_time(std::chrono::duration<float> delay)
     {
-        _delay = clamp(_samplerate * delay.count(), 0, _max_delay);
+        set_delay_samples(_samplerate * delay.count());
+    }
+
+    /* Note that this can still be a fraction if interpolation is not NONE */
+    void set_delay_samples(float samples)
+    {
+        _delay = clamp(samples, 0, _max_delay);
     }
 
     void reset() override
@@ -327,7 +333,8 @@ public:
 
         for (int i = 0; i < PROC_BLOCK_SIZE; ++i)
         {
-            float delay = clamp(_delay * (1.0f - _mod_lag.get()) - i, 0, _max_delay);
+            /* 0.5 is the mid-point. Delay is modulated around the set delay */
+            float delay = clamp(_delay * (mod_lag.get() * 2.0f) - i, 0, _max_delay);
             auto read_index = _get_read_index(delay);
             assert(read_index < _max_samples + PROC_BLOCK_SIZE);
 
@@ -340,7 +347,7 @@ public:
 private:
     float _get_read_index(float delay)
     {
-        auto pos = _write_index - delay- PROC_BLOCK_SIZE;
+        auto pos = _write_index - delay - PROC_BLOCK_SIZE;
         return pos >= 0? pos : _max_samples + pos;
     }
 

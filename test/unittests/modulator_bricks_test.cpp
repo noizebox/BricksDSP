@@ -135,8 +135,8 @@ protected:
     }
 
     AudioBuffer          _buffer;
-    float                _delay_mod{0};
-    ModDelayBrick<CubicInterpolation<float>>  _test_module{&_delay_mod, &_buffer, std::chrono::milliseconds(200)};
+    float                _delay_mod{0.5};
+    ModDelayBrick<LinearInterpolation<float>>  _test_module{&_delay_mod, &_buffer, std::chrono::milliseconds(200)};
     const AudioBuffer&   _out_buffer{*_test_module.audio_output(ModDelayBrick<CubicInterpolation<float>>::DELAY_OUT)};
 
 };
@@ -147,6 +147,35 @@ TEST_F(ModDelayBrickTest, OperationTest)
     assert_buffer(_out_buffer, 0.0f);
 }
 
+TEST_F(ModDelayBrickTest, AccuracyTest)
+{
+    /* Delay == 1 buffer */
+    _test_module.set_delay_samples(PROC_BLOCK_SIZE);
+    _test_module.render();
+    _delay_mod = 0.5;
+    assert_buffer(_out_buffer, 0.0f);
+    _test_module.render();
+    assert_buffer(_out_buffer, 1.0f);
+
+    /* Modulate delay to 1.5 buffers */
+    _test_module.reset();
+    _delay_mod = 0.75;
+    _test_module.render();
+    assert_buffer(_out_buffer, 0.0f);
+    _test_module.render();
+    /* First half of buffer should be 0, the rest should be 1:s */
+    for (int i = 0; i < PROC_BLOCK_SIZE; ++i)
+    {
+        if (i < PROC_BLOCK_SIZE / 2)
+        {
+            EXPECT_FLOAT_EQ(0.0f, _out_buffer[i]);
+        }
+        else
+        {
+            EXPECT_GT(_out_buffer[i], 0.0f);
+        }
+    }
+}
 
 class ModulatedDelayBrickTest : public ::testing::Test
 {
@@ -196,6 +225,18 @@ TEST_F(AllpassDelayBrickTest, OperationTest)
     EXPECT_FLOAT_EQ(_out_buffer[2], 0.0f);
     EXPECT_FLOAT_EQ(_out_buffer[3], 0.0f);
     EXPECT_FLOAT_EQ(_out_buffer[4], 0.75f); // Second impulse here
+    EXPECT_FLOAT_EQ(_out_buffer[5], 0.0f);
+
+    /* Modulate the delay */
+    SetUp();
+    _delay_time = 0.5f;
+    _test_module.reset();
+    _test_module.render();
+    EXPECT_FLOAT_EQ(_out_buffer[0], -0.5f);
+    EXPECT_FLOAT_EQ(_out_buffer[1], 0.0f);
+    EXPECT_FLOAT_EQ(_out_buffer[2], 0.75f);  // Second impulse here
+    EXPECT_FLOAT_EQ(_out_buffer[3], 0.0f);
+    EXPECT_FLOAT_EQ(_out_buffer[4], 0.375f); // Third impulse here
     EXPECT_FLOAT_EQ(_out_buffer[5], 0.0f);
 }
 
