@@ -40,20 +40,27 @@ public:
         const auto& audio_in = _input_buffer(DEFAULT_INPUT);
         auto& audio_out = _output_buffer(AudioOutput::VCA_OUT);
         float gain = _ctrl_value(ControlInput::GAIN);
-        if constexpr (response == Response::LINEAR)
+        if (response == Response::LOG)
         {
-            _gain_lag.set(gain);
+            gain = to_db_approx(gain);
         }
-        else if (response == Response::LOG)
+        _gain_lag.set(gain);
+        if (_gain_lag.moving())
         {
-            _gain_lag.set(to_db_approx(gain));
+            auto gain_lag = _gain_lag;
+            for (int s = 0; s < audio_out.size(); ++s)
+            {
+                audio_out[s] = audio_in[s] * gain_lag.get();
+            }
+            _gain_lag = gain_lag;
         }
-        auto gain_lag = _gain_lag;
-        for (int s = 0; s < audio_out.size(); ++s)
+        else
         {
-            audio_out[s] = audio_in[s] * gain_lag.get();
+            for (int s = 0; s < audio_out.size(); ++s)
+            {
+                audio_out[s] = audio_in[s] * gain;
+            }
         }
-        _gain_lag = gain_lag;
     }
 
 private:
@@ -97,21 +104,29 @@ public:
 
         for (int i = 0; i < channel_count; ++i)
         {
-            float gain = this_template::_ctrl_value(i);
-            if constexpr (response == Response::LINEAR)
-            {
-                _gain_lags[i].set(gain);
-            }
-            else if (response == Response::LOG)
-            {
-                _gain_lags[i].set(to_db_approx(gain));
-            }
-
             auto gain_lag = _gain_lags[i];
-            const auto& audio_in = this_template::_input_buffer(i);
-            for (int s = 0; s < audio_out.size(); ++s)
+
+            float gain = this_template::_ctrl_value(i);
+            if constexpr (response == Response::LOG)
             {
-                audio_out[s] += audio_in[s] * gain_lag.get();
+                gain = to_db_approx(gain);
+            }
+            gain_lag.set(gain);
+            const auto& audio_in = this_template::_input_buffer(i);
+
+            if (gain_lag.moving())
+            {
+                for (int s = 0; s < audio_out.size(); ++s)
+                {
+                    audio_out[s] += audio_in[s] * gain_lag.get();
+                }
+            }
+            else
+            {
+                for (int s = 0; s < audio_out.size(); ++s)
+                {
+                    audio_out[s] += audio_in[s] * gain;
+                }
             }
             _gain_lags[i] = gain_lag;
         }

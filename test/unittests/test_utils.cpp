@@ -34,6 +34,6 @@ void assert_buffer(const bricks::AudioBuffer& buffer, float value)
 {
     for (const auto& sample : buffer)
     {
-        ASSERT_FLOAT_EQ(value, sample);
+        EXPECT_FLOAT_EQ(value, sample);
     }
 }

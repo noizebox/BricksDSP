@@ -127,7 +127,7 @@ std::unique_ptr<T> make_brick_array_args(const std::array<float, ctrl_inputs>& c
  * audio_type   - The type of audio to pass through - if performance depends on branch pred. or similar
  * array_args   - if true, format the constructor arguments into arrays of ControlPorts and AudioPorts,
  *                Else, use variadic expansion for passing arguments */
-template<typename T, int ctrl_inputs, int audio_inputs, AudioType audio_type, bool array_args = false>
+template<typename T, int ctrl_inputs, int audio_inputs, AudioType audio_type, bool array_args = false, bool modulate_ctrl_data = true>
 static void BrickBM(benchmark::State& state)
 {
     denormals_intrinsic();
@@ -137,6 +137,7 @@ static void BrickBM(benchmark::State& state)
     auto audio_data = get_audio_data(audio_type);
 
     ctrl_signals.fill(0.0);
+    constexpr float CTRL_INC = 1.0f / TEST_AUDIO_DATA_SIZE;
 
     std::unique_ptr<DspBrick> test_module;
     if constexpr (array_args)
@@ -157,7 +158,7 @@ static void BrickBM(benchmark::State& state)
     int samples = 0;
     for (auto _ : state)
     {
-        if (samples >= TEST_AUDIO_DATA_SIZE - bricks::PROC_BLOCK_SIZE)
+        if (samples++ >= TEST_AUDIO_DATA_SIZE - bricks::PROC_BLOCK_SIZE)
         {
             samples = 0;
         }
@@ -165,9 +166,12 @@ static void BrickBM(benchmark::State& state)
         {
             std::copy(audio_data->data() + samples, audio_data->data() + samples + bricks::PROC_BLOCK_SIZE, i.data());
         }
-        for (auto& i : ctrl_signals)
+        if constexpr (modulate_ctrl_data)
         {
-            i = static_cast<float>(samples) / TEST_AUDIO_DATA_SIZE;
+            for (auto& i: ctrl_signals)
+            {
+                i = static_cast<float>(samples) * CTRL_INC;
+            }
         }
         /* Do processing.
          * The changing of control values and copying of audio data above will be included

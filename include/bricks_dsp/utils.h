@@ -89,7 +89,9 @@ public:
         _step = 0;
     }
 
-    float step() {return _step;}
+    [[nodiscard]] float step() {return _step;}
+
+    [[nodiscard]] bool moving() {return _step != 0.0f;};
 
 private:
     float _lag{0};

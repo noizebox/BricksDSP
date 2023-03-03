@@ -54,6 +54,8 @@ TEST(LinearInterpolatorTest, TestOperation)
     AudioBuffer buffer;
     ASSERT_FLOAT_EQ(0.0f, _module_under_test.get());
     _module_under_test.set(2.0f);
+    EXPECT_TRUE(_module_under_test.moving());
+
     for (auto& sample : buffer)
     {
         sample = _module_under_test.get();
@@ -61,6 +63,15 @@ TEST(LinearInterpolatorTest, TestOperation)
     /* It should equal target in the last sample and be at 50% half way */
     ASSERT_FLOAT_EQ(2.0f, buffer[PROC_BLOCK_SIZE -1]);
     ASSERT_FLOAT_EQ(1.0f, buffer[PROC_BLOCK_SIZE / 2 -1]);
+
+    /* It should now be stationary */
+    _module_under_test.set(2.0f);
+    EXPECT_FALSE(_module_under_test.moving());
+    for (auto& sample : buffer)
+    {
+        sample = _module_under_test.get();
+    }
+    assert_buffer(buffer, 2.0f);
 }
 
 TEST(OnePoleLagTest, TestOperation)
