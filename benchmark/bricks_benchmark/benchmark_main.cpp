@@ -114,6 +114,14 @@ BENCHMARK_TEMPLATE(BrickBM, bricks::AudioMixerBrick<16, Response::LOG>, 16, 16, 
 BENCHMARK_TEMPLATE(BrickBM, bricks::AudioMixerBrick<16, Response::LINEAR>, 16, 16, AudioType::NOISE, PASS_ARRAY_ARGS, FIXED_CTRL_DATA);
 BENCHMARK_TEMPLATE(BrickBM, bricks::AudioMixerBrick<16, Response::LOG>, 16, 16, AudioType::NOISE, PASS_ARRAY_ARGS, FIXED_CTRL_DATA);
 
+BENCHMARK_TEMPLATE(BrickBM, bricks::StereoMixerBrick<4, Response::LINEAR>, 8, 4, AudioType::NOISE, PASS_ARRAY_ARGS);
+BENCHMARK_TEMPLATE(BrickBM, bricks::StereoMixerBrick<4, Response::LOG>, 8, 4, AudioType::NOISE, PASS_ARRAY_ARGS);
+BENCHMARK_TEMPLATE(BrickBM, bricks::StereoMixerBrick<4, Response::LOG>, 8, 4, AudioType::NOISE, PASS_ARRAY_ARGS, FIXED_CTRL_DATA);
+BENCHMARK_TEMPLATE(BrickBM, bricks::StereoMixerBrick<8, Response::LOG>, 16, 8, AudioType::NOISE, PASS_ARRAY_ARGS);
+BENCHMARK_TEMPLATE(BrickBM, bricks::StereoMixerBrick<8, Response::LOG>, 16, 8, AudioType::NOISE, PASS_ARRAY_ARGS, FIXED_CTRL_DATA);
+BENCHMARK_TEMPLATE(BrickBM, bricks::StereoMixerBrick<16, Response::LOG>, 32, 16, AudioType::NOISE, PASS_ARRAY_ARGS);
+BENCHMARK_TEMPLATE(BrickBM, bricks::StereoMixerBrick<16, Response::LOG>, 32, 16, AudioType::NOISE, PASS_ARRAY_ARGS, FIXED_CTRL_DATA);
+
 BENCHMARK_TEMPLATE(BrickBM, bricks::AudioSummerBrick<4>, 0, 4, AudioType::NOISE);
 BENCHMARK_TEMPLATE(BrickBM, bricks::AudioSummerBrick<8>, 0, 8, AudioType::NOISE);
 BENCHMARK_TEMPLATE(BrickBM, bricks::AudioSummerBrick<16>, 0, 16, AudioType::NOISE);

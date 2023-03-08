@@ -104,7 +104,7 @@ public:
 
     void reset() override
     {
-        _output_buffer(AudioOutput::MIX_OUT).fill(0.0f);
+        this_template::_output_buffer(AudioOutput::MIX_OUT).fill(0.0f);
     }
 
     void render() override
@@ -146,6 +146,99 @@ private:
     std::array<ControlSmootherLinear, channel_count> _gain_lags;
 };
 
+/* General n to 2 audio mixer with individual gain controls for each input
+ * Instantiation example:
+ * StereoMixerBrick<2> mixer({pan_1, gain_1, pan_2, gain_2}, {audio_in_1, audio_in_2}); */
+
+template <int channel_count, Response response>
+class StereoMixerBrick : public DspBrickImpl<channel_count * 2, 0, channel_count, 2>
+{
+    using this_template = DspBrickImpl<channel_count * 2, 0, channel_count, 2>;
+
+public:
+    enum AudioOutput
+    {
+        LEFT_OUT = 0,
+        RIGHT_OUT
+    };
+
+    StereoMixerBrick() = default;
+
+    StereoMixerBrick(std::array<const float*, channel_count * 2> pan_gains,
+                     std::array<const AudioBuffer*, channel_count> audio_ins)
+    {
+        for (unsigned int i = 0; i < pan_gains.size(); ++i)
+        {
+            this_template::set_control_input(i, pan_gains[i]);
+        }
+        for (unsigned int i = 0; i < audio_ins.size(); ++i)
+        {
+            this_template::set_audio_input(i, audio_ins[i]);
+        }
+    }
+
+    void reset() override
+    {
+        this_template::_output_buffer(AudioOutput::LEFT_OUT).fill(0.0f);
+        this_template::_output_buffer(AudioOutput::RIGHT_OUT).fill(0.0f);
+    }
+
+    void render() override
+    {
+        auto& left_out = this_template::_output_buffer(AudioOutput::LEFT_OUT);
+        auto& right_out = this_template::_output_buffer(AudioOutput::RIGHT_OUT);
+        left_out.fill(0.0f);
+        right_out.fill(0.0f);
+
+        for (int i = 0; i < channel_count; ++i)
+        {
+            auto left_lag = _gain_lags[i * 2];
+            auto right_lag = _gain_lags[i * 2 + 1];
+
+            // 0 is fully left and 1 fully right
+            //float pan = this_template::_ctrl_value(i * 2) * 2.0f - 1.0f;
+            float pan = clamp(this_template::_ctrl_value(i * 2), 0.0f, 1.0f);
+            float gain = this_template::_ctrl_value(i * 2 + 1);
+
+            if constexpr (response == Response::LOG)
+            {
+                gain = to_db_approx(gain);
+            }
+
+            // Equal gain pan law (-6dB), should probably do better curves
+            float left_gain = gain * pan;
+            float right_gain = gain * 1.0f - pan;
+
+            left_lag.set(left_gain);
+            right_lag.set(right_gain);
+
+            const auto& audio_in = this_template::_input_buffer(i);
+
+            if (left_lag.moving() || right_lag.moving())
+            {
+                for (int s = 0; s < left_out.size(); ++s)
+                {
+                    left_out[s] += audio_in[s] * left_lag.get();
+                    right_out[s] += audio_in[s] * right_lag.get();
+                }
+            }
+            else
+            {
+                for (int s = 0; s < left_out.size(); ++s)
+                {
+                    left_out[s] += audio_in[s] * left_gain;
+                    right_out[s] += audio_in[s] * right_gain;
+                }
+            }
+            _gain_lags[i * 2] = left_lag;
+            _gain_lags[i * 2 + 1] = right_lag;
+        }
+    }
+
+private:
+    std::array<ControlSmootherLinear, channel_count * 2> _gain_lags;
+};
+
 /* General n to 1 audio mixer without gain controls */
 template <int channel_count>
 class AudioSummerBrick : public DspBrickImpl<0, 0, channel_count, 1>
@@ -173,7 +266,7 @@ public:
 
     void reset() override
     {
-        _output_buffer(AudioOutput::SUM_OUT).fill(0.0f);
+        this_template::_output_buffer(AudioOutput::SUM_OUT).fill(0.0f);
     }
 
     void render() override
@@ -219,7 +312,7 @@ public:
 
     void reset() override
     {
-        _output_buffer(AudioOutput::MULT_OUT).fill(0.0f);
+        this_template::_output_buffer(AudioOutput::MULT_OUT).fill(0.0f);
     }
 
     void render() override

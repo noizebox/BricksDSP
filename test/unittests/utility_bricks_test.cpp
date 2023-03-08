@@ -55,6 +55,46 @@ TEST_F(AudioMixerBrickTest, OperationalTest)
     assert_buffer(*_test_module.audio_output(AudioMixerBrick<2, Response::LOG>::MIX_OUT), 0.75f);
 }
 
+class StereoMixerBrickTest : public ::testing::Test
+{
+protected:
+    StereoMixerBrickTest() {}
+
+    AudioBuffer _buffer_1;
+    AudioBuffer _buffer_2;
+    float       _pan_1;
+    float       _gain_1;
+    float       _pan_2;
+    float       _gain_2;
+    StereoMixerBrick<2, Response::LOG>  _test_module{{&_pan_1, &_gain_1, &_pan_2, &_gain_2}, {&_buffer_1, &_buffer_2}};
+};
+
+TEST_F(StereoMixerBrickTest, OperationalTest)
+{
+    fill_buffer(_buffer_1, 0.5f);
+    fill_buffer(_buffer_2, 0.25f);
+    _pan_1 = 0.5f;
+    _pan_2 = 0.5f;
+    _gain_1 = 1.0f;
+    _gain_2 = 1.0f;
+    /* Render twice so that levels stabilise */
+    _test_module.render();
+    _test_module.render();
+    assert_buffer(*_test_module.audio_output(StereoMixerBrick<2, Response::LOG>::LEFT_OUT), 0.375f);
+    assert_buffer(*_test_module.audio_output(StereoMixerBrick<2, Response::LOG>::RIGHT_OUT), 0.375f);
+
+    // Tweak pan
+    _pan_1 = 1.0f;
+    _pan_2 = 0.0f;
+    _gain_1 = 1.0f;
+    _gain_2 = 1.0f;
+    /* Render twice so that levels stabilise */
+    _test_module.render();
+    _test_module.render();
+    assert_buffer(*_test_module.audio_output(StereoMixerBrick<2, Response::LOG>::LEFT_OUT), 0.5f);
+    assert_buffer(*_test_module.audio_output(StereoMixerBrick<2, Response::LOG>::RIGHT_OUT), 0.25f);
+}
+
 class AudioSummerBrickTest : public ::testing::Test
 {
 protected:
