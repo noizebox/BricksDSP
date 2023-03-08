@@ -121,12 +121,13 @@ std::unique_ptr<T> make_brick_array_args(const std::array<float, ctrl_inputs>& c
 /* Generic test fixture that passes a given number of control and audio inputs to the
  * DspBrick to benchmark
  *
- * T            - DspBrick type to benchmark
- * ctrl_inputs  - Number of control inputs to the brick
- * audio_inputs - Number of audio inputs to the brick
- * audio_type   - The type of audio to pass through - if performance depends on branch pred. or similar
- * array_args   - if true, format the constructor arguments into arrays of ControlPorts and AudioPorts,
- *                Else, use variadic expansion for passing arguments */
+ * T                  - DspBrick type to benchmark
+ * ctrl_inputs        - Number of control inputs to the brick
+ * audio_inputs       - Number of audio inputs to the brick
+ * audio_type         - The type of audio to pass through - if performance depends on branch pred. or similar
+ * array_args         - If true, format the constructor arguments into arrays of ControlPorts and AudioPorts,
+ *                      Else, use variadic expansion for passing arguments
+ * modulate_ctrl_data - If true, modulate control data between calls to render */
 template<typename T, int ctrl_inputs, int audio_inputs, AudioType audio_type, bool array_args = false, bool modulate_ctrl_data = true>
 static void BrickBM(benchmark::State& state)
 {

@@ -162,7 +162,7 @@ public:
         set_max_delay_time(_max_delay_time);
     }
 
-    virtual void reset() override
+    void reset() override
     {
         std::fill(_buffer, _buffer + _max_samples + PROC_BLOCK_SIZE, 0.0f);
     }

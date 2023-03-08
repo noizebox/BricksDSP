@@ -35,6 +35,11 @@ public:
         set_audio_input(DEFAULT_INPUT, audio_in);
     }
 
+    void reset() override
+    {
+        _output_buffer(AudioOutput::VCA_OUT).fill(0.0f);
+    }
+
     void render() override
     {
         const auto& audio_in = _input_buffer(DEFAULT_INPUT);
@@ -95,6 +100,11 @@ public:
         {
             this_template::set_audio_input(i, audio_ins[i]);
         }
+    }
+
+    void reset() override
+    {
+        _output_buffer(AudioOutput::MIX_OUT).fill(0.0f);
     }
 
     void render() override
@@ -161,6 +171,11 @@ public:
         }
     }
 
+    void reset() override
+    {
+        _output_buffer(AudioOutput::SUM_OUT).fill(0.0f);
+    }
+
     void render() override
     {
         auto& audio_out = this_template::_output_buffer(AudioOutput::SUM_OUT);
@@ -200,6 +215,11 @@ public:
         {
             this_template::set_audio_input(i, audio_ins[i]);
         }
+    }
+
+    void reset() override
+    {
+        _output_buffer(AudioOutput::MULT_OUT).fill(0.0f);
     }
 
     void render() override
