@@ -91,8 +91,19 @@ TEST_F(StereoMixerBrickTest, OperationalTest)
     /* Render twice so that levels stabilise */
     _test_module.render();
     _test_module.render();
-    assert_buffer(*_test_module.audio_output(StereoMixerBrick<2, Response::LOG>::LEFT_OUT), 0.5f);
-    assert_buffer(*_test_module.audio_output(StereoMixerBrick<2, Response::LOG>::RIGHT_OUT), 0.25f);
+    assert_buffer(*_test_module.audio_output(StereoMixerBrick<2, Response::LOG>::LEFT_OUT), 0.25f);
+    assert_buffer(*_test_module.audio_output(StereoMixerBrick<2, Response::LOG>::RIGHT_OUT), 0.5f);
+
+    // Zero gain
+    _pan_1 = .75f;
+    _pan_2 = 0.2f;
+    _gain_1 = 0.0f;
+    _gain_2 = 0.0f;
+    /* Render twice so that levels stabilise */
+    _test_module.render();
+    _test_module.render();
+    assert_buffer(*_test_module.audio_output(StereoMixerBrick<2, Response::LOG>::LEFT_OUT), 0.0f);
+    assert_buffer(*_test_module.audio_output(StereoMixerBrick<2, Response::LOG>::RIGHT_OUT), 0.0f);
 }
 
 class AudioSummerBrickTest : public ::testing::Test

@@ -206,8 +206,8 @@ public:
             }
 
             // Equal gain pan law (-6dB), should probably do better curves
-            float left_gain = gain * pan;
-            float right_gain = gain * 1.0f - pan;
+            float left_gain = gain * (1.0f - pan);
+            float right_gain = gain * pan;
 
             left_lag.set(left_gain);
             right_lag.set(right_gain);
