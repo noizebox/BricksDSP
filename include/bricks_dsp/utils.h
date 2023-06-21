@@ -426,6 +426,31 @@ void linear_upsample(const AlignedArray<float, from_size>& audio_in,
     prev_value = prev;
 }
 
+template<int from_size, int to_size>
+void cubic_upsample(const AlignedArray<float, from_size>& audio_in,
+                    AlignedArray<float, to_size>& audio_out,
+                    AlignedArray<float, 4>& prev_values)
+{
+    static_assert(to_size % from_size == 0);
+    constexpr int factor = to_size / from_size;
+
+    auto prev = prev_values;
+    for (int i = 0; i < audio_in.size(); ++i)
+    {
+        float value = audio_in[i];
+
+        prev[0] = prev[1];
+        prev[1] = prev[2];
+        prev[2] = prev[3];
+        prev[3] = value;
+
+        for (int j = 0; j < factor; ++j)
+        {
+            audio_out[i * factor + j] = cubic_int(static_cast<float>(j) / static_cast<float>(factor), prev.data() + 1);
+        }
+    }
+    prev_values = prev;
+}
 
 } // namespace bricks
 

@@ -273,5 +273,50 @@ TEST(UpSamplerTest, TestLinearUpSampler)
     EXPECT_FLOAT_EQ(0.5,  upsampled[5]);
     EXPECT_FLOAT_EQ(0.25, upsampled[6]);
     EXPECT_FLOAT_EQ(0.0,  upsampled[7]);
+    EXPECT_FLOAT_EQ(0.25, upsampled[8]);
+    EXPECT_FLOAT_EQ(0.50, upsampled[9]);
+    EXPECT_FLOAT_EQ(0.75, upsampled[10]);
+    EXPECT_FLOAT_EQ(1.0,  upsampled[11]);
+    EXPECT_FLOAT_EQ(0.75, upsampled[12]);
+    EXPECT_FLOAT_EQ(0.5,  upsampled[13]);
+    EXPECT_FLOAT_EQ(0.25, upsampled[14]);
+    EXPECT_FLOAT_EQ(0.0,  upsampled[15]);
 
+}
+
+TEST(UpSamplerTest, TestCubicUpSampler)
+{
+    AlignedArray<float, PROC_BLOCK_SIZE / 4> buffer;
+    AudioBuffer upsampled;
+    bool val = false;
+    AlignedArray<float, 4> mem;
+    mem.fill(0.0f);
+    /* prepare a square wave */
+    for (auto& i : buffer)
+    {
+        i = val = !val;
+    }
+    cubic_upsample<8, 32>(buffer, upsampled, mem);
+
+    EXPECT_FLOAT_EQ(0.25, upsampled[0]);
+    EXPECT_FLOAT_EQ(0.50, upsampled[1]);
+    EXPECT_FLOAT_EQ(0.75, upsampled[2]);
+    EXPECT_FLOAT_EQ(1.0,  upsampled[3]);
+    EXPECT_FLOAT_EQ(0.75, upsampled[4]);
+    EXPECT_FLOAT_EQ(0.5,  upsampled[5]);
+    EXPECT_FLOAT_EQ(0.25, upsampled[6]);
+    EXPECT_FLOAT_EQ(0.0,  upsampled[7]);
+    EXPECT_FLOAT_EQ(0.25, upsampled[8]);
+    EXPECT_FLOAT_EQ(0.50, upsampled[9]);
+    EXPECT_FLOAT_EQ(0.75, upsampled[10]);
+    EXPECT_FLOAT_EQ(1.0,  upsampled[11]);
+    EXPECT_FLOAT_EQ(0.75, upsampled[12]);
+    EXPECT_FLOAT_EQ(0.5,  upsampled[13]);
+    EXPECT_FLOAT_EQ(0.25, upsampled[14]);
+    EXPECT_FLOAT_EQ(0.0,  upsampled[15]);
+    EXPECT_FLOAT_EQ(1.0,  upsampled[16]);
+    EXPECT_FLOAT_EQ(0.75, upsampled[17]);
+    EXPECT_FLOAT_EQ(0.5,  upsampled[18]);
+    EXPECT_FLOAT_EQ(0.25, upsampled[19]);
+    EXPECT_FLOAT_EQ(0.0,  upsampled[20]);
 }

@@ -19,6 +19,20 @@ constexpr bool FIXED_CTRL_DATA = false;
 BENCHMARK_TEMPLATE(BrickBM, bricks_bench::BaselineBrick, 2, 1, AudioType::SILENCE);
 BENCHMARK_TEMPLATE(BrickBM, bricks_bench::BaselineBrickCtrlOnly, 2, 0, AudioType::SILENCE);
 
+/* Up/downsample functions */
+SAMPLE_FUNCTOR(SkipDownsampleFunc, bricks::skip_downsample, 4, 1);
+BENCHMARK_TEMPLATE(FunBM, SkipDownsampleFunc ,4, 1);
+SAMPLE_FUNCTOR(ZeroStuffUpsampleFunc, bricks::zero_stuff_upsample, 1, 4);
+BENCHMARK_TEMPLATE(FunBM, ZeroStuffUpsampleFunc, 1, 4);
+SAMPLE_FUNCTOR_MEM(LinearUpsampleFunc, bricks::linear_upsample, 1, 4, float);
+BENCHMARK_TEMPLATE(FunBM, LinearUpsampleFunc, 1, 4, true);
+SAMPLE_FUNCTOR_MEM(LinearUpsampleCleverFunc, bricks::linear_upsample_clever, 1, 4, float);
+BENCHMARK_TEMPLATE(FunBM, LinearUpsampleCleverFunc, 1, 4, true);
+using CubicMem = AlignedArray<float, 4>;
+SAMPLE_FUNCTOR_MEM(CubicUpsampleFunc, bricks::cubic_upsample, 1, 4, CubicMem);
+BENCHMARK_TEMPLATE(FunBM, CubicUpsampleFunc, 1, 4, true, AlignedArray<float,4>);
+
+
 /* Envelope bricks */
 BENCHMARK_TEMPLATE(BrickBM, bricks::AudioRateADSRBrick, 4, 0, AudioType::SILENCE);
 BENCHMARK_TEMPLATE(BrickBM, bricks::LinearADSREnvelopeBrick, 4, 0, AudioType::SILENCE);

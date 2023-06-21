@@ -183,5 +183,68 @@ static void BrickBM(benchmark::State& state)
     }
 };
 
+/* Creates a functor object from free standing function fun, for use in FunBM template */
+#define SAMPLE_FUNCTOR(name, fun, from_size, to_size) \
+struct name                             \
+{                                                     \
+    void operator () (const AlignedArray<float, from_size*bricks::PROC_BLOCK_SIZE>& audio_in, AlignedArray<float, to_size*bricks::PROC_BLOCK_SIZE>& audio_out) \
+    {                                                 \
+        fun<from_size*bricks::PROC_BLOCK_SIZE, to_size*bricks::PROC_BLOCK_SIZE>(audio_in, audio_out);                     \
+    }                                                 \
+};
+
+#define SAMPLE_FUNCTOR_MEM(name, fun, from_size, to_size, mem_type) \
+struct name                             \
+{                                                     \
+    void operator () (const AlignedArray<float, from_size*bricks::PROC_BLOCK_SIZE>& audio_in, AlignedArray<float, to_size*bricks::PROC_BLOCK_SIZE>& audio_out, mem_type& memory) \
+    {                                                 \
+        fun<from_size*bricks::PROC_BLOCK_SIZE, to_size*bricks::PROC_BLOCK_SIZE>(audio_in, audio_out, memory);                     \
+    }                                                 \
+};
+
+/* Generic test fixture for free standing functions that take sample arrays of different sizes
+ *
+ * SampleFun        - Functon created with SAMPLE_FUNCTOR or SAMPLE_FUNCTOR_MEM
+ * from_size        - Size of input sample array in multiplies of bricks::PROC_BLOCK_SIZE
+ * to_size          - Size of output sample array in multiplies of bricks::PROC_BLOCK_SIZE
+ * memory_arg       - If true, uses a functor with extra memory argument
+ * mem_type         - Type of the above memory argument */
+
+template <typename SampleFun, int from_size, int to_size, bool memory_arg=false, typename mem_type=float>
+static void FunBM(benchmark::State& state)
+{
+    denormals_intrinsic();
+
+    bricks::AlignedArray<float, from_size * bricks::PROC_BLOCK_SIZE> in_audio;
+    bricks::AlignedArray<float, to_size * bricks::PROC_BLOCK_SIZE> out_audio;
+    mem_type memory;
+    auto audio_data = get_audio_data(AudioType::NOISE);
+    SampleFun func;
+
+    int samples = 0;
+    for (auto _ : state)
+    {
+        if (samples++ >= TEST_AUDIO_DATA_SIZE - bricks::PROC_BLOCK_SIZE)
+        {
+            samples = 0;
+        }
+        std::copy(audio_data->data() + samples, audio_data->data() + samples + in_audio.size(), in_audio.data());
+        /* Do processing.
+         * The copying of audio data above will be included
+         * in the total measured time, though in practice it adds very little overhead and
+         * is negligible for all but the simplest bricks.
+         * See timings for the BaselineBrick for an estimation of the overhead */
+        if constexpr (memory_arg)
+        {
+            func(in_audio, out_audio, memory);
+        }
+        else
+        {
+            func(in_audio, out_audio);
+        }
+        benchmark::DoNotOptimize(out_audio[2]++);
+    }
+};
+
 } // end bricks_bench
 #endif //BRICKS_DSP_FIXTURE_H
