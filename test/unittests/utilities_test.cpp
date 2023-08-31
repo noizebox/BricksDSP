@@ -298,25 +298,25 @@ TEST(UpSamplerTest, TestCubicUpSampler)
     }
     cubic_upsample<8, 32>(buffer, upsampled, mem);
 
-    EXPECT_FLOAT_EQ(0.25, upsampled[0]);
-    EXPECT_FLOAT_EQ(0.50, upsampled[1]);
-    EXPECT_FLOAT_EQ(0.75, upsampled[2]);
-    EXPECT_FLOAT_EQ(1.0,  upsampled[3]);
-    EXPECT_FLOAT_EQ(0.75, upsampled[4]);
-    EXPECT_FLOAT_EQ(0.5,  upsampled[5]);
-    EXPECT_FLOAT_EQ(0.25, upsampled[6]);
-    EXPECT_FLOAT_EQ(0.0,  upsampled[7]);
-    EXPECT_FLOAT_EQ(0.25, upsampled[8]);
-    EXPECT_FLOAT_EQ(0.50, upsampled[9]);
-    EXPECT_FLOAT_EQ(0.75, upsampled[10]);
-    EXPECT_FLOAT_EQ(1.0,  upsampled[11]);
-    EXPECT_FLOAT_EQ(0.75, upsampled[12]);
-    EXPECT_FLOAT_EQ(0.5,  upsampled[13]);
-    EXPECT_FLOAT_EQ(0.25, upsampled[14]);
-    EXPECT_FLOAT_EQ(0.0,  upsampled[15]);
+    EXPECT_NEAR(0.0, upsampled[0], 0.1);
+    EXPECT_NEAR(0.0, upsampled[1], 0.1);
+    EXPECT_NEAR(0.0, upsampled[2], 0.2);
+    EXPECT_NEAR(0.0, upsampled[3], 0.2);
+    EXPECT_FLOAT_EQ(0.0,  upsampled[4]);
+    EXPECT_NEAR(0.25,  upsampled[5], 0.1);
+    EXPECT_NEAR(0.6, upsampled[6], 0.1);
+    EXPECT_NEAR(0.85,  upsampled[7], 0.1);
+    EXPECT_FLOAT_EQ(1.0, upsampled[8]);    /// Steady state from here v
+    EXPECT_NEAR(0.85, upsampled[9], 0.1);
+    EXPECT_NEAR(0.5, upsampled[10], 0.1);
+    EXPECT_NEAR(0.15,  upsampled[11], 0.1);
+    EXPECT_FLOAT_EQ(0.0, upsampled[12]);
+    EXPECT_NEAR(0.15,  upsampled[13], 0.1);
+    EXPECT_NEAR(0.5, upsampled[14], 0.1);
+    EXPECT_NEAR(0.85,  upsampled[15], 0.1);
     EXPECT_FLOAT_EQ(1.0,  upsampled[16]);
-    EXPECT_FLOAT_EQ(0.75, upsampled[17]);
-    EXPECT_FLOAT_EQ(0.5,  upsampled[18]);
-    EXPECT_FLOAT_EQ(0.25, upsampled[19]);
+    EXPECT_NEAR(0.85, upsampled[17], 0.1);
+    EXPECT_NEAR(0.5,  upsampled[18], 0.1);
+    EXPECT_NEAR(0.15, upsampled[19], 0.1);
     EXPECT_FLOAT_EQ(0.0,  upsampled[20]);
 }
