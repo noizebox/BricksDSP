@@ -50,7 +50,7 @@ if(BRICKS_DSP_INTERNAL_AUDIO_BUFFERS)
 endif()
 
 target_compile_definitions(bricks_dsp PUBLIC DSP_BRICKS_BLOCK_SIZE=${BRICKS_BLOCK_SIZE})
-target_compile_features(bricks_dsp PUBLIC cxx_std_17)
+target_compile_features(bricks_dsp PUBLIC cxx_std_20)
 target_compile_options(bricks_dsp PUBLIC ${EXTRA_COMPILER_FLAGS})
 
 # Subprojects and tests
