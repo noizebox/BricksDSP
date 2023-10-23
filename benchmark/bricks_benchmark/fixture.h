@@ -183,7 +183,7 @@ static void BrickBM(benchmark::State& state)
     }
 };
 
-/* Creates a functor object from free standing function fun, for use in FunBM template */
+/* Creates a functor object from free-standing function fun, for use in FunBM template */
 #define SAMPLE_FUNCTOR(name, fun, from_size, to_size) \
 struct name                             \
 {                                                     \
@@ -202,7 +202,7 @@ struct name                             \
     }                                                 \
 };
 
-/* Generic test fixture for free standing functions that take sample arrays of different sizes
+/* Generic test fixture for free-standing functions that take sample arrays of different sizes
  *
  * SampleFun        - Functon created with SAMPLE_FUNCTOR or SAMPLE_FUNCTOR_MEM
  * from_size        - Size of input sample array in multiplies of bricks::PROC_BLOCK_SIZE
