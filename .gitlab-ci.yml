@@ -11,7 +11,7 @@
 # can use versions as well, like gcc:5.2
 # see https://hub.docker.com/_/gcc/
 
-image: ubuntu:22.10
+image: ubuntu:22.04
 
 build:
   stage: build
