@@ -1,5 +1,8 @@
 cmake_minimum_required(VERSION 3.7)
-project(bricks_dsp CXX)
+set(BRICKS_DSP_VERSION_MAJOR 1)
+set(BRICKS_DSP_VERSION_MINOR 0)
+
+project(bricks_dsp VERSION ${BRICKS_DSP_VERSION_MAJOR}.${BRICKS_DSP_VERSION_MINOR})
 
 option(BRICKS_DSP_BUILD_TESTS "Build and run unit tests" ON)
 option(BRICKS_DSP_BUILD_BENCHMARKS "Build performance benchmarks" ON)
@@ -49,7 +52,9 @@ if(BRICKS_DSP_INTERNAL_AUDIO_BUFFERS)
     target_compile_definitions(bricks_dsp PUBLIC BRICKS_DSP_INTERNAL_BUFFERS)
 endif()
 
-target_compile_definitions(bricks_dsp PUBLIC DSP_BRICKS_BLOCK_SIZE=${BRICKS_BLOCK_SIZE})
+target_compile_definitions(bricks_dsp PUBLIC DSP_BRICKS_BLOCK_SIZE=${BRICKS_BLOCK_SIZE}
+                                             BRICKS_DSP_VERSION_MAJOR=${BRICKS_DSP_VERSION_MAJOR}
+                                             BRICKS_DSP_VERSION_MINOR=${BRICKS_DSP_VERSION_MINOR})
 target_compile_features(bricks_dsp PUBLIC cxx_std_20)
 target_compile_options(bricks_dsp PUBLIC ${EXTRA_COMPILER_FLAGS})
 
