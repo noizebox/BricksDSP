@@ -19,5 +19,14 @@ Logarithmic pitch inputs for oscillators, filters, etc, should adhere to 0.1 per
 
 Build instructions
 -------------------
-The generate script creates a build folder and calls cmake to make a release folder and a debug folder. To rebuild, one can simply cd into build/release or build/debug and do "make".
+Create a build directory and call cmake from this directory, as will most CMake projects. Note that there's a few build options settable from CMake.
 
+To include in a CMake based project, add the following to the projects CMakeLists.txt
+````
+add_subdirectory(BakgroundProcessor)
+target_link_libraries(target_name bricks_dsp)
+````
+And in your code
+````
+#include "bricks_dsp/bricks.h"
+````
