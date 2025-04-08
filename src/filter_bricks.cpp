@@ -40,7 +40,7 @@ void SVFFilterBrick::render()
 
 void FixedFilterBrick::set_lowpass(float freq, float q, bool clear)
 {
-    _coeff = calc_lowpass(freq, q, samplerate());
+    _coeff = calc_lowpass(freq, q, _samplerate);
     if (clear)
     {
         _reg = {0, 0};
@@ -49,7 +49,7 @@ void FixedFilterBrick::set_lowpass(float freq, float q, bool clear)
 
 void FixedFilterBrick::set_highpass(float freq, float q, bool clear)
 {
-    _coeff = calc_highpass(freq, q, samplerate());
+    _coeff = calc_highpass(freq, q, _samplerate);
     if (clear)
     {
         reset();
@@ -58,7 +58,7 @@ void FixedFilterBrick::set_highpass(float freq, float q, bool clear)
 
 void FixedFilterBrick::set_bandpass(float freq, float q, bool clear)
 {
-    _coeff = calc_bandpass(freq, q, samplerate());
+    _coeff = calc_bandpass(freq, q, _samplerate);
     if (clear)
     {
         reset();
@@ -67,7 +67,7 @@ void FixedFilterBrick::set_bandpass(float freq, float q, bool clear)
 
 void FixedFilterBrick::set_peaking(float freq, float gain, float q, bool clear)
 {
-    _coeff = calc_peaking(freq, gain, q, samplerate());
+    _coeff = calc_peaking(freq, gain, q, _samplerate);
     if (clear)
     {
         reset();
@@ -76,7 +76,7 @@ void FixedFilterBrick::set_peaking(float freq, float gain, float q, bool clear)
 
 void FixedFilterBrick::set_allpass(float freq, float q, bool clear)
 {
-    _coeff = calc_allpass(freq, q, samplerate());
+    _coeff = calc_allpass(freq, q, _samplerate);
     if (clear)
     {
         reset();
@@ -85,7 +85,7 @@ void FixedFilterBrick::set_allpass(float freq, float q, bool clear)
 
 void FixedFilterBrick::set_lowshelf(float freq, float gain, float q, bool clear)
 {
-    _coeff = calc_lowshelf(freq, gain, q, samplerate());
+    _coeff = calc_lowshelf(freq, gain, q, _samplerate);
     if (clear)
     {
         reset();
@@ -94,7 +94,7 @@ void FixedFilterBrick::set_lowshelf(float freq, float gain, float q, bool clear)
 
 void FixedFilterBrick::set_highshelf(float freq, float gain, float q, bool clear)
 {
-    _coeff = calc_highshelf(freq, gain, q, samplerate());
+    _coeff = calc_highshelf(freq, gain, q, _samplerate);
     if (clear)
     {
         reset();

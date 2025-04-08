@@ -85,6 +85,11 @@ public:
         _coeff = coeffs;
     }
 
+    void set_samplerate(float samplerate) override
+    {
+        _samplerate = samplerate;
+    }
+
     void render() override;
 
     void reset() override
@@ -93,6 +98,7 @@ public:
     }
 
 private:
+    float           _samplerate{DEFAULT_SAMPLERATE};
     Coefficients    _coeff{0,0,0,0,0};
     Registers       _reg{0,0};
 };
