@@ -48,6 +48,40 @@ TEST(ControlToFreq, TestOperation)
     EXPECT_FLOAT_EQ(160, control_to_freq(0.3f));
 }
 
+TEST(TodB, TestOperation)
+{
+    EXPECT_FLOAT_EQ(1.0f, to_db(1.0f));
+    EXPECT_FLOAT_EQ(0.001f, to_db(0.0f));
+    EXPECT_NEAR(2.0f, to_db(1.0f + 6.0 / 60.0), 0.01);
+    EXPECT_NEAR(0.25f, to_db(1.0f - 12.0 / 60.0), 0.01);
+}
+
+TEST(FromdB, TestOperation)
+{
+    EXPECT_FLOAT_EQ(1.0f, from_db(1.0f));
+    EXPECT_FLOAT_EQ(0.0f, from_db(0.001f));
+    EXPECT_NEAR(1.0f + 6.0 / 60.0, from_db(2), 0.01);
+    EXPECT_NEAR(1.0f - 12.0 / 60.0, from_db(0.25f), 0.01);
+}
+
+TEST(TodBApprox, TestOperation)
+{
+    /* Approximates a 30 db range in 0 to 1 */
+    EXPECT_FLOAT_EQ(1.0f, to_db_approx(1.0f));
+    EXPECT_FLOAT_EQ(0.0f, to_db_approx(0.0f));
+    EXPECT_NEAR(0.5f, to_db_approx(1.0f - 12.0 / 60.0), 0.05);
+    EXPECT_NEAR(0.10f, to_db_approx(0.33), 0.07);
+}
+
+TEST(FromdBApprox, TestOperation)
+{
+    /* Approximates a 30 db range in 0 to 1 */
+    EXPECT_FLOAT_EQ(1.0f, from_db_approx(1.0f));
+    EXPECT_FLOAT_EQ(0.0f, from_db_approx(0.0f));
+    EXPECT_NEAR(1.0f + 6.0 / 30.0, from_db_approx(2), 0.06);
+    EXPECT_NEAR(1.0f - 12.0 / 30.0, from_db_approx(0.25f), 0.06);
+}
+
 TEST(LinearInterpolatorTest, TestOperation)
 {
     LinearInterpolator<PROC_BLOCK_SIZE> _module_under_test;

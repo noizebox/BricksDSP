@@ -74,25 +74,38 @@ private:
 };
 
 /* Clone of Soft Distortion Sustainer circuit from Roland AG5 pedal */
-class SustainerBrick : public DspBrickImpl<1, 0, 1, 1>
+class SustainerBrick : public DspBrickImpl<4, 0, 2, 2>
 {
 public:
     enum ControlInput
     {
-        GAIN = 0
+        GAIN = 0,
+        COMPRESSION,
+        STEREO_MODE,
+        TIME
     };
 
     enum AudioOutput
     {
-        SUSTAIN_OUT = 0
+        LEFT_OUT = 0,
+        RIGHT_OUT
     };
 
     SustainerBrick() = default;
 
-    SustainerBrick(const float* gain, const AudioBuffer* audio_in)
+    SustainerBrick(const float* gain,
+                   const float* comp,
+                   const float* stereo,
+                   const float* time,
+                   const AudioBuffer* left_in,
+                   const AudioBuffer* right_in)
     {
         set_control_input(ControlInput::GAIN, gain);
-        set_audio_input(DEFAULT_INPUT, audio_in);
+        set_control_input(ControlInput::COMPRESSION, comp);
+        set_control_input(ControlInput::STEREO_MODE, stereo);
+        set_control_input(ControlInput::TIME, time);
+        set_audio_input(0, left_in);
+        set_audio_input(1, right_in);
     }
 
     void render() override;
@@ -102,13 +115,15 @@ public:
     void set_samplerate(float samplerate) override;
 
 private:
-    float            _op_gain{0.0f};
-    float            _fet_gain{0.0f};
-    bool             _plot;
-    RCStage<double>  _op_hp;
-    RCStage<double>  _env_hp;
-    RCStage<double>  _env_lp;
     float            _samplerate{DEFAULT_SAMPLERATE};
+
+    std::array<float, 2>  _op_gain{0,0};
+    std::array<float, 2>  _fet_gain{0,0};
+
+    std::array<RCStage<double>, 2>  _op_hp;
+    std::array<RCStage<double>, 2>  _op_lp;
+    std::array<RCStage<double>, 2>  _env_hp;
+    std::array<RCStage<double>, 2>  _env_lp;
 };
 
 /* Delay audio one process block, used to break circular dependencies from feedback

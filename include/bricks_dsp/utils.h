@@ -41,11 +41,25 @@ inline float to_db(float lin)
     return powf(10, (1.0f - lin) * DB_RANGE / 20.0f);
 }
 
+/* Inverse of the above function */
+inline float from_db(float db)
+{
+    constexpr float DB_RANGE = 60.0f;
+    float db_gain = 20.0f * std::log10(db);
+    return (db_gain + DB_RANGE) / DB_RANGE;
+}
+
 /* For vcas and audio controls, x³ is a pretty good approximation of a
  * 30 dB exponential response */
 inline float to_db_approx(float lin)
 {
     return lin * lin * lin;
+}
+
+/* For vcas and audio controls, the inverse of the above function */
+inline float from_db_approx(float db)
+{
+    return std::cbrt(db);
 }
 
 /* clamp/clip a value between min and max. With -ffast-math this seems to
@@ -329,6 +343,11 @@ public:
     {
         _reg = input + _coeff * (_reg - input);
         return input - _reg;
+    }
+
+    FloatType state() const
+    {
+        return _reg;
     }
 
     void reset() {_reg = 0;}

@@ -74,6 +74,47 @@ TEST_F(AASaturationBrickTest, OperationTest)
     }
 }
 
+class SustainerBrickTest : public ::testing::Test
+{
+protected:
+    SustainerBrickTest() {}
+
+    void SetUp()
+    {
+        make_test_sq_wave(_buffers[0]);
+        make_test_sq_wave(_buffers[1]);
+    }
+
+    std::array<AudioBuffer, 2> _buffers;
+    std::array<float, 4>       _params;
+    SustainerBrick             _test_module{&_params[0],&_params[1],&_params[2],&_params[3], &_buffers[0], &_buffers[1]};
+    const AudioBuffer&   _out_l{*_test_module.audio_output(SustainerBrick::AudioOutput::LEFT_OUT)};
+    const AudioBuffer&   _out_r{*_test_module.audio_output(SustainerBrick::AudioOutput::RIGHT_OUT)};
+};
+
+TEST_F(SustainerBrickTest, OperationTest)
+{
+    _params.fill(0);
+    _params[0] = 0.2;
+    _test_module.render();
+    float rms = 0;
+    for (auto sample : _out_l)
+    {
+        rms += sample * sample;
+    }
+    EXPECT_GT(0, rms);
+
+    rms = 0;
+    _params[0] = 1;
+    _test_module.render();
+    for (auto sample : _out_r)
+    {
+        rms += sample * sample;
+    }
+    EXPECT_GT(3, rms);
+}
+
+
 class FixedDelayBrickTest : public ::testing::Test
 {
 protected:

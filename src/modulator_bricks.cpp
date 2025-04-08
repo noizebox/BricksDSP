@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <cmath>
+#include <iostream>
 
 #include "modulator_bricks.h"
 
@@ -23,6 +24,15 @@ inline double tanh_antiderivative(const double& x)
 inline float sigm(const float& x)
 {
     return x / std::sqrt(1 + x * x);
+}
+
+/* A harder clipped version of the above */
+inline float sigm_hard(float x)
+{
+    constexpr float HARDNESS = 1.0;
+
+    float x_t = x + HARDNESS * x * x * x;
+    return x_t / std::sqrt(1 + x_t * x_t);
 }
 
 /* Integral of the above sigmoid clipping function */
@@ -142,80 +152,175 @@ void AASaturationBrick<ClipType::HARD>::render()
 void SustainerBrick::set_samplerate(float samplerate)
 {
     /* Values directly from the schematic */
-    _op_hp.set(470.0 * 0.001, samplerate, true);
-    _env_hp.set((22.2 + 2.2) * 0.00068, samplerate, true);
-    _env_lp.set(470.0 * 0.00022, samplerate, true);
+    _op_hp[0].set(470.0 * 0.001, samplerate, true);
+    _op_hp[1].set(470.0 * 0.001, samplerate, true);
+    _op_lp[0].set(33 * 0.000000250, samplerate, true);
+    _op_lp[1].set(33 * 0.000000250, samplerate, true);
+    _env_hp[0].set((22.2 + 2.2) * 0.00068, samplerate, true);
+    _env_hp[1].set((22.2 + 2.2) * 0.00068, samplerate, true);
+    _env_lp[0].set(470.0 * 0.00022, samplerate, true);
+    _env_lp[1].set(470.0 * 0.00022, samplerate, true);
     _samplerate = samplerate;
 }
 
 void SustainerBrick::reset()
 {
-    _op_hp.reset();
-    _env_hp.reset();
-    _env_lp.reset();
+    _op_hp[0].reset();
+    _op_hp[1].reset();
+    _op_lp[0].reset();
+    _op_lp[1].reset();
+    _env_hp[0].reset();
+    _env_hp[1].reset();
+    _env_lp[0].reset();
+    _env_lp[1].reset();
 }
 
-constexpr float DIODE_THRESHOLD = 0.5;
+constexpr float DIODE_THRESHOLD = 0.66;
 constexpr float OP_FB_RES = 470;
 constexpr float JFET_OPEN_RES = 47000;
 constexpr float JFET_V_CUTOFF = 5;
+constexpr float CLIP_ASYMMETRY = 0.3;
+constexpr float SLEWRATE = 0.18;
 
-constexpr float ENV_OPEN_RC = 2.2 * 0.00022;
+constexpr float OPEN_LOOP_OP_GAIN = 300;
+constexpr float OUTPUT_GAIN = 4;
+
+constexpr float ENV_OPEN_RC = 2.2 * (0.00022 + 0.00068);
 constexpr float ENV_CLOSED_RC = 470 * 0.00022;
+
+constexpr float OP_INTERNAL_LOWPASS = 33 * 0.000000250;
+
+constexpr float STEREO_MIX_FACTOR = 0.85;
+
+/* Simulate component variation by having slightly different values on left and right channels */
+constexpr float COMPONENT_VARIATION = 0.03;
+constexpr float COMP_VAR_1 = 3 * COMPONENT_VARIATION + 1.0;
+constexpr float COMP_VAR_2 = 5 * COMPONENT_VARIATION + 1.0;
+constexpr float COMP_VAR_3 = 7 * COMPONENT_VARIATION + 1.0;
 
 void SustainerBrick::render()
 {
-    float gain = 20 * to_db_approx(_ctrl_value(ControlInput::GAIN));
-    const AudioBuffer& audio_in = _input_buffer(DEFAULT_INPUT);
-    AudioBuffer& audio_out = _output_buffer(AudioOutput::SUSTAIN_OUT);
-    float op_gain = _op_gain;
-    float fet_gain = _fet_gain;
-    float sr = _samplerate;
-    bool plot = true;
+    constexpr int LEFT = 0;
+    constexpr int RIGHT = 1;
+    enum Mode
+    {
+        STEREO = 0,
+        LINKED,
+        MONO
+    };
+
+    float gain = 10 * to_db_approx(_ctrl_value(ControlInput::GAIN));
+    float compression_param = _ctrl_value(ControlInput::COMPRESSION);
+    float time_param = 1.0f - _ctrl_value(ControlInput::TIME) + 0.02f;
+    time_param = time_param * time_param * 90.0f;
+
+    int mode  =  control_to_range(_ctrl_value(ControlInput::STEREO_MODE), 0, 2);
+    assert(mode == Mode::STEREO || mode == Mode::LINKED || mode == Mode::MONO);
+
+    //float slewrate = 100;
+
+    const AudioBuffer& audio_in_l = _input_buffer(0);
+    const AudioBuffer& audio_in_r = _input_buffer(1);
+    AudioBuffer& audio_out_l = _output_buffer(AudioOutput::LEFT_OUT);
+    AudioBuffer& audio_out_r = _output_buffer(AudioOutput::RIGHT_OUT);
+
+    auto op_gain = _op_gain;
+    auto fet_gain = _fet_gain;
+    auto op_hp = _op_hp;
+    auto env_hp = _env_hp;
+    auto env_lp = _env_lp;
+
+
+    // scale down the gain with less compression for better controls
+    gain *= (1.0f - 0.6f * (1.0f - compression_param));
 
     for (int i = 0; i < PROC_BLOCK_SIZE; ++i)
     {
         // gain control
-        float x = audio_in[i] * gain;
+        float x_l = audio_in_l[i] * gain;
+        float x_r = audio_in_r[i] * gain;
+
+        if (mode == Mode::MONO)
+        {
+            x_l = (x_l + x_r) * 0.5f;
+        }
 
         // non-inv amp with soft clip
-        float op_out = _op_hp.render_hp(x) * op_gain;
-        //float op_clip = 5.0f * tanh_approx(bricks::clamp(op_out * 0.5f, -3.0, 3.0f));
-        float op_clip = JFET_V_CUTOFF * sigm(op_out * (1.0f/JFET_V_CUTOFF));
-        audio_out[i] = op_clip;
+        float op_out_l = op_hp[LEFT].render_hp(x_l) * op_gain[LEFT];
+        float op_out_r = op_hp[RIGHT].render_hp(x_r) * op_gain[RIGHT];
+        float out_sample_l = sigm_hard(op_out_l * 0.5f + CLIP_ASYMMETRY * COMP_VAR_1) - CLIP_ASYMMETRY * COMP_VAR_1;
+        float out_sample_r = sigm_hard(op_out_r * 0.5f + CLIP_ASYMMETRY) - CLIP_ASYMMETRY;
+        float op_clip_l = out_sample_l * JFET_V_CUTOFF * compression_param;
+        float op_clip_r = out_sample_r * JFET_V_CUTOFF * compression_param;
+
+        audio_out_l[i] = out_sample_l * OUTPUT_GAIN;
+        if (mode == Mode::MONO)
+        {
+            audio_out_r[i] = out_sample_l * OUTPUT_GAIN;
+        }
+        else
+        {
+            audio_out_r[i] = out_sample_r * OUTPUT_GAIN;
+        }
 
         // calc feedback env follower,
-        float env = _env_hp.render_hp(op_clip);
+        float env_in_l = env_hp[LEFT].render_hp(op_clip_l);
+        float env_in_r = env_hp[RIGHT].render_hp(op_clip_r);
 
         // Simplest diode model (hard knee)
         // If diode is conducting, R5 and C3 forms a lp filter
         // If diode it not conducting, C3 is discharged through R3
-        float rect;
-        if ((env ) > DIODE_THRESHOLD)
+        // In schematic only the negative side is considered (half wave rectified)
+        float rect_l;
+        float rect_r;
+        float cur_env_l = env_lp[LEFT].state();
+        float cur_env_r = env_lp[RIGHT].state();
+
+        if (env_in_l < -1.0f * (cur_env_l + DIODE_THRESHOLD))
         {
-            rect = env - DIODE_THRESHOLD;
-            _env_lp.set_approx(ENV_OPEN_RC, sr, false);
+            rect_l = - (env_in_l + DIODE_THRESHOLD);
+            env_lp[LEFT].set_approx(ENV_OPEN_RC * time_param, _samplerate, false);
         }
         else
         {
-            rect = 0.0f;
-            _env_lp.set_approx(ENV_CLOSED_RC, sr, false);
+            rect_l = 0.0f;
+            env_lp[LEFT].set_approx(ENV_CLOSED_RC * time_param, _samplerate, false);
         }
 
-        fet_gain = _env_lp.render_lp(rect);
-        float gain_ctrl = bricks::clamp(fet_gain * 10.0f, 0, JFET_V_CUTOFF);
+        if (env_in_r < -1.0f * (cur_env_r + DIODE_THRESHOLD * COMP_VAR_3))
+        {
+            rect_r = - (env_in_r + DIODE_THRESHOLD * COMP_VAR_3);
+            env_lp[RIGHT].set_approx(ENV_OPEN_RC * time_param, _samplerate, false);
+        }
+        else
+        {
+            rect_r = 0.0f;
+            env_lp[RIGHT].set_approx(ENV_CLOSED_RC * time_param, _samplerate, false);
+        }
+
+        fet_gain[LEFT] = env_lp[LEFT].render_lp(std::min(rect_l, JFET_V_CUTOFF + 1));
+        float gain_ctrl_l = bricks::clamp(fet_gain[LEFT] * 2.5f, 0, JFET_V_CUTOFF);
+        fet_gain[RIGHT] = env_lp[RIGHT].render_lp(std::min(rect_r, JFET_V_CUTOFF + 1));
+        float gain_ctrl_r = bricks::clamp(fet_gain[RIGHT] * 2.5f, 0, JFET_V_CUTOFF);
 
         // calc new op-gain
-        op_gain = 1 + ((JFET_V_CUTOFF - gain_ctrl) * JFET_OPEN_RES / (OP_FB_RES * JFET_V_CUTOFF));
+        op_gain[LEFT] = 1.0f + 0.9f * COMP_VAR_1 * (JFET_V_CUTOFF - gain_ctrl_l) / JFET_V_CUTOFF * OPEN_LOOP_OP_GAIN;
+        op_gain[RIGHT] = 1.0f + 0.9f * (JFET_V_CUTOFF - gain_ctrl_r) / JFET_V_CUTOFF * OPEN_LOOP_OP_GAIN;
 
-        if (plot)
+        if (mode == Mode::LINKED)
         {
-            //std::cout << "SDD: gain: "<< gain << ", op_gain: " << op_gain << ", gain_ctrl: " << gain_ctrl << std::endl;
-            plot = false;
+            float link_gain = std::min(op_gain[LEFT], op_gain[RIGHT]);
+
+            op_gain[LEFT] = op_gain[LEFT] * (1.0f - STEREO_MIX_FACTOR) + link_gain * STEREO_MIX_FACTOR;
+            op_gain[RIGHT] = op_gain[RIGHT] * (1.0f - STEREO_MIX_FACTOR) + link_gain * STEREO_MIX_FACTOR;
         }
     }
+
     _op_gain = op_gain;
     _fet_gain = fet_gain;
+    _op_hp = op_hp;
+    _env_hp = env_hp;
+    _env_lp = env_lp;
 }
 
 
