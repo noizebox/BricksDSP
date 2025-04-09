@@ -1,6 +1,5 @@
 #include <algorithm>
 #include <cmath>
-#include <iostream>
 
 #include "modulator_bricks.h"
 
@@ -176,11 +175,11 @@ void SustainerBrick::reset()
 }
 
 constexpr float DIODE_THRESHOLD = 0.66;
-constexpr float OP_FB_RES = 470;
-constexpr float JFET_OPEN_RES = 47000;
+//constexpr float OP_FB_RES = 470;
+//constexpr float JFET_OPEN_RES = 47000;
 constexpr float JFET_V_CUTOFF = 5;
 constexpr float CLIP_ASYMMETRY = 0.3;
-constexpr float SLEWRATE = 0.18;
+//constexpr float SLEWRATE = 0.18;
 
 constexpr float OPEN_LOOP_OP_GAIN = 300;
 constexpr float OUTPUT_GAIN = 4;
@@ -188,14 +187,14 @@ constexpr float OUTPUT_GAIN = 4;
 constexpr float ENV_OPEN_RC = 2.2 * (0.00022 + 0.00068);
 constexpr float ENV_CLOSED_RC = 470 * 0.00022;
 
-constexpr float OP_INTERNAL_LOWPASS = 33 * 0.000000250;
+//constexpr float OP_INTERNAL_LOWPASS = 33 * 0.000000250;
 
 constexpr float STEREO_MIX_FACTOR = 0.85;
 
 /* Simulate component variation by having slightly different values on left and right channels */
 constexpr float COMPONENT_VARIATION = 0.03;
 constexpr float COMP_VAR_1 = 3 * COMPONENT_VARIATION + 1.0;
-constexpr float COMP_VAR_2 = 5 * COMPONENT_VARIATION + 1.0;
+//constexpr float COMP_VAR_2 = 5 * COMPONENT_VARIATION + 1.0;
 constexpr float COMP_VAR_3 = 7 * COMPONENT_VARIATION + 1.0;
 
 void SustainerBrick::render()
@@ -229,7 +228,6 @@ void SustainerBrick::render()
     auto op_hp = _op_hp;
     auto env_hp = _env_hp;
     auto env_lp = _env_lp;
-
 
     // scale down the gain with less compression for better controls
     gain *= (1.0f - 0.6f * (1.0f - compression_param));
