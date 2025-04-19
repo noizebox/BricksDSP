@@ -1,8 +1,16 @@
 add_executable(synth_voice synth_voice.cpp)
 target_link_libraries(synth_voice sndfile bricks_dsp)
+if(APPLE)
+    target_include_directories(synth_voice PRIVATE /opt/homebrew/include)
+    target_link_directories(synth_voice PRIVATE /opt/homebrew/lib)
+endif()
 
 add_executable(fixture fixture.cpp)
 target_link_libraries(fixture sndfile bricks_dsp)
+if(APPLE)
+    target_include_directories(fixture PRIVATE /opt/homebrew/include)
+    target_link_directories(fixture PRIVATE /opt/homebrew/lib)
+endif()
 
-add_executable(jack_fixture jack_fixture.cpp)
-target_link_libraries(jack_fixture jack bricks_dsp)
+##add_executable(jack_fixture jack_fixture.cpp)
+##ßtarget_link_libraries(jack_fixture jack brißcks_dsp)
