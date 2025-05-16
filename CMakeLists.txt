@@ -1,11 +1,11 @@
-cmake_minimum_required(VERSION 3.7)
-set(BRICKS_DSP_VERSION_MAJOR 1)
-set(BRICKS_DSP_VERSION_MINOR 0)
+cmake_minimum_required(VERSION 3.20)
+set(BRICKS_DSP_VERSION_MAJOR 0)
+set(BRICKS_DSP_VERSION_MINOR 3)
 
 project(bricks_dsp VERSION ${BRICKS_DSP_VERSION_MAJOR}.${BRICKS_DSP_VERSION_MINOR})
 
-option(BRICKS_DSP_BUILD_TESTS "Build and run unit tests" ON)
-option(BRICKS_DSP_BUILD_BENCHMARKS "Build performance benchmarks" ON)
+option(BRICKS_DSP_BUILD_TESTS "Build and run unit tests" OFF)
+option(BRICKS_DSP_BUILD_BENCHMARKS "Build performance benchmarks" OFF)
 option(BRICKS_DSP_INTERNAL_AUDIO_BUFFERS "Audio output buffers are owned by bricks" ON)
 set(BRICKS_BLOCK_SIZE 32 CACHE STRING "Internal processing block size")
 
@@ -16,17 +16,7 @@ set(SOURCE_FILES src/envelope_bricks.cpp
                  src/oscillator_bricks.cpp
                  src/random_device.cpp)
 
-# Include headers separately, mostly for CLion convenience
-set(SOURCE_HEADERS  include/bricks_dsp/dsp_brick.h
-                    include/bricks_dsp/utility_bricks.h
-                    include/bricks_dsp/envelope_bricks.h
-                    include/bricks_dsp/filter_bricks.h
-                    include/bricks_dsp/modulator_bricks.h
-                    include/bricks_dsp/oscillator_bricks.h
-                    include/bricks_dsp/aligned_array.h
-                    include/bricks_dsp/random_device.h)
-
-set(SOURCE_FILES "${SOURCE_FILES}" "${SOURCE_HEADERS}")
+set(SOURCE_FILES "${SOURCE_FILES}")
 
 add_library(bricks_dsp STATIC ${SOURCE_FILES})
 

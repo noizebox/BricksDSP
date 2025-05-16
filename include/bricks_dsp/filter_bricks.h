@@ -340,7 +340,7 @@ private:
 };
 
 /* Topology-preserving (zero delay) ladder with non-linearities
- * From https://www.kvraudio.com/forum/viewtopic.php?t=349859
+ * Adapted from https://www.kvraudio.com/forum/viewtopic.php?t=349859
  * and Copyright 2012 Teemu Voipio (mystran @ kvr)  */
 class MystransLadderFilter : public DspBrickImpl<2, 0, 1, 1>
 {
