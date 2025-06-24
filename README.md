@@ -4,13 +4,25 @@ Cross platform (linux, MacOS and Windows) modular audio dsp block library. Inten
 
 General Concepts
 -------------------
-BricksDsp is a system for building signal chains at compile time or run time by connecting reasonably high level modules, called Bricks, together. It could be used as a backend for a dynamic modular synth like Reaktor or Softube Modular, the bricks are at a comparable abstraction level to Reaktor. Some care needs to be taken to allow runtime connection in a realtime safe manner, and the processing graph needs to be managed manually. It's intended more as a tool for experimenting and possibly as a backend to fixed architecture plugins.
+BricksDsp is a system for building signal chains at compile time or run time by connecting reasonably high level modules, called Bricks,
+together. It could be used as a backend for a dynamic modular synth like Reaktor or Softube Modular as the bricks are at a comparable 
+abstraction level to Reaktor. Some care needs to be taken to allow runtime connection in a realtime safe manner, and the 
+processing graph needs to be managed manually. It's intended more as a tool for experimenting or as a backend to fixed architecture plugins.
 
-Connecting several bricks into a signal chain can be made during object instantiating by passing input connections to the brick constructor. Once instantiated, the brick's output ports can be used as inputs to new bricks. Bricks can also be connected to other bricks after creation. A nullpointer can be passed as a "dummy" placeholder to a plugin to connect some inputs during creation, but need to be replaced with a valid Control or Audio input before calling render().
+Connecting several bricks into a signal chain can be made during object instantiating by passing input connections to the brick constructor.
+Once instantiated, the brick's output ports can be used as inputs to new bricks. Bricks can also be connected to other bricks after creation.
+A nullpointer can be passed as a "dummy" placeholder to a plugin to connect some inputs during creation, but needs to be replaced with a valid 
+Control or Audio input before calling render().
 
-For efficiency and simplicity BricksDsp uses a fixed audio block size that is set at compile time. Bricks have 2 types of input and output ports. Audio ports are updated every sample and Control ports once for every block. The control rate therefore becomes samplerate / block size. Currently all inputs of a block have to be connected, if an input is not to be used, it must still be connected to a "dummy" source with a fixed value.
+For efficiency and simplicity BricksDsp uses a fixed audio block size that is set at compile time. Bricks have 2 types of input and output ports:
+Audio ports are updated every sample and Control ports once for every block. The control rate therefore becomes samplerate / block size.
+Heavy calculations such as exponentials or trigonometric functions for filters are usually done at control rate but the results are 
+linearly interpolated at sample rate to avoid volume jumps and glitches.
+Currently all inputs of a block have to be connected, if an input is not to be used, it must still be connected to a "dummy" source with a fixed value.
 
-The general philosophy in Bricks DSP is to enable setting as many options as possible at compile time rather than at runtime to give the compiler the best freedom to optimise. Therefore many Bricks have templated options and simple control-rate Bricks have their render functions in header files for efficient inlining.
+The general philosophy in Bricks DSP is to enable setting as many options as possible at compile time rather than at runtime to give
+the compiler the best freedom to optimise by inlining and unrolling. Therefore many Bricks have templated options and simple
+control-rate Bricks have their render functions in header files for efficient inlining.
 
 Signals
 -------------------
@@ -21,7 +33,7 @@ Build instructions
 -------------------
 Create a build directory and call cmake from this directory, as will most CMake projects. Note that there's a few build options settable from CMake. See _CMakeLists.txt_
 
-To include in a CMake based project, add the following to the projects _CMakeLists.txt_
+To include in a CMake based project, add the following to the projects _CMakeLists.txt_ file:
 ````
 add_subdirectory(BrickDsp)
 target_link_libraries(target_name bricks_dsp)
@@ -39,7 +51,7 @@ make jack_fixture (linux only)
 
 Documentation
 -------------------
-Documentation currently consists of inline comments in the code. Also see the examples for how to use it.
+Documentation currently mainly consists of inline comments in the code. Also please see the examples for how to use it.
 
 Unit tests and benchmarks
 -------------------
@@ -47,7 +59,7 @@ Unit tests with gtest are not built and run by default, set the build option __B
 ````
 benchmark/benchmarks
 ````
-Note that benchmarks only make sense in an optimised Release build.
+Note that benchmark results only make sense on an optimised Release build.
 
 License
 -------------------
