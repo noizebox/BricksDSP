@@ -1,7 +1,7 @@
 #include "gtest/gtest.h"
 #define private public
 
-#include "oscillator_bricks.cpp"
+#include "oscillator_bricks.h"
 #include "test_utils.h"
 
 #include "iostream"
@@ -15,43 +15,42 @@ class OscillatorBrickTest : public ::testing::Test
 protected:
     OscillatorBrickTest() {}
 
-    AudioBuffer     _buffer;
-    float           _pitch;
-    OscillatorBrick _test_module{&_pitch};
+    AudioBuffer       _buffer;
+    float             _pitch;
+    OscillatorBrick<> _test_module;
 };
 
 TEST_F(OscillatorBrickTest, TestOperation)
 {
     _pitch = 440 / DEFAULT_SAMPLERATE;
-    _test_module.render();
-    const AudioBuffer & buffer = *_test_module.audio_output(OscillatorBrick::OSC_OUT);
+    _test_module.render(_pitch, _buffer);
 
     float sum = 0;
-    for (auto sample : buffer)
+    for (auto sample : _buffer)
     {
         sum += sample;
         ASSERT_LE(sample, 0.5f);
         ASSERT_GE(sample, -0.5f);
     }
     ASSERT_NE(0.0f, sum);
-    ASSERT_TRUE(buffer[1] < buffer[2]);
+    ASSERT_TRUE(_buffer[1] < _buffer[2]);
 
-    _test_module.set_waveform(OscillatorBrick::Waveform::PULSE);
-    _test_module.render();
+    _test_module.set_waveform(Waveform::PULSE);
+    _test_module.render(_pitch, _buffer);
 
     sum = 0;
-    for (auto sample : buffer)
+    for (auto sample : _buffer)
     {
         sum += sample;
         ASSERT_FLOAT_EQ(0.5f, std::abs(sample));
     }
     ASSERT_NE(0.0f, sum);
 
-    _test_module.set_waveform(OscillatorBrick::Waveform::TRIANGLE);
-    _test_module.render();
+    _test_module.set_waveform(Waveform::TRIANGLE);
+    _test_module.render(_pitch, _buffer);
 
     sum = 0;
-    for (auto sample : buffer)
+    for (auto sample : _buffer)
     {
         sum += sample;
         ASSERT_LE(sample, 0.5f);
@@ -67,45 +66,45 @@ class FmOscillatorBrickTest : public ::testing::Test
 protected:
     FmOscillatorBrickTest() {}
 
-    AudioBuffer         _buffer;
+    AudioBuffer         _output;
+    AudioBuffer         _fm_mod;
     float               _pitch;
-    FmOscillatorBrick   _test_module{&_pitch, &_buffer};
+    FmOscillatorBrick<> _test_module;
 };
 
 
 TEST_F(FmOscillatorBrickTest, TestOperation)
 {
     _pitch = 440 / DEFAULT_SAMPLERATE;
-    fill_buffer(_buffer, 1.0f);
-    _test_module.render();
-    const auto& buffer = *_test_module.audio_output(OscillatorBrick::OSC_OUT);
+    fill_buffer(_fm_mod, 1.0f);
+    _test_module.render(_pitch, _fm_mod, _output);
 
     float sum = 0;
-    for (auto sample : buffer)
+    for (auto sample : _output)
     {
         sum += sample;
         ASSERT_LE(sample, 0.5f);
         ASSERT_GE(sample, -0.5f);
     }
     ASSERT_NE(0.0f, sum);
-    ASSERT_TRUE(buffer[1] < buffer[2]);
+    ASSERT_TRUE(_output[1] < _output[2]);
 
-    _test_module.set_waveform(FmOscillatorBrick::Waveform::PULSE);
-    _test_module.render();
+    _test_module.set_waveform(Waveform::PULSE);
+    _test_module.render(_pitch, _fm_mod, _output);
 
     sum = 0;
-    for (auto sample : buffer)
+    for (auto sample : _output)
     {
         sum += sample;
         ASSERT_FLOAT_EQ(0.5f, std::abs(sample));
     }
     ASSERT_NE(0.0f, sum);
 
-    _test_module.set_waveform(FmOscillatorBrick::Waveform::TRIANGLE);
-    _test_module.render();
+    _test_module.set_waveform(Waveform::TRIANGLE);
+    _test_module.render(_pitch, _fm_mod, _output);
 
     sum = 0;
-    for (auto sample : buffer)
+    for (auto sample : _output)
     {
         sum += sample;
         ASSERT_LE(sample, 0.5f);
@@ -120,43 +119,42 @@ class WtOscillatorBrickTest : public ::testing::Test
 protected:
     WtOscillatorBrickTest() {}
 
-    AudioBuffer         _buffer;
+    AudioBuffer         _output;
     float               _pitch;
-    WtOscillatorBrick   _test_module{&_pitch};
+    WtOscillatorBrick<> _test_module;
 };
 
 
 TEST_F(WtOscillatorBrickTest, TestOperation)
 {
     _pitch = 440 / DEFAULT_SAMPLERATE;
-    fill_buffer(_buffer, 1.0f);
-    _test_module.render();
-    const auto& buffer = *_test_module.audio_output(WtOscillatorBrick::OSC_OUT);
+    fill_buffer(_output, 1.0f);
+    _test_module.render(_pitch, _output);
 
     float sum = 0;
-    for (auto sample : buffer)
+    for (auto sample : _output)
     {
         sum += sample;
         ASSERT_LE(std::abs(sample), 1.0f);
     }
     ASSERT_NE(0.0f, sum);
 
-    _test_module.set_waveform(WtOscillatorBrick::Waveform::PULSE);
-    _test_module.render();
+    _test_module.set_waveform(Waveform::PULSE);
+    _test_module.render(_pitch, _output);
 
     sum = 0;
-    for (auto sample : buffer)
+    for (auto sample : _output)
     {
         sum += sample;
         ASSERT_LE(std::abs(sample), 1.0f);
     }
     ASSERT_NE(0.0f, sum);
 
-    _test_module.set_waveform(WtOscillatorBrick::Waveform::TRIANGLE);
-    _test_module.render();
+    _test_module.set_waveform(Waveform::TRIANGLE);
+    _test_module.render(_pitch, _output);
 
     sum = 0;
-    for (auto sample : buffer)
+    for (auto sample : _output)
     {
         sum += sample;
         ASSERT_LE(std::abs(sample), 1.0f);
@@ -170,41 +168,39 @@ class NoiseGeneratorBrickTest : public ::testing::Test
 protected:
     NoiseGeneratorBrickTest() {}
 
-    AudioBuffer           _buffer;
-    NoiseGeneratorBrick   _test_module;
+    AudioBuffer           _output;
+    NoiseGeneratorBrick<> _test_module;
 };
-
 
 TEST_F(NoiseGeneratorBrickTest, TestOperation)
 {
     _test_module.set_samplerate(TEST_SAMPLERATE);
-    fill_buffer(_buffer, 1.0f);
-    _test_module.set_waveform(NoiseGeneratorBrick::Waveform::BROWN);
-    _test_module.render();
-    const auto& buffer = *_test_module.audio_output(NoiseGeneratorBrick::NOISE_OUT);
+    fill_buffer(_output, 1.0f);
+    _test_module.set_waveform(NoiseGeneratorBrick<>::NoiseType::BROWN);
+    _test_module.render(_output);
 
     float sum = 0;
-    for (auto sample : buffer)
+    for (auto sample : _output)
     {
         sum += sample;
         ASSERT_LE(std::abs(sample), 1.0f);
     }
     ASSERT_NE(0.0f, sum);
 
-    _test_module.set_waveform(NoiseGeneratorBrick::Waveform::PINK);
+    _test_module.set_waveform(NoiseGeneratorBrick<>::NoiseType::PINK);
     sum = 0;
-    _test_module.render();
-    for (auto sample : buffer)
+    _test_module.render(_output);
+    for (auto sample : _output)
     {
         sum += sample;
         ASSERT_LE(std::abs(sample), 1.0f);
     }
     ASSERT_NE(0.0f, sum);
 
-    _test_module.set_waveform(NoiseGeneratorBrick::Waveform::WHITE);
+    _test_module.set_waveform(NoiseGeneratorBrick<>::NoiseType::WHITE);
     sum = 0;
-    _test_module.render();
-    for (auto sample : buffer)
+    _test_module.render(_output);
+    for (auto sample : _output)
     {
         sum += sample;
         ASSERT_LE(std::abs(sample), 1.0f);

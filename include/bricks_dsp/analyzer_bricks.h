@@ -11,30 +11,17 @@
 
 namespace bricks {
 
-template <int block_size, int past_blocks = 4>
-class OscilloscopeBrick : public DspBrickImpl<2, 0, 1, 0>
+template <int block_size, int past_blocks = 4, size_t os_factor = 1>
+class OscilloscopeBrick : public DspBrickv2Impl<os_factor, 2, 0, 1, 0>
 {
 public:
     using Block = AlignedArray<float, block_size>;
-
-    enum ControlInput
-    {
-        TRIG_LEVEL = 0,
-        SKIP,
-    };
 
     OscilloscopeBrick()
     {
         _rt_data = std::make_unique<ExpiringQueue<Block, past_blocks>>();
         _data = std::make_unique<std::array<Block, past_blocks>>();
     };
-
-    OscilloscopeBrick(const float* trig_level, const AudioBuffer* audio_in)
-    {
-        OscilloscopeBrick();
-        set_control_input(0, trig_level);
-        set_audio_input(0, audio_in);
-    }
 
     void reset() override
     {
@@ -58,18 +45,15 @@ public:
         return (*_data)[history];
     }
 
-    void render() override
+    void render(float trig_level, float skip, const AudioOsBuffer<os_factor>& audio_in)
     {
-        float trig_level = _ctrl_value(ControlInput::TRIG_LEVEL);
-        int skip = control_to_range(_ctrl_value(ControlInput::SKIP), 1, 30);
         bool triggered = _triggered;
         int trig_count = _trig_count;
         float prev = 0;
 
-        auto& in = _input_buffer(0);
         for (int i = 0; i < PROC_BLOCK_SIZE; ++i)
         {
-            float sample = in[i];
+            float sample = audio_in[i];
 
             if (prev < 0.01f && sample > trig_level)
             {
@@ -112,8 +96,8 @@ private:
 };
 
 /* Metering, rms and peak */
-template<int skip = 1>
-class MeterBrick : public DspBrickImpl<0, 2, 1, 0>
+template<int skip = 1, size_t os_factor = 1>
+class MeterBrick : public DspBrickv2Impl<os_factor, 0, 2, 1, 0>
 {
 public:
     enum ControlOutput
@@ -124,29 +108,21 @@ public:
 
     MeterBrick() = default;
 
-    MeterBrick(const AudioBuffer* audio_in)
-    {
-        set_audio_input(0, audio_in);
-    }
-
     void reset() override
     {
-        _set_ctrl_value(ControlOutput::PEAK, 0.0f);
-        _set_ctrl_value(ControlOutput::RMS, 0.0f);
         _rms_smoother.reset();
         _peak_smoother.reset();
     }
 
-    void render() override
+    void render(float& rms_out, float& peak_out, const AudioOsBuffer<os_factor>& audio_in)
     {
         float sq_sum = 0;
         float min = std::numeric_limits<float>::max();
         float max = std::numeric_limits<float>::min();
 
-        auto& in = _input_buffer(0);
-        for (int i = 0; i < in.size(); i += skip)
+        for (int i = 0; i < audio_in.size(); i += skip)
         {
-            float s = in[i];
+            float s = audio_in[i];
             sq_sum += s * s;
             min = s < min ? s : min;
             max = s > max ? s : max;
@@ -154,8 +130,8 @@ public:
         float rms = std::sqrt((skip / static_cast<float>(PROC_BLOCK_SIZE)) * sq_sum);
         _rms_smoother.set(from_db_approx(rms));
         _peak_smoother.set(from_db_approx(std::max(max, -min)));
-        _set_ctrl_value(ControlOutput::RMS, _rms_smoother.get());
-        _set_ctrl_value(ControlOutput::PEAK, _peak_smoother.get());
+        rms_out = _rms_smoother.get();
+        peak_out = _peak_smoother.get();
     }
 
 private:

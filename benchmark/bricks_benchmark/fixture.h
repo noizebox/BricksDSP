@@ -183,6 +183,160 @@ static void BrickBM(benchmark::State& state)
     }
 };
 
+enum class CallType
+{
+    ALL_SINGLE_ARGS,
+    AUDIO_INPUTS_ARE_ARRAYS,
+    AUDIO_INPUTS_OUTPUTS_ARE_ARRAYS,
+    CTRL_INPUTS_OUTPUTS_ARE_ARRAYS,
+    CTRL_INPUTS_ARE_ARRAYS,
+    CTRL_INPUTS_AUDIO_INPUTS_ARE_ARRAYS,
+    CTRL_INPUTS_AUDIO_INPUTS_OUTPUTS_ARE_ARRAYS,
+};
+
+/* Expands arrays into arrays of pointers for passing to constructors */
+template<typename in_type, typename out_type, size_t size, size_t... Is>
+std::array<out_type, size> make_array_arg(std::array<in_type, size>& args, std::index_sequence<Is...>)
+{
+    return std::array<out_type, size>{&std::get<Is>(args) ...};
+}
+
+/* Expands arrays into variadic packs so that each element of an array can be passed as an argument */
+template<CallType call_type, typename T, size_t ctrl_inputs, size_t ctrl_outputs, size_t audio_inputs, size_t audio_outputs, size_t... Is, size_t... Iso, size_t... Isa, size_t... Isb>
+void call_render(T& instance,
+                 std::array<float, ctrl_inputs>& ctrl_args,
+                 std::array<float, ctrl_outputs>& ctrl_out_args,
+                 std::array<AudioBuffer, audio_inputs>& audio_in_args,
+                 std::array<AudioBuffer, audio_outputs>& audio_out_args,
+                 std::index_sequence<Is...>,
+                 std::index_sequence<Iso...>,
+                 std::index_sequence<Isa...>,
+                 std::index_sequence<Isb...>)
+{
+    benchmark::DoNotOptimize(ctrl_args);
+    benchmark::DoNotOptimize(ctrl_out_args);
+    benchmark::DoNotOptimize(audio_in_args);
+    benchmark::DoNotOptimize(audio_out_args);
+    if constexpr (call_type == CallType::ALL_SINGLE_ARGS)
+    {
+        instance.render(std::get<Is>(ctrl_args) ...,
+                        std::get<Iso>(ctrl_out_args) ...,
+                        std::get<Isa>(audio_in_args)...,
+                        std::get<Isb>(audio_out_args)...);
+    }
+    else if constexpr (call_type == CallType::AUDIO_INPUTS_ARE_ARRAYS)
+    {
+        instance.render(std::get<Is>(ctrl_args) ...,
+                        std::get<Iso>(ctrl_out_args) ...,
+                        make_array_arg<AudioOsBuffer<>, const AudioOsBuffer<>*>(audio_in_args, std::make_index_sequence<audio_inputs>{}),
+                        std::get<Isb>(audio_out_args)...);
+    }
+    else if constexpr (call_type == CallType::AUDIO_INPUTS_OUTPUTS_ARE_ARRAYS)
+    {
+        instance.render(std::get<Is>(ctrl_args) ...,
+                        std::get<Iso>(ctrl_out_args) ...,
+                        make_array_arg<AudioOsBuffer<>, const AudioOsBuffer<>*>(audio_in_args, std::make_index_sequence<audio_inputs>{}),
+                        make_array_arg<AudioOsBuffer<>, AudioOsBuffer<>*>(audio_out_args, std::make_index_sequence<audio_outputs>{}));
+    }
+    else if constexpr (call_type == CallType::CTRL_INPUTS_ARE_ARRAYS)
+    {
+        instance.render(ctrl_args, /* Pass the array as is, no need to reformat */
+                        std::get<Iso>(ctrl_out_args) ...,
+                        std::get<Isa>(audio_in_args)...,
+                        std::get<Isb>(audio_out_args)...);
+    }
+    else if constexpr (call_type == CallType::CTRL_INPUTS_OUTPUTS_ARE_ARRAYS)
+    {
+        instance.render(ctrl_args, /* Pass the array as is, no need to reformat */
+                        make_array_arg<float, float*>(ctrl_out_args, std::make_index_sequence<ctrl_outputs>{}),
+                        std::get<Isa>(audio_in_args)...,
+                        std::get<Isb>(audio_out_args)...);
+    }
+    else if constexpr (call_type == CallType::CTRL_INPUTS_AUDIO_INPUTS_ARE_ARRAYS)
+    {
+        instance.render(ctrl_args, /* Pass the array as is, no need to reformat */
+                        std::get<Iso>(ctrl_out_args) ...,
+                        make_array_arg<AudioOsBuffer<>, const AudioOsBuffer<>*>(audio_in_args, std::make_index_sequence<audio_inputs>{}),
+                        std::get<Isb>(audio_out_args)...);
+    }
+    else if constexpr (call_type == CallType::CTRL_INPUTS_AUDIO_INPUTS_OUTPUTS_ARE_ARRAYS)
+    {
+        instance.render(ctrl_args, /* Pass the array as is, no need to reformat */
+                        std::get<Iso>(ctrl_out_args) ...,
+                        make_array_arg<AudioOsBuffer<>, const AudioOsBuffer<>*>(audio_in_args, std::make_index_sequence<audio_inputs>{}),
+                        make_array_arg<AudioOsBuffer<>, AudioOsBuffer<>*>(audio_out_args, std::make_index_sequence<audio_outputs>{}));
+    }
+}
+
+/* Generic test fixture that passes a given number of control and audio inputs to the
+ * DspBrickv2 to benchmark
+ *
+ * T                  - DspBrickv2 type to benchmark
+ * ctrl_inputs        - Number of control inputs to the brick
+ * audio_inputs       - Number of audio inputs to the brick
+ * audio_inputs       - Number of audio outputs to the brick
+ * audio_type         - The type of audio to pass through - if performance depends on branch pred. or similar
+ * array_args         - If true, format the constructor arguments into arrays of floats and AudioBuffers,
+ *                      Else, use variadic expansion for passing arguments
+ * modulate_ctrl_data - If true, modulate control data between calls to render */
+template<typename T, size_t ctrl_inputs, size_t ctrl_outputs, size_t audio_inputs, size_t audio_outputs, AudioType audio_type, CallType call_type = CallType::ALL_SINGLE_ARGS, bool modulate_ctrl_data = true>
+static void Brick2BM(benchmark::State& state)
+{
+    denormals_intrinsic();
+
+    std::array<float, ctrl_inputs> ctrl_signals;
+    std::array<float, ctrl_outputs> ctrl_out_signals;
+    std::array<bricks::AudioBuffer, audio_inputs> audio_signals_in;
+    std::array<bricks::AudioBuffer, audio_outputs> audio_signals_out;
+    auto audio_data = get_audio_data(audio_type);
+
+    ctrl_signals.fill(0.0);
+    constexpr float CTRL_INC = 1.0f / TEST_AUDIO_DATA_SIZE;
+
+    T test_module;
+    test_module.set_samplerate(TEST_SAMPLE_RATE);
+
+    int samples = 0;
+    for (auto _ : state)
+    {
+        benchmark::DoNotOptimize(audio_signals_in);
+        benchmark::DoNotOptimize(audio_signals_out);
+        benchmark::DoNotOptimize(ctrl_signals);
+        benchmark::DoNotOptimize(ctrl_out_signals);
+
+        if (samples++ >= TEST_AUDIO_DATA_SIZE - bricks::PROC_BLOCK_SIZE)
+        {
+            samples = 0;
+        }
+        for (auto& i : audio_signals_in)
+        {
+            std::copy(audio_data->data() + samples, audio_data->data() + samples + bricks::PROC_BLOCK_SIZE, i.data());
+        }
+        if constexpr (modulate_ctrl_data)
+        {
+            for (auto& i: ctrl_signals)
+            {
+                i = static_cast<float>(samples) * CTRL_INC;
+            }
+        }
+        /* Do processing.
+         * The changing of control values and copying of audio data above will be included
+         * in the total measured time, though in practice it adds very little overhead and
+         * is negligible for all but the simplest bricks.
+         * See timings for the BaselineBrick for an estimation of the overhead */
+            call_render<call_type>(test_module,
+                                   ctrl_signals,
+                                   ctrl_out_signals,
+                                   audio_signals_in,
+                                   audio_signals_out,
+                                   std::make_index_sequence<ctrl_inputs> {},
+                                   std::make_index_sequence<ctrl_outputs> {},
+                                   std::make_index_sequence<audio_inputs> {},
+                                   std::make_index_sequence<audio_outputs> {});
+    }
+};
+
+
 /* Creates a functor object from free-standing function fun, for use in FunBM template */
 #define SAMPLE_FUNCTOR(name, fun, from_size, to_size) \
 struct name                             \

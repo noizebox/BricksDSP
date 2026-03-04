@@ -78,6 +78,57 @@ inline float clamp(const float& x, const float& min, const float& max)
     return x;
 }
 
+constexpr float MAX_BIT_DEPTH = 24;
+
+/* Pade approximation of tanh, valid within [-3, 3] */
+inline float tanh_approx(const float& x)
+{
+    return x * (27.0f + x * x) / (27.0f + 9.0f * x * x);
+}
+
+inline double tanh_antiderivative(const double& x)
+{
+    return std::log(std::cosh(x));
+    //return 14.0f / 9.0f * std::log(std::abs(9 * x * x + 27));
+}
+
+/* One of the computationally cheapest soft clipping functions */
+inline float sigm(const float& x)
+{
+    return x / std::sqrt(1 + x * x);
+}
+
+/* A harder clipped version of the above */
+inline float sigm_hard(float x)
+{
+    constexpr float HARDNESS = 1.0;
+
+    float x_t = x + HARDNESS * x * x * x;
+    return x_t / std::sqrt(1 + x_t * x_t);
+}
+
+/* Integral of the above sigmoid clipping function */
+inline float sigm_antiderivative(const float& x)
+{
+    // Todo -  verify if this is the correct integral of sigm()
+    return std::sqrt(1 + x * x);
+}
+
+/* Primitive function of a rectangular clip function
+ * that is 1 for x > 1, -1 for x < -1 and x otherwise */
+inline float clip_antiderivate(const float& x)
+{
+    if (x >= 1)
+    {
+        return x - 0.5f;
+    }
+    if (x <= -1)
+    {
+        return -x - 0.5f;
+    }
+    return  0.5f * x * x;
+}
+
 /* Linear interpolations over N samples */
 template <int length>
 class LinearInterpolator

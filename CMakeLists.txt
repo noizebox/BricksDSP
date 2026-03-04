@@ -10,11 +10,8 @@ option(BRICKS_DSP_INTERNAL_AUDIO_BUFFERS "Audio output buffers are owned by bric
 set(BRICKS_BLOCK_SIZE 32 CACHE STRING "Internal processing block size")
 
 # Source Files
-set(SOURCE_FILES src/envelope_bricks.cpp
-                 src/filter_bricks.cpp
-                 src/modulator_bricks.cpp
-                 src/oscillator_bricks.cpp
-                 src/random_device.cpp)
+set(SOURCE_FILES
+        src/random_device.cpp)
 
 set(SOURCE_FILES "${SOURCE_FILES}")
 

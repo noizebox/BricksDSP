@@ -17,7 +17,11 @@ constexpr int PROC_BLOCK_SIZE = DSP_BRICKS_BLOCK_SIZE;
 
 constexpr float DEFAULT_SAMPLERATE = 44100;
 
-typedef AlignedArray<float, PROC_BLOCK_SIZE> AudioBuffer;
+
+template <int os_factor = 1>
+using AudioOsBuffer = AlignedArray<float, PROC_BLOCK_SIZE * os_factor>;
+using AudioBuffer = AlignedArray<float, PROC_BLOCK_SIZE>;
+
 typedef LinearInterpolator<PROC_BLOCK_SIZE> ControlSmootherLinear;
 typedef OnePoleLag<PROC_BLOCK_SIZE> ControlSmootherLag;
 
@@ -160,6 +164,55 @@ private:
 #endif
 };
 
+class DspBrickv2
+{
+public:
+    virtual ~DspBrickv2() = default;
+
+    virtual void set_samplerate(float samplerate) {};
+
+    virtual void reset() {};
+
+    virtual int n_control_inputs() const = 0;
+
+    virtual int n_control_outputs() const = 0;
+
+    virtual int n_audio_inputs() const = 0;
+
+    virtual int n_audio_outputs() const = 0;
+};
+
+template <int os_factor, int ctrl_ins, int ctrl_outs, int audio_ins, int audio_outs>
+class DspBrickv2Impl : public DspBrickv2
+{
+public:
+    ~DspBrickv2Impl() override = default;
+
+    //virtual void render() = 0;
+    /*
+     * Derived classed should implement a render callback like this
+       void render(std::array<float, ctrl_ins> control_inputs,
+                   std::array<float*, ctrl_outs> control_outputs,
+                   std::array<const AudioOsBuffer<os_factor>*, audio_ins> audio_inputs,
+                   std::array<AudioOsBuffer<os_factor>*, audio_outs> audio_outputs);
+       Or for simple bricks
+       void render(float ctrl_1, float ctrl_2, const AudioBuffer<os_factor>* input, AudioOsBuffer<os_factor>* output)
+    */
+
+    int n_control_inputs() const override {return ctrl_ins;}
+
+    int n_control_outputs() const override {return ctrl_outs;}
+
+    int n_audio_inputs() const override {return audio_ins;}
+
+    int n_audio_outputs() const override {return audio_outs;}
+
+protected:
+    static constexpr size_t n_samples_per_buffer()
+    {
+        return os_factor * PROC_BLOCK_SIZE;
+    }
+};
 
 } // namespace bricks
 
