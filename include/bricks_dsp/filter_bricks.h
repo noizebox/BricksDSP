@@ -13,11 +13,11 @@ constexpr float DEFAULT_Q = 1 / 1.42f;
 template<typename FloatType>
 struct BiquadCoefficients
 {
-    FloatType a1;
-    FloatType a2;
-    FloatType b0;
-    FloatType b1;
-    FloatType b2;
+    FloatType a1{0.2}; // Defaults are just there to avoid benchmarks to optimise away everything completely
+    FloatType a2{0.3};
+    FloatType b0{0.4};
+    FloatType b1{0.5};
+    FloatType b2{0.6};
 };
 
 template<typename FloatType>
@@ -202,7 +202,10 @@ template <size_t os_factor = 1>
 class FixedFilterBrick : public DspBrickv2Impl<os_factor, 0, 0, 1, 1>
 {
 public:
-    FixedFilterBrick() = default;
+    FixedFilterBrick()
+    {
+        set_lowpass(500, 0.2, true); // Set sensible defaults mainly for benchmarks
+    }
 
     void set_lowpass(float freq, float q, bool clear = true)
     {

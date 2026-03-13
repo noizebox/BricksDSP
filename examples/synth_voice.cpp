@@ -136,7 +136,7 @@ private:
     VcaBrick2<Response::LINEAR>        _amp;
 
     /* The order of creation automatically becomes a valid process order */
-    std::vector<DspBrickv2*> _audio_graph{&_env, &_osc, &_osc2, &_mixer, &_filt, &_dist, &_amp};
+    std::vector<DspBrick*> _audio_graph{&_env, &_osc, &_osc2, &_mixer, &_filt, &_dist, &_amp};
 };
 
 int main ()

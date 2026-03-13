@@ -66,7 +66,7 @@ public:
             {
                 F1 = sigm_antiderivative(x);
             }
-            else if (type == ClipType::HARD)
+            else if constexpr (type == ClipType::HARD)
             {
                 F1 = clip_antiderivate(x);
             }
@@ -82,7 +82,7 @@ public:
                 {
                     y = sigm(x);
                 }
-                else if (type == ClipType::HARD)
+                else if constexpr (type == ClipType::HARD)
                 {
                     y = clamp(x, -1.0f, 1.0f);
                 }
