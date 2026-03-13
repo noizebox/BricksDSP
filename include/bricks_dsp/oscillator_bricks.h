@@ -19,7 +19,7 @@ enum class Waveform
 
 /* Naive saw/sq/tri oscillator with control rate pitch input */
 template <int os_factor = 1>
-class OscillatorBrick : public DspBrickv2Impl<os_factor, 1, 0, 0, 1>
+class OscillatorBrick : public DspBrickImpl<os_factor, 1, 0, 0, 1>
 {
 public:
     void set_waveform(Waveform waveform)
@@ -95,7 +95,7 @@ private:
 
 /* Naive saw/sq/tri oscillator with audio rate linear fm */
 template <size_t os_factor = 1>
-class FmOscillatorBrick : public DspBrickv2Impl<os_factor, 1, 0, 1, 1>
+class FmOscillatorBrick : public DspBrickImpl<os_factor, 1, 0, 1, 1>
 {
 public:
     FmOscillatorBrick() = default;
@@ -169,7 +169,7 @@ private:
 
 /* Wavetable based saw/sq/tri oscillator with control rate pitch input */
 template <size_t os_factor = 1>
-class WtOscillatorBrick : public DspBrickv2Impl<os_factor, 1, 0, 0, 1>
+class WtOscillatorBrick : public DspBrickImpl<os_factor, 1, 0, 0, 1>
 {
 public:
     WtOscillatorBrick() = default;
@@ -235,7 +235,7 @@ private:
 
 /* Noise generator with 3 levels of lp filtering */
 template <size_t os_factor = 1>
-class NoiseGeneratorBrick : public DspBrickv2Impl<os_factor, 0, 0, 0, 1>
+class NoiseGeneratorBrick : public DspBrickImpl<os_factor, 0, 0, 0, 1>
 {
 public:
     enum class NoiseType

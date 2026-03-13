@@ -12,7 +12,7 @@
 namespace bricks {
 
 template <int block_size, int past_blocks = 4, size_t os_factor = 1>
-class OscilloscopeBrick : public DspBrickv2Impl<os_factor, 2, 0, 1, 0>
+class OscilloscopeBrick : public DspBrickImpl<os_factor, 2, 0, 1, 0>
 {
 public:
     using Block = AlignedArray<float, block_size>;
@@ -97,7 +97,7 @@ private:
 
 /* Metering, rms and peak */
 template<int skip = 1, size_t os_factor = 1>
-class MeterBrick : public DspBrickv2Impl<os_factor, 0, 2, 1, 0>
+class MeterBrick : public DspBrickImpl<os_factor, 0, 2, 1, 0>
 {
 public:
     enum ControlOutput

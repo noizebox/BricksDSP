@@ -14,7 +14,7 @@ constexpr float LOWEST_LFO_SPEED = 0.05f;
 
 /* Linear slope ADSR envelope generated at audio rate */
 template <int os_factor = 1>
-class AudioRateADSRBrick : public DspBrickv2Impl <os_factor, 1, 0, 0, 1>
+class AudioRateADSRBrick : public DspBrickImpl <os_factor, 1, 0, 0, 1>
 {
 public:
     AudioRateADSRBrick() = default;
@@ -119,7 +119,7 @@ private:
 };
 
 /* Control rate linear ADSR envelope with linear slopes */
-class LinearADSREnvelopeBrick : public DspBrickv2Impl<1, 4, 1, 0, 0>
+class LinearADSREnvelopeBrick : public DspBrickImpl<1, 4, 1, 0, 0>
 {
 public:
     LinearADSREnvelopeBrick() = default;
@@ -222,7 +222,7 @@ private:
 
 /* ADSR Envelope intended for audio control with linear attack phase and
  * exponentially falling decay and release phases */
-class AudioADSREnvelopeBrick : public DspBrickv2Impl<1, 4, 1, 0, 0>
+class AudioADSREnvelopeBrick : public DspBrickImpl<1, 4, 1, 0, 0>
 {
 public:
     AudioADSREnvelopeBrick() = default;
@@ -324,7 +324,7 @@ private:
 
 
 /* Control rate LFO  */
-class LfoBrick : public DspBrickv2Impl<1, 1, 1, 0, 0>
+class LfoBrick : public DspBrickImpl<1, 1, 1, 0, 0>
 {
 public:
     enum class Waveform
@@ -426,7 +426,7 @@ private:
 };
 
 /* Optimised LFO with only sine as waveform */
-class SineLfoBrick : public DspBrickv2Impl<1, 1, 1, 0, 0>
+class SineLfoBrick : public DspBrickImpl<1, 1, 1, 0, 0>
 {
 public:
     SineLfoBrick() = default;
@@ -459,7 +459,7 @@ private:
 };
 
 /* Optimised low frequency random generation */
-class RandLfoBrick : public DspBrickv2Impl<1, 0, 1, 0, 0>
+class RandLfoBrick : public DspBrickImpl<1, 0, 1, 0, 0>
 {
 public:
     RandLfoBrick() = default;

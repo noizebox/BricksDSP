@@ -72,13 +72,13 @@ static bricks::AlignedArray<float, TEST_AUDIO_DATA_SIZE> gen_noise_data()
 
 /* No-op bricks to measure the benchmarking overhead, essentially subtract the
  * measured time from this from all brick benchmarks to measure the overhead */
-class BaselineBrick : public bricks::DspBrickv2Impl<1, 2, 0, 1, 1>
+class BaselineBrick : public bricks::DspBrickImpl<1, 2, 0, 1, 1>
 {
 public:
     void render(float /*one*/, float /*two*/, const AudioOsBuffer<1>& /*audio_in*/, AudioOsBuffer<1>& /*audio_out*/) {};
 };
 
-class BaselineBrickCtrlOnly : public bricks::DspBrickv2Impl<1, 2, 2, 0, 0>
+class BaselineBrickCtrlOnly : public bricks::DspBrickImpl<1, 2, 2, 0, 0>
 {
 public:
     void render(float , float ) {};

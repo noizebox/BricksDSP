@@ -48,10 +48,10 @@ public:
 
 /* Implementation class that concrete implementations should inherit from */
 template <int os_factor, int ctrl_ins, int ctrl_outs, int audio_ins, int audio_outs>
-class DspBrickv2Impl : public DspBrick
+class DspBrickImpl : public DspBrick
 {
 public:
-    ~DspBrickv2Impl() override = default;
+    ~DspBrickImpl() override = default;
 
     //virtual void render() = 0;
     /*

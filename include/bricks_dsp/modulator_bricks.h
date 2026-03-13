@@ -18,7 +18,7 @@ enum class ClipType
 
 /* Simple and cheap sample-by sample clipper with a choice of tanh saturation or brickwall clipping */
 template <ClipType type, size_t os_factor = 1>
-class SaturationBrick : public DspBrickv2Impl<os_factor, 1, 0, 1, 1>
+class SaturationBrick : public DspBrickImpl<os_factor, 1, 0, 1, 1>
 {
 public:
     SaturationBrick() = default;
@@ -45,7 +45,7 @@ public:
  * https://www.researchgate.net/publication/308020367_Reducing_The_Aliasing_Of_Nonlinear_Waveshaping_Using_Continuous-Time_Convolution
  */
 template <ClipType type = ClipType::HARD, size_t os_factor = 1>
-class AASaturationBrick : public DspBrickv2Impl<os_factor, 1, 0, 1, 1>
+class AASaturationBrick : public DspBrickImpl<os_factor, 1, 0, 1, 1>
 {
 public:
     AASaturationBrick() = default;
@@ -102,7 +102,7 @@ private:
 
 /* Clone of Soft Distortion Sustainer circuit from Roland AG5 pedal */
 template <size_t os_factor = 1>
-class SustainerBrick : public DspBrickv2Impl<os_factor,4, 0, 2, 2>
+class SustainerBrick : public DspBrickImpl<os_factor,4, 0, 2, 2>
 {
 public:
     void render(float gain, float compression, float stereo_mode, float time,
@@ -290,7 +290,7 @@ private:
 /* Delay audio one process block, used to break circular dependencies from feedback
  * loops. Input must must be set with set_input before calling render() */
 template<size_t os_factor = 1>
-class UnitDelayBrick : public DspBrickv2Impl<os_factor, 0, 0, 1, 1>
+class UnitDelayBrick : public DspBrickImpl<os_factor, 0, 0, 1, 1>
 {
 public:
     UnitDelayBrick() = default;
@@ -308,7 +308,7 @@ private:
 
 /* Provides basic functionality common to all delays */
 template<size_t os_factor = 1>
-class BasicDelay : public DspBrickv2Impl<os_factor, 1, 0, 1, 1>
+class BasicDelay : public DspBrickImpl<os_factor, 1, 0, 1, 1>
 {
 public:
     BasicDelay(std::chrono::microseconds max_delay) : _max_delay_time(max_delay)
@@ -494,7 +494,7 @@ private:
 
 /* Delayline with controllable delay time and tape-like behaviour when modulated */
 template <size_t os_factor = 1>
-class ModulatedDelayBrick : public DspBrickv2Impl<os_factor, 1, 0, 1, 1>
+class ModulatedDelayBrick : public DspBrickImpl<os_factor, 1, 0, 1, 1>
 {
 public:
     ModulatedDelayBrick(float max_delay_seconds = 1) : _max_seconds(max_delay_seconds)
@@ -596,20 +596,9 @@ private:
  * Can probably be more efficiently interpolated using block based
  * processing for fixed delays */
 template<int length, size_t os_factor = 1>
-class AllpassDelayBrick : public DspBrickv2Impl<os_factor, 2, 0, 1, 1>
+class AllpassDelayBrick : public DspBrickImpl<os_factor, 2, 0, 1, 1>
 {
 public:
-    enum ControlInput
-    {
-        DELAY_TIME = 0,
-        G_COEFF
-    };
-
-    enum AudioOutput
-    {
-        DELAY_OUT = 0
-    };
-
     void reset() override
     {
         _buffer.fill(0.0f);
@@ -652,19 +641,9 @@ private:
 
 /* Reduce the bit depth continuously from 24 to 1 */
 template<size_t os_factor = 1>
-class BitRateReducerBrick : public DspBrickv2Impl<os_factor, 1, 0, 1, 1>
+class BitRateReducerBrick : public DspBrickImpl<os_factor, 1, 0, 1, 1>
 {
 public:
-    enum ControlInput
-    {
-        BIT_DEPTH = 0
-    };
-
-    enum AudioOutput
-    {
-        BITRED_OUT = 0
-    };
-
     BitRateReducerBrick() = default;
 
     void render(float bitrate, const AudioOsBuffer<os_factor>& audio_in, AudioOsBuffer<os_factor>& audio_out)
@@ -681,7 +660,7 @@ public:
 /* Reduce the sample rate continuously from 44100Hz to 20 Hz
  * Linear interpolation in both up and down sampling */
 template<size_t os_factor = 1>
-class SampleRateReducerBrick : public DspBrickv2Impl<os_factor, 1, 0, 1, 1>
+class SampleRateReducerBrick : public DspBrickImpl<os_factor, 1, 0, 1, 1>
 {
 public:
     SampleRateReducerBrick() = default;

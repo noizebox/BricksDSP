@@ -17,7 +17,7 @@ enum class Response
 
 /* Generic gain control of audio signal */
 template <Response response, size_t os_factor = 1>
-class VcaBrick : public DspBrickv2Impl<os_factor, 1, 0, 1, 1>
+class VcaBrick : public DspBrickImpl<os_factor, 1, 0, 1, 1>
 {
 public:
     VcaBrick() = default;
@@ -61,7 +61,7 @@ private:
  * AudioMixerBrick<2> mixer({gain1_, gain_2}, {audio_in_1, audio_in_2}); */
 
 template <size_t channel_count, Response response, size_t os_factor = 1>
-class AudioMixerBrick : public DspBrickv2Impl<os_factor, channel_count, 0, channel_count, 1>
+class AudioMixerBrick : public DspBrickImpl<os_factor, channel_count, 0, channel_count, 1>
 {
 public:
     AudioMixerBrick() = default;
@@ -118,9 +118,9 @@ private:
  * Instantiation example:
  * StereoMixerBrick<2> mixer({pan_1, gain_1, pan_2, gain_2}, {audio_in_1, audio_in_2}); */
 template <size_t channel_count, Response response, size_t os_factor = 1>
-class StereoMixerBrick : public DspBrickv2Impl<os_factor, channel_count * 2, 0, channel_count, 2>
+class StereoMixerBrick : public DspBrickImpl<os_factor, channel_count * 2, 0, channel_count, 2>
 {
-    using this_template = DspBrickv2Impl<os_factor, channel_count * 2, 0, channel_count, 2>;
+    using this_template = DspBrickImpl<os_factor, channel_count * 2, 0, channel_count, 2>;
 
 public:
     void reset() override
@@ -189,7 +189,7 @@ private:
 
 /* General n to 1 unity gain audio mixer */
 template <size_t channel_count, size_t os_factor = 1>
-class AudioSummerBrick : public DspBrickv2Impl<os_factor, 0, 0, channel_count, 1>
+class AudioSummerBrick : public DspBrickImpl<os_factor, 0, 0, channel_count, 1>
 {
 public:
     void render(const std::array<const AudioOsBuffer<os_factor>*, channel_count>& audio_ins,
@@ -211,7 +211,7 @@ public:
 
 /* Audio rate multiplier */
 template <size_t channel_count, size_t os_factor = 1>
-class AudioMultiplierBrick : public DspBrickv2Impl<os_factor, 0, 0, channel_count, 1>
+class AudioMultiplierBrick : public DspBrickImpl<os_factor, 0, 0, channel_count, 1>
 {
 public:
     AudioMultiplierBrick() = default;
@@ -235,7 +235,7 @@ public:
 /* General n to 1 control signal mixer, linear gain control As with the
  * audio mixer, first n arguments are gains, the rest are control signals*/
 template <size_t channel_count>
-class ControlMixerBrick : public DspBrickv2Impl<1, channel_count * 2, 1, 0, 0>
+class ControlMixerBrick : public DspBrickImpl<1, channel_count * 2, 1, 0, 0>
 {
 public:
     ControlMixerBrick() = default;
@@ -254,7 +254,7 @@ public:
 
 /* General n to 1 control signal mixer without gain controls */
 template <size_t channel_count>
-class ControlSummerBrick : public DspBrickv2Impl<1, channel_count, 1, 0, 0>
+class ControlSummerBrick : public DspBrickImpl<1, channel_count, 1, 0, 0>
 {
 public:
     ControlSummerBrick() = default;
@@ -273,7 +273,7 @@ public:
 
 /* General n to 1 control signal multiplier */
 template <int channel_count>
-class ControlMultiplierBrick : public DspBrickv2Impl<1, channel_count, 1, 0, 0>
+class ControlMultiplierBrick : public DspBrickImpl<1, channel_count, 1, 0, 0>
 {
 public:
     ControlMultiplierBrick() = default;
@@ -292,7 +292,7 @@ public:
 
 /* N to M control signal linear combinator. Useful for creating meta controllers/parameters */
 template <size_t input_count, size_t output_count, bool clamp_output = true>
-class MetaControlBrick : public DspBrickv2Impl<1, input_count, output_count, 0, 0>
+class MetaControlBrick : public DspBrickImpl<1, input_count, output_count, 0, 0>
 {
     using Matrix = std::array<std::array<float, output_count>, input_count>;
 

@@ -199,7 +199,7 @@ inline BiquadCoefficients<FloatType> calc_highshelf(float freq, float gain, floa
 
 /* Standard Biquad with non-modulated filter parameters */
 template <size_t os_factor = 1>
-class FixedFilterBrick : public DspBrickv2Impl<os_factor, 0, 0, 1, 1>
+class FixedFilterBrick : public DspBrickImpl<os_factor, 0, 0, 1, 1>
 {
 public:
     FixedFilterBrick()
@@ -299,7 +299,7 @@ private:
 
 /* Fixed Biquad with non-modulated filter parameters and templated number of stages */
 template<size_t stages, size_t os_factor = 1, typename FloatType = float>
-class MultiStageFilterBrick : public DspBrickv2Impl<os_factor, 0, 0, 1, 1>
+class MultiStageFilterBrick : public DspBrickImpl<os_factor, 0, 0, 1, 1>
 {
 public:
     MultiStageFilterBrick() = default;
@@ -356,7 +356,7 @@ private:
  * in parallel, adds 1 sample delay per stage but allows for much more
  * cpu-efficient processing */
 template<size_t stages, size_t os_factor = 1, typename FloatType = float>
-class PipelinedFilterBrick : public DspBrickv2Impl<os_factor, 0, 0, 1, 1>
+class PipelinedFilterBrick : public DspBrickImpl<os_factor, 0, 0, 1, 1>
 {
 public:
     PipelinedFilterBrick() = default;
@@ -406,7 +406,7 @@ private:
 /* Fixed filter with templated number of parallel paths.
  * More efficient for multiple voices/channels */
 template<int channel_count, size_t os_factor = 1, typename FloatType = float>
-class ParallelFilterBrick : public DspBrickv2Impl<os_factor, 0, 0, channel_count, channel_count>
+class ParallelFilterBrick : public DspBrickImpl<os_factor, 0, 0, channel_count, channel_count>
 {
 public:
     ParallelFilterBrick() = default;
@@ -445,7 +445,7 @@ private:
 /* State variable filter with multiple outs from Andrew Simper, Cytomic,
  * adapted from https://cytomic.com/files/dsp/SvfLinearTrapOptimised2.pdf */
 template <size_t os_factor = 1>
-class SVFFilterBrick : public DspBrickv2Impl<os_factor, 2, 0, 1, 3>
+class SVFFilterBrick : public DspBrickImpl<os_factor, 2, 0, 1, 3>
 {
 public:
     void set_samplerate(float samplerate) override
@@ -511,7 +511,7 @@ inline double tanhXdX(const double& x)
  * Adapted from https://www.kvraudio.com/forum/viewtopic.php?t=349859
  * and Copyright 2012 Teemu Voipio (mystran @ kvr)  */
 template <size_t os_factor = 1>
-class MystransLadderFilter : public DspBrickv2Impl<os_factor, 2, 0, 1, 1>
+class MystransLadderFilter : public DspBrickImpl<os_factor, 2, 0, 1, 1>
 {
 public:
     void render(float cutoff, float resonance, const AudioOsBuffer<os_factor>& audio_in, AudioOsBuffer<os_factor>& audio_out)
