@@ -599,6 +599,11 @@ template<int length, size_t os_factor = 1>
 class AllpassDelayBrick : public DspBrickImpl<os_factor, 2, 0, 1, 1>
 {
 public:
+    AllpassDelayBrick()
+    {
+        reset();
+    }
+
     void reset() override
     {
         _buffer.fill(0.0f);
@@ -663,7 +668,10 @@ template<size_t os_factor = 1>
 class SampleRateReducerBrick : public DspBrickImpl<os_factor, 1, 0, 1, 1>
 {
 public:
-    SampleRateReducerBrick() = default;
+    SampleRateReducerBrick() 
+    {
+        reset();
+    }
 
     void set_samplerate(float samplerate) override
     {

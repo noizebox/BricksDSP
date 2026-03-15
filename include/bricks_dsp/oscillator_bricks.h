@@ -294,7 +294,7 @@ public:
 private:
     float               _pink_coeff_a0;
     float               _brown_coeff_a0;
-    float               _state;
+    float               _state{0.0f};
     NoiseType           _waveform{NoiseType::WHITE};
     RandomDevice        _rand_device;
 };

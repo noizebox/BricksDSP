@@ -302,7 +302,10 @@ template<size_t stages, size_t os_factor = 1, typename FloatType = float>
 class MultiStageFilterBrick : public DspBrickImpl<os_factor, 0, 0, 1, 1>
 {
 public:
-    MultiStageFilterBrick() = default;
+    MultiStageFilterBrick()
+    {
+        reset();
+    }
 
     void set_coeffs(const std::array<BiquadCoefficients<FloatType>, stages>& coeffs)
     {
@@ -359,8 +362,11 @@ template<size_t stages, size_t os_factor = 1, typename FloatType = float>
 class PipelinedFilterBrick : public DspBrickImpl<os_factor, 0, 0, 1, 1>
 {
 public:
-    PipelinedFilterBrick() = default;
-
+    PipelinedFilterBrick()
+    {
+        reset();
+    }
+    
     void set_coeffs(const std::array<BiquadCoefficients<FloatType>, stages>& coeffs)
     {
         _coeff = coeffs;
@@ -394,6 +400,7 @@ public:
         _reg.fill({0, 0});
         _pipeline.fill(0);
     }
+
 
 private:
     static_assert(stages >= 2, "Needs at least 2 stages to be useful");
