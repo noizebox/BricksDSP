@@ -35,15 +35,6 @@ public:
     virtual void set_samplerate(float samplerate) {};
 
     virtual void reset() {};
-
-    // TODO - these might not even be needed
-    virtual int n_control_inputs() const = 0;
-
-    virtual int n_control_outputs() const = 0;
-
-    virtual int n_audio_inputs() const = 0;
-
-    virtual int n_audio_outputs() const = 0;
 };
 
 /* Implementation class that concrete implementations should inherit from */
@@ -67,14 +58,6 @@ public:
                    const std::array<const AudioOsBuffer<os_factor>*, audio_ins>& audio_inputs,
                    const std::array<AudioOsBuffer<os_factor>*, audio_outs>& audio_outputs);
     */
-
-    int n_control_inputs() const override {return ctrl_ins;}
-
-    int n_control_outputs() const override {return ctrl_outs;}
-
-    int n_audio_inputs() const override {return audio_ins;}
-
-    int n_audio_outputs() const override {return audio_outs;}
 
 protected:
     static constexpr size_t n_samples_per_buffer()

@@ -124,12 +124,12 @@ std::array<out_type, size> make_array_arg(std::array<in_type, size>& args, std::
 }
 
 /* Expands arrays into variadic packs so that each element of an array can be passed as an argument */
-template<CallType call_type, typename T, size_t ctrl_inputs, size_t ctrl_outputs, size_t audio_inputs, size_t audio_outputs, size_t... Is, size_t... Iso, size_t... Isa, size_t... Isb>
+template<CallType call_type, size_t os_factor, typename T, size_t ctrl_inputs, size_t ctrl_outputs, size_t audio_inputs, size_t audio_outputs, size_t... Is, size_t... Iso, size_t... Isa, size_t... Isb>
 void call_render(T& instance,
                  std::array<float, ctrl_inputs>& ctrl_args,
                  std::array<float, ctrl_outputs>& ctrl_out_args,
-                 std::array<AudioBuffer, audio_inputs>& audio_in_args,
-                 std::array<AudioBuffer, audio_outputs>& audio_out_args,
+                 std::array<AudioOsBuffer<os_factor>, audio_inputs>& audio_in_args,
+                 std::array<AudioOsBuffer<os_factor>, audio_outputs>& audio_out_args,
                  std::index_sequence<Is...>,
                  std::index_sequence<Iso...>,
                  std::index_sequence<Isa...>,
@@ -150,15 +150,15 @@ void call_render(T& instance,
     {
         instance.render(std::get<Is>(ctrl_args) ...,
                         std::get<Iso>(ctrl_out_args) ...,
-                        make_array_arg<AudioOsBuffer<>, const AudioOsBuffer<>*>(audio_in_args, std::make_index_sequence<audio_inputs>{}),
+                        make_array_arg<AudioOsBuffer<>, const AudioOsBuffer<os_factor>*>(audio_in_args, std::make_index_sequence<audio_inputs>{}),
                         std::get<Isb>(audio_out_args)...);
     }
     else if constexpr (call_type == CallType::AUDIO_INPUTS_OUTPUTS_ARE_ARRAYS)
     {
         instance.render(std::get<Is>(ctrl_args) ...,
                         std::get<Iso>(ctrl_out_args) ...,
-                        make_array_arg<AudioOsBuffer<>, const AudioOsBuffer<>*>(audio_in_args, std::make_index_sequence<audio_inputs>{}),
-                        make_array_arg<AudioOsBuffer<>, AudioOsBuffer<>*>(audio_out_args, std::make_index_sequence<audio_outputs>{}));
+                        make_array_arg<AudioOsBuffer<>, const AudioOsBuffer<os_factor>*>(audio_in_args, std::make_index_sequence<audio_inputs>{}),
+                        make_array_arg<AudioOsBuffer<>, AudioOsBuffer<os_factor>*>(audio_out_args, std::make_index_sequence<audio_outputs>{}));
     }
     else if constexpr (call_type == CallType::CTRL_INPUTS_ARE_ARRAYS)
     {
@@ -178,15 +178,15 @@ void call_render(T& instance,
     {
         instance.render(ctrl_args, /* Pass the array as is, no need to reformat */
                         std::get<Iso>(ctrl_out_args) ...,
-                        make_array_arg<AudioOsBuffer<>, const AudioOsBuffer<>*>(audio_in_args, std::make_index_sequence<audio_inputs>{}),
+                        make_array_arg<AudioOsBuffer<os_factor>, const AudioOsBuffer<os_factor>*>(audio_in_args, std::make_index_sequence<audio_inputs>{}),
                         std::get<Isb>(audio_out_args)...);
     }
     else if constexpr (call_type == CallType::CTRL_INPUTS_AUDIO_INPUTS_OUTPUTS_ARE_ARRAYS)
     {
         instance.render(ctrl_args, /* Pass the array as is, no need to reformat */
                         std::get<Iso>(ctrl_out_args) ...,
-                        make_array_arg<AudioOsBuffer<>, const AudioOsBuffer<>*>(audio_in_args, std::make_index_sequence<audio_inputs>{}),
-                        make_array_arg<AudioOsBuffer<>, AudioOsBuffer<>*>(audio_out_args, std::make_index_sequence<audio_outputs>{}));
+                        make_array_arg<AudioOsBuffer<>, const AudioOsBuffer<os_factor>*>(audio_in_args, std::make_index_sequence<audio_inputs>{}),
+                        make_array_arg<AudioOsBuffer<>, AudioOsBuffer<os_factor>*>(audio_out_args, std::make_index_sequence<audio_outputs>{}));
     }
 }
 
@@ -200,16 +200,17 @@ void call_render(T& instance,
  * audio_type         - The type of audio to pass through - if performance depends on branch pred. or similar
  * array_args         - If true, format the constructor arguments into arrays of floats and AudioBuffers,
  *                      Else, use variadic expansion for passing arguments
- * modulate_ctrl_data - If true, modulate control data between calls to render */
-template<typename T, size_t ctrl_inputs, size_t ctrl_outputs, size_t audio_inputs, size_t audio_outputs, AudioType audio_type, CallType call_type = CallType::ALL_SINGLE_ARGS, bool modulate_ctrl_data = true>
+ * modulate_ctrl_data - If true, modulate control data between calls to render
+ * os_factor          - Oversampling factor, note that the oversampling factor template parameter must also be set on T  */
+template<typename T, size_t ctrl_inputs, size_t ctrl_outputs, size_t audio_inputs, size_t audio_outputs, AudioType audio_type, CallType call_type = CallType::ALL_SINGLE_ARGS, bool modulate_ctrl_data = true, size_t os_factor = 1>
 static void BrickBM(benchmark::State& state)
 {
     denormals_intrinsic();
 
     std::array<float, ctrl_inputs> ctrl_signals;
     std::array<float, ctrl_outputs> ctrl_out_signals;
-    std::array<bricks::AudioBuffer, audio_inputs> audio_signals_in;
-    std::array<bricks::AudioBuffer, audio_outputs> audio_signals_out;
+    std::array<bricks::AudioOsBuffer<os_factor>, audio_inputs> audio_signals_in;
+    std::array<bricks::AudioOsBuffer<os_factor>, audio_outputs> audio_signals_out;
     auto audio_data = get_audio_data(audio_type);
 
     ctrl_signals.fill(0.0);
@@ -232,7 +233,7 @@ static void BrickBM(benchmark::State& state)
         }
         for (auto& i : audio_signals_in)
         {
-            std::copy(audio_data->data() + samples, audio_data->data() + samples + bricks::PROC_BLOCK_SIZE, i.data());
+            std::copy(audio_data->data() + samples, audio_data->data() + samples + i.size(), i.data());
         }
         if constexpr (modulate_ctrl_data)
         {
@@ -246,15 +247,15 @@ static void BrickBM(benchmark::State& state)
          * in the total measured time, though in practice it adds very little overhead and
          * is negligible for all but the simplest bricks.
          * See timings for the BaselineBrick for an estimation of the overhead */
-            call_render<call_type>(test_module,
-                                   ctrl_signals,
-                                   ctrl_out_signals,
-                                   audio_signals_in,
-                                   audio_signals_out,
-                                   std::make_index_sequence<ctrl_inputs> {},
-                                   std::make_index_sequence<ctrl_outputs> {},
-                                   std::make_index_sequence<audio_inputs> {},
-                                   std::make_index_sequence<audio_outputs> {});
+            call_render<call_type, os_factor>(test_module,
+                                              ctrl_signals,
+                                              ctrl_out_signals,
+                                              audio_signals_in,
+                                              audio_signals_out,
+                                              std::make_index_sequence<ctrl_inputs> {},
+                                              std::make_index_sequence<ctrl_outputs> {},
+                                              std::make_index_sequence<audio_inputs> {},
+                                              std::make_index_sequence<audio_outputs> {});
     }
 };
 
