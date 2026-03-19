@@ -278,7 +278,7 @@ public:
 
     void set_samplerate(float samplerate) override
     {
-        _samplerate = samplerate;
+        _samplerate = samplerate * os_factor;
     }
 
     void render(const AudioOsBuffer<os_factor>& audio_in, AudioOsBuffer<os_factor>& audio_out)
@@ -451,13 +451,13 @@ private:
 
 /* State variable filter with multiple outs from Andrew Simper, Cytomic,
  * adapted from https://cytomic.com/files/dsp/SvfLinearTrapOptimised2.pdf */
-template <size_t os_factor = 1>
+template <int os_factor = 1>
 class SVFFilterBrick : public DspBrickImpl<os_factor, 2, 0, 1, 3>
 {
 public:
     void set_samplerate(float samplerate) override
     {
-        _samplerate_inv = 1.0f / samplerate;
+        _samplerate_inv = 1.0f / (samplerate * os_factor);
     }
 
     void reset() override
@@ -478,7 +478,7 @@ public:
         _g_lag.set(std::tan(static_cast<float>(M_PI) * freq * _samplerate_inv));
         auto reg = _reg;
         auto g_lag = _g_lag;
-        for (unsigned int i = 0; i < PROC_BLOCK_SIZE; ++i)
+        for (int i = 0; i < PROC_BLOCK_SIZE * os_factor; ++i)
         {
             float g = g_lag.get();
             float a1 = 1 / (1 + g * (g + k));
@@ -501,7 +501,7 @@ public:
 private:
     float                 _samplerate_inv {1.0f / DEFAULT_SAMPLERATE};
     std::array<float, 2>  _reg{0,0};
-    ControlSmootherLinear _g_lag;
+    LinearLag<os_factor>  _g_lag;
 };
 
 /* tanh(x)/x approximation, flatline at very high inputs
@@ -590,7 +590,7 @@ public:
     }
 
 private:
-    ControlSmootherLinear  _freq_lag;
+    LinearLag<os_factor>   _freq_lag;
     double                 _zi;
     float                  _samplerate_inv{1.0 / DEFAULT_SAMPLERATE};
     std::array<double, 4>  _states{0, 0, 0, 0};

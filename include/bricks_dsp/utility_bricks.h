@@ -53,7 +53,7 @@ public:
     }
 
 private:
-    LinearInterpolator<PROC_BLOCK_SIZE * os_factor>  _gain_lag;
+    LinearLag<os_factor>  _gain_lag;
 };
 
 /* General n to 1 audio mixer with individual gain controls for each input
@@ -111,7 +111,7 @@ public:
     }
 
 private:
-    std::array<ControlSmootherLinear, channel_count> _gain_lags;
+    std::array<LinearLag<os_factor>, channel_count> _gain_lags;
 };
 
 /* General n to 2 audio mixer with individual gain controls for each input
@@ -130,7 +130,7 @@ public:
             lag.reset();
         }
     }
-
+    /* Control values are: pan 0, gain 0, pan 1, gain1, pan 2 ...etc */
     void render(const std::array<float, channel_count * 2>& ctrl_values,
                 const std::array<const AudioOsBuffer<os_factor>*, channel_count>& audio_ins,
                 AudioOsBuffer<os_factor>& left_out,
@@ -184,7 +184,7 @@ public:
     }
 
 private:
-    std::array<LinearInterpolator<this_template::n_samples_per_buffer()>, channel_count * 2> _gain_lags;
+    std::array<LinearLag<os_factor>, channel_count * 2> _gain_lags;
 };
 
 /* General n to 1 unity gain audio mixer */

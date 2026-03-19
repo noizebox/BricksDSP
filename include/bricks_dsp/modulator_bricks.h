@@ -25,7 +25,7 @@ public:
 
     void render(float gain, const AudioOsBuffer<os_factor>& audio_in, AudioOsBuffer<os_factor>& audio_out)
     {
-        for (int i = 0; i < PROC_BLOCK_SIZE * os_factor; ++i)
+        for (int i = 0; i < audio_out.size(); ++i)
         {
             float x = audio_in[i] * gain;
             if constexpr (type == ClipType::SOFT)
@@ -56,7 +56,7 @@ public:
         float x_1 = _prev_x;
         constexpr float STATIONARY_TH = 0.0002f;
 
-        for (int i = 0; i < PROC_BLOCK_SIZE; ++i)
+        for (int i = 0; i < audio_out.size(); ++i)
         {
             float x = audio_in[i] * gain;
             float F1;
@@ -136,7 +136,7 @@ public:
         // scale down the gain with less compression for better controls
         gain_lin *= (1.0f - 0.6f * (1.0f - compression));
 
-        for (int i = 0; i < PROC_BLOCK_SIZE * os_factor; ++i)
+        for (int i = 0; i < audio_out_l.size(); ++i)
         {
             // gain control
             float x_l = audio_in_l[i] * gain_lin;
@@ -239,6 +239,7 @@ public:
 
     void set_samplerate(float samplerate) override
     {
+        samplerate *= os_factor;
         /* Values directly from the schematic */
         _op_hp[0].set(470.0 * 0.001, samplerate, true);
         _op_hp[1].set(470.0 * 0.001, samplerate, true);
@@ -320,7 +321,7 @@ public:
 
     void set_samplerate(float samplerate) override
     {
-        _samplerate = samplerate;
+        _samplerate = samplerate * os_factor;
         set_max_delay_time(_max_delay_time);
     }
 
@@ -331,14 +332,15 @@ public:
 
     void set_max_delay_time(std::chrono::duration<float> delay)
     {
+        constexpr int block_size = PROC_BLOCK_SIZE * os_factor;
         int samples = _samplerate * delay.count();
-        /* Samples is rounded up to nearest multiple of PROC_BLOCK_SIZE + 1 more */
-        _max_samples = (samples / PROC_BLOCK_SIZE + 2) * PROC_BLOCK_SIZE;
+        /* Samples is rounded up to nearest multiple of block_size + 1 more */
+        _max_samples = (samples / block_size + 2) * block_size;
         _max_delay = samples;
 
         /* The actual allocation is PROC_BLOCK_SIZE larger to enable readout without
          * checking for wraparound every sample + a margin for interpolation */
-        auto data_size = _max_samples + PROC_BLOCK_SIZE + 2 * INTERPOLATION_MARGIN;
+        auto data_size = _max_samples + block_size + 2 * INTERPOLATION_MARGIN;
 
         _buffer_data = std::make_unique<float[]>(data_size);
         std::fill(_buffer_data.get(), _buffer_data.get() + data_size, 0.0f);
@@ -346,22 +348,22 @@ public:
     }
 
 protected:
-    void _copy_audio_in(const AudioBuffer& in)
+    void _copy_audio_in(const AudioOsBuffer<os_factor>& in)
     {
         std::copy(in.begin(), in.end(), &_buffer[_write_index]);
-        _write_index += PROC_BLOCK_SIZE;
+        _write_index += in.size();
         if (_write_index > _max_samples)
         {
-            assert(_write_index < _max_samples + PROC_BLOCK_SIZE + INTERPOLATION_MARGIN);
+            assert(_write_index < _max_samples + in.size() + INTERPOLATION_MARGIN);
             /* The last block is repeated at the start again */
             std::copy(in.begin(), in.end(), _buffer);
-            _write_index = PROC_BLOCK_SIZE;
+            _write_index = in.size();
         }
     }
 
     int                         _max_delay{0};
     int                         _max_samples{0};
-    int                         _write_index{PROC_BLOCK_SIZE};
+    int                         _write_index{PROC_BLOCK_SIZE * os_factor};
     float                       _samplerate{DEFAULT_SAMPLERATE};
     float*                      _buffer{nullptr};
 
@@ -379,11 +381,6 @@ template <typename Interpolator, size_t os_factor = 1>
 class FixedDelayBrick : public BasicDelay<os_factor>
 {
 public:
-    enum AudioOutput
-    {
-        DELAY_OUT = 0
-    };
-
     explicit FixedDelayBrick(std::chrono::microseconds max_delay = std::chrono::seconds(1)) : BasicDelay<os_factor>(max_delay)
     {
         set_delay_time(max_delay);
@@ -406,9 +403,9 @@ public:
         auto read_index = _get_read_index();
         auto inter = _interpolator;
 
-        for (int i = 0; i < PROC_BLOCK_SIZE; ++i)
+        for (int i = 0; i < audio_out.size(); ++i)
         {
-            assert(read_index <= this->_max_samples + PROC_BLOCK_SIZE);
+            assert(read_index <= this->_max_samples + audio_out.size());
             assert(read_index >= 0);
             audio_out[i] = inter.interpolate(read_index++, this->_buffer);
         }
@@ -420,7 +417,7 @@ private:
 
     DelayIndex _get_read_index()
     {
-        auto pos = this->_write_index - _delay - PROC_BLOCK_SIZE;
+        auto pos = this->_write_index - _delay - PROC_BLOCK_SIZE * os_factor;
         return pos >= 0? pos : this->_max_samples + pos;
     }
 
@@ -466,12 +463,12 @@ public:
         mod_lag.set(clamp(delay_mod, 0.0f, 1.0f));
         auto inter = _interpolator;
 
-        for (int i = 0; i < PROC_BLOCK_SIZE; ++i)
+        for (int i = 0; i < audio_out.size(); ++i)
         {
             /* 0.5 is the mid-point. Delay is modulated around the set delay */
             float delay = clamp(_delay * (mod_lag.get() * 2.0f) - i, 0, this->_max_delay);
             auto read_index = _get_read_index(delay);
-            assert(read_index < this->_max_samples + PROC_BLOCK_SIZE);
+            assert(read_index < this->_max_samples + audio_out.size());
 
             audio_out[i] = inter.interpolate(read_index++, this->_buffer);
         }
@@ -482,11 +479,11 @@ public:
 private:
     float _get_read_index(float delay)
     {
-        auto pos = this->_write_index - delay - PROC_BLOCK_SIZE;
+        auto pos = this->_write_index - delay - PROC_BLOCK_SIZE * os_factor;
         return pos >= 0? pos : this->_max_samples + pos;
     }
 
-    ControlSmootherLinear _mod_lag;
+    LinearLag<os_factor>  _mod_lag;
     float                 _delay{0};
     Interpolator          _interpolator;
 };
@@ -512,30 +509,31 @@ public:
 
     void set_samplerate(float samplerate) override
     {
-        _samplerate = samplerate;
+        _samplerate = samplerate * os_factor;
         set_max_delay_time(_max_seconds);
     }
 
     void set_max_delay_time(float max_delay_seconds)
     {
+        constexpr int block_size = PROC_BLOCK_SIZE * os_factor;
         _max_seconds = max_delay_seconds;
         if (_buffer && _rec_times)
         {
             delete[] _buffer;
             delete[] _rec_times;
         }
-        /* Samples is rounded up to nearest multiple of PROC_BLOCK_SIZE plus 1 extra for interpolation*/
+        /* Samples is rounded up to nearest multiple of block_size plus 1 extra for interpolation*/
         size_t samples = max_delay_seconds * _samplerate;
-        samples = (samples / PROC_BLOCK_SIZE + 2) * PROC_BLOCK_SIZE;
+        samples = (samples / block_size + 2) * block_size;
         _max_samples = samples;
         _buffer = new float[samples];
-        _rec_times = new float[samples / PROC_BLOCK_SIZE];
+        _rec_times = new float[samples / block_size];
         std::fill(_buffer, _buffer + _max_samples, 0.0f);
-        std::fill(_rec_times, _rec_times + _max_samples/PROC_BLOCK_SIZE, 1.0f);
+        std::fill(_rec_times, _rec_times + _max_samples/block_size, 1.0f);
 
         _rec_head = 0;
         _rec_speed_index = 0;
-        _rec_wraparound = _max_samples - PROC_BLOCK_SIZE;
+        _rec_wraparound = _max_samples - block_size;
         _play_wraparound = _rec_wraparound;
         _play_head = _rec_wraparound /2;
     }
@@ -548,14 +546,16 @@ public:
 
     void render(float delay_time, const AudioOsBuffer<os_factor>& audio_in, AudioOsBuffer<os_factor>& audio_out)
     {
+        constexpr int block_size = PROC_BLOCK_SIZE * os_factor;
+
         float current_time = clamp(delay_time, 0.01f, 1.0f);
-        std::copy(audio_in.data(), audio_in.data() + PROC_BLOCK_SIZE, &_buffer[_rec_head]);
+        std::copy(audio_in.data(), audio_in.data() + block_size, &_buffer[_rec_head]);
         // Get the delay time when audio was recorded in order to compensate
-        float rec_time = _rec_times[static_cast<int>(_play_head / PROC_BLOCK_SIZE)];
+        float rec_time = _rec_times[static_cast<int>(_play_head / block_size)];
         // then store the delay time of the current input
         _rec_times[_rec_speed_index++] = current_time;
 
-        _rec_head += PROC_BLOCK_SIZE;
+        _rec_head += block_size;
         if(_rec_head >= _rec_wraparound)
         {
             _rec_head = 0;
@@ -565,7 +565,7 @@ public:
         float readout_speed =  rec_time / current_time;
         _delay_time_lag.set(readout_speed);
 
-        for (int i = 0; i < PROC_BLOCK_SIZE; ++i)
+        for (int i = 0; i < block_size; ++i)
         {
             _play_head += _delay_time_lag.get();
             while (_play_head > _play_wraparound)
@@ -577,17 +577,17 @@ public:
     }
 
 private:
-    ControlSmootherLinear _delay_time_lag;
-    float               _samplerate{DEFAULT_SAMPLERATE};
-    float               _max_seconds;
-    int                 _max_samples;
-    int                 _rec_head;
-    int                 _rec_speed_index;
-    int                 _rec_wraparound;
-    float               _play_head{PROC_BLOCK_SIZE};
-    float               _play_wraparound;
-    float*              _buffer{nullptr};
-    float*              _rec_times{nullptr};
+    LinearLag<os_factor> _delay_time_lag;
+    float                _samplerate{DEFAULT_SAMPLERATE};
+    float                _max_seconds;
+    int                  _max_samples;
+    int                  _rec_head;
+    int                  _rec_speed_index;
+    int                  _rec_wraparound;
+    float                _play_head{PROC_BLOCK_SIZE};
+    float                _play_wraparound;
+    float*               _buffer{nullptr};
+    float*               _rec_times{nullptr};
 };
 
 /* Schroeder Allpass delay for diffusion in reverbs and delays.
@@ -616,7 +616,7 @@ public:
         int mod_int = mod * length;
         int write_index = _write_index;
 
-        for (int i = 0; i < PROC_BLOCK_SIZE * os_factor; ++i)
+        for (int i = 0; i < audio_out.size(); ++i)
         {
             int index = (write_index + mod_int);
             while (index >= length)
@@ -655,7 +655,7 @@ public:
     {
         float bit_gain = std::exp2f(1.0f + bitrate * MAX_BIT_DEPTH);
         float gain_red = 1.0f / (bit_gain - 1.0f);
-        for (int i = 0; i < PROC_BLOCK_SIZE; ++i)
+        for (int i = 0; i < audio_out.size(); ++i)
         {
             audio_out[i] = static_cast<float>(static_cast<int>(audio_in[i] * bit_gain)) * gain_red;
         }
@@ -687,6 +687,7 @@ public:
     }
     void render(float samplerate, const AudioOsBuffer<os_factor>& audio_in, AudioOsBuffer<os_factor>& audio_out)
     {
+        constexpr int block_size = PROC_BLOCK_SIZE * os_factor;
         // Added to keep the upsampling phase from drifting away
         constexpr float NUDGE_FACTOR = 0.00005f;
         float ratio = clamp(control_to_freq(samplerate) * _samplerate_inv * 2.0f, 0.0f, 1.0f);
@@ -694,22 +695,22 @@ public:
         // Delay for interpolation
         for (int i = 0; i < SAMPLE_DELAY; ++i)
         {
-            _delay_buffer[i] = _delay_buffer[PROC_BLOCK_SIZE + i];
+            _delay_buffer[i] = _delay_buffer[block_size + i];
         }
         std::copy(audio_in.begin(), audio_in.end(), &_delay_buffer[SAMPLE_DELAY]);
 
         // Downsample to internal buffer
         float down_phase = _down_phase;
         int down_samples = 0;
-        while (down_phase <= PROC_BLOCK_SIZE)
+        while (down_phase <= block_size)
         {
             _downsampled_buffer[SAMPLE_DELAY + down_samples] = linear_int(down_phase, _delay_buffer.data());
             down_phase += 1.0f / ratio;
             down_samples++;
         }
-        if (down_phase > PROC_BLOCK_SIZE)
+        if (down_phase > block_size)
         {
-            down_phase -= PROC_BLOCK_SIZE;
+            down_phase -= block_size;
         }
         _down_phase = down_phase;
         assert(down_phase >= 0.0f);
@@ -717,7 +718,7 @@ public:
         // Upsample and interpolate from this buffer
 
         float up_phase = std::min(_up_phase, 1.0f);
-        for (int i = 0; i < PROC_BLOCK_SIZE; ++i)
+        for (int i = 0; i < block_size; ++i)
         {
             audio_out[i] = linear_int(up_phase, _downsampled_buffer.data());
             up_phase += ratio;
@@ -725,7 +726,7 @@ public:
         _up_phase = std::max(up_phase - up_phase * NUDGE_FACTOR - down_samples, 0.0f);
 
         assert(_up_phase >= 0.0f);
-        assert(_up_phase < PROC_BLOCK_SIZE + 2);
+        assert(_up_phase < block_size + 2);
 
         // 'rewind' the downsampled buffer
         for (int i = 0; i < SAMPLE_DELAY; ++i)
@@ -741,8 +742,8 @@ private:
     float           _down_phase{0.0f};
     float           _up_phase{0.0f};
 
-    AlignedArray<float, PROC_BLOCK_SIZE + SAMPLE_DELAY * 2> _delay_buffer;
-    AlignedArray<float, PROC_BLOCK_SIZE + SAMPLE_DELAY * 2> _downsampled_buffer;
+    AlignedArray<float, PROC_BLOCK_SIZE * os_factor + SAMPLE_DELAY * 2> _delay_buffer;
+    AlignedArray<float, PROC_BLOCK_SIZE * os_factor + SAMPLE_DELAY * 2> _downsampled_buffer;
 };
 
 } // end namespace bricks

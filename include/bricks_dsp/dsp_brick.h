@@ -21,6 +21,9 @@ template <int os_factor = 1>
 using AudioOsBuffer = AlignedArray<float, PROC_BLOCK_SIZE * os_factor>;
 using AudioBuffer = AlignedArray<float, PROC_BLOCK_SIZE>;
 
+template <int os_factor = 1>
+using LinearLag = LinearInterpolator<PROC_BLOCK_SIZE * os_factor>;
+
 typedef LinearInterpolator<PROC_BLOCK_SIZE> ControlSmootherLinear;
 typedef OnePoleLag<PROC_BLOCK_SIZE> ControlSmootherLag;
 
@@ -60,10 +63,7 @@ public:
     */
 
 protected:
-    static constexpr size_t n_samples_per_buffer()
-    {
-        return os_factor * PROC_BLOCK_SIZE;
-    }
+    static constexpr size_t block_size = os_factor * PROC_BLOCK_SIZE;
 };
 
 } // namespace bricks

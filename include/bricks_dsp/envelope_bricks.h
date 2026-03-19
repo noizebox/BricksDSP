@@ -42,7 +42,7 @@ public:
 
     void set_samplerate(float samplerate) override
     {
-        _samplerate = samplerate;
+        _samplerate = samplerate * os_factor;
     }
 
     void reset() override

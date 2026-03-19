@@ -29,7 +29,7 @@ public:
 
     void set_samplerate(float samplerate) override
     {
-        _samplerate_inv = 1.0f / samplerate;
+        _samplerate_inv = 1.0f / (samplerate * os_factor);
     }
 
     void reset() override
@@ -86,11 +86,11 @@ public:
     }
 
 private:
-    ControlSmootherLag  _pitch_lag;
-    float               _samplerate_inv{1.0 / DEFAULT_SAMPLERATE};
-    float               _phase{0};
-    Waveform            _waveform{Waveform::SAW};
-    int                 _tri_dir{1};
+    LinearLag<os_factor> _pitch_lag;
+    float                _samplerate_inv{1.0 / DEFAULT_SAMPLERATE};
+    float                _phase{0};
+    Waveform             _waveform{Waveform::SAW};
+    int                  _tri_dir{1};
 };
 
 /* Naive saw/sq/tri oscillator with audio rate linear fm */
@@ -104,7 +104,7 @@ public:
 
     void set_samplerate(float samplerate) override
     {
-        _samplerate_inv = 1.0f / samplerate;
+        _samplerate_inv = 1.0f / (samplerate * os_factor);
     }
 
     void reset() override {_phase = 0.0f;}
@@ -159,11 +159,11 @@ public:
     }
 
 private:
-    ControlSmootherLag  _pitch_lag;
-    float               _samplerate_inv{1.0 / DEFAULT_SAMPLERATE};
-    float               _phase{0};
-    Waveform            _waveform{Waveform::SAW};
-    int                 _tri_dir{1};
+    LinearLag<os_factor>  _pitch_lag;
+    float                 _samplerate_inv{1.0 / DEFAULT_SAMPLERATE};
+    float                 _phase{0};
+    Waveform              _waveform{Waveform::SAW};
+    int                   _tri_dir{1};
 };
 
 
@@ -178,8 +178,8 @@ public:
 
     void set_samplerate(float samplerate) override
     {
-        _samplerate = samplerate;
-        _samplerate_inv = 1.0f / samplerate;
+        _samplerate = samplerate * os_factor;
+        _samplerate_inv = 1.0f / _samplerate;
     }
 
     void reset() override {_phase = 0.0f;}
@@ -254,8 +254,8 @@ public:
         constexpr float PINK_CUTOFF_FREQ = 100;
         constexpr float BROWN_CUTOFF_FREQ = 0.03;
 
-        _pink_coeff_a0 = std::exp(-2.0f * M_PI * PINK_CUTOFF_FREQ / samplerate);
-        _brown_coeff_a0 = std::exp(-2.0f * M_PI * BROWN_CUTOFF_FREQ / samplerate);
+        _pink_coeff_a0 = std::exp(-2.0f * M_PI * PINK_CUTOFF_FREQ / (samplerate * os_factor));
+        _brown_coeff_a0 = std::exp(-2.0f * M_PI * BROWN_CUTOFF_FREQ / (samplerate * os_factor));
     }
 
     void render(AudioOsBuffer<os_factor>& audio_out)

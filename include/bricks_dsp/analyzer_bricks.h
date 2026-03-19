@@ -51,7 +51,7 @@ public:
         int trig_count = _trig_count;
         float prev = 0;
 
-        for (int i = 0; i < PROC_BLOCK_SIZE; ++i)
+        for (int i = 0; i < audio_in.size(); ++i)
         {
             float sample = audio_in[i];
 
