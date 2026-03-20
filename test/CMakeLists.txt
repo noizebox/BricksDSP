@@ -3,7 +3,7 @@ add_subdirectory(gtest/googletest)
 enable_testing()
 
 # Test sources
-SET(TEST_SOURCES  unittests/test_utils.cpp
+SET(TEST_SOURCES
                   unittests/analyzer_bricks_test.cpp
                   unittests/utility_bricks_test.cpp
                   unittests/utilities_test.cpp

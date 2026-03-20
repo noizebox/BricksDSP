@@ -73,7 +73,7 @@ private:
     float _res{0.85f};
     float _clip{1.5f};
     float _gain{0.3f};
-    
+
     AudioBuffer _buffer;
 
     LinearADSREnvelopeBrick                           _env;
