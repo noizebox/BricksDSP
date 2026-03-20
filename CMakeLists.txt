@@ -6,7 +6,6 @@ project(bricks_dsp VERSION ${BRICKS_DSP_VERSION_MAJOR}.${BRICKS_DSP_VERSION_MINO
 
 option(BRICKS_DSP_BUILD_TESTS "Build and run unit tests" OFF)
 option(BRICKS_DSP_BUILD_BENCHMARKS "Build performance benchmarks" OFF)
-option(BRICKS_DSP_INTERNAL_AUDIO_BUFFERS "Audio output buffers are owned by bricks" ON)
 set(BRICKS_BLOCK_SIZE 32 CACHE STRING "Internal processing block size")
 
 # Source Files
@@ -33,10 +32,6 @@ endif()
 # Compile time constants can use functions from <cmath>, non-standard GCC feature
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     target_compile_definitions(bricks_dsp PUBLIC BRICKS_DSP_CONSTEXPR_MATH)
-endif()
-
-if(BRICKS_DSP_INTERNAL_AUDIO_BUFFERS)
-    target_compile_definitions(bricks_dsp PUBLIC BRICKS_DSP_INTERNAL_BUFFERS)
 endif()
 
 target_compile_definitions(bricks_dsp PUBLIC DSP_BRICKS_BLOCK_SIZE=${BRICKS_BLOCK_SIZE}

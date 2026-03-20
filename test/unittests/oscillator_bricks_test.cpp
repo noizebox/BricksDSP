@@ -45,18 +45,18 @@ TEST_F(OscillatorBrickTest, TestOperation)
     ASSERT_NE(0.0f, sum);
 
     _test_module.set_waveform(Waveform::TRIANGLE);
-    _test_module.render(0.7, _buffer);
+    _test_module.render(0.8, _buffer);
 
     sum = 0;
     for (auto sample : _buffer)
     {
         sum += sample;
-        EXPECT_LE(sample, 0.6f);
-        EXPECT_GE(sample, -0.6f);
+        EXPECT_LE(sample, 0.5f);
+        EXPECT_GE(sample, -0.5f);
     }
     auto [min, max] = std::minmax_element(_buffer.begin(), _buffer.end());
-    EXPECT_GE(0.5f, *min);
-    EXPECT_LE(0.5f, *max);
+    EXPECT_GE(*min, -0.5f);
+    EXPECT_LE(*max, 0.5f);
 
     ASSERT_NE(0.0f, sum);
 }

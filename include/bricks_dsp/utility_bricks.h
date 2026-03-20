@@ -232,6 +232,69 @@ public:
     }
 };
 
+enum class UpSampleMode
+{
+    ZEROSTUFF,
+    LINEAR,
+    CUBIC,
+};
+/* Conversion brick between different oversampling factors */
+template <UpSampleMode mode, size_t in_os_factor, size_t out_os_factor>
+class UpSampleBrick : public DspBrickImpl<out_os_factor, 0, 0, 1, 1>
+{
+public:
+    UpSampleBrick()
+    {
+        reset();
+    }
+
+    void reset()
+    {
+        if constexpr (mode == UpSampleMode::LINEAR)
+        {
+            _reg = 0;
+        }
+        else if constexpr (mode == UpSampleMode::CUBIC)
+        {
+            _reg.fill(0.0f);
+        }
+    }
+
+    void render(const AudioOsBuffer<in_os_factor>& audio_in, AudioOsBuffer<out_os_factor>& audio_out)
+    {
+        if constexpr (mode == UpSampleMode::ZEROSTUFF)
+        {
+            zero_stuff_upsample(audio_in, audio_out);
+        }
+        else if constexpr (mode == UpSampleMode::LINEAR)
+        {
+            linear_upsample(audio_in, audio_out, _reg);
+        }
+        else if constexpr (mode == UpSampleMode::CUBIC)
+        {
+            cubic_upsample(audio_in, audio_out, _reg);
+        }
+    }
+
+private:
+    using RegType = std::conditional<mode == UpSampleMode::CUBIC, AlignedArray<float, 4>, float>::type ;
+    RegType _reg;
+};
+
+/* For integer ratios, only skipping makes sense, hence it's the only mode implemented */
+template <size_t in_os_factor, size_t out_os_factor>
+class DownSampleBrick : public DspBrickImpl<out_os_factor, 0, 0, 1, 1>
+{
+public:
+    DownSampleBrick() = default;
+
+    void render(const AudioOsBuffer<in_os_factor>& audio_in, AudioOsBuffer<out_os_factor>& audio_out)
+    {
+        skip_downsample(audio_in, audio_out);
+    }
+
+};
+
 /* General n to 1 control signal mixer, linear gain control As with the
  * audio mixer, first n arguments are gains, the rest are control signals*/
 template <size_t channel_count>

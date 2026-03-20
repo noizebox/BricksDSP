@@ -147,6 +147,76 @@ TEST_F(AudioMultiplierBrickTest, OperationalTest)
     assert_buffer(_out, 0.15f);
 }
 
+class UpsamplerBrickBrickTest : public ::testing::Test
+{
+protected:
+    UpsamplerBrickBrickTest() {}
+
+    void SetUp()
+    {
+        make_test_sine_wave(_input);
+        _output.fill(0.0f);
+        _output_2.fill(0.0f);
+    }
+
+    AudioOsBuffer<1> _input;
+    AudioOsBuffer<2> _output;
+    AudioOsBuffer<4> _output_2;
+    UpSampleBrick<UpSampleMode::ZEROSTUFF, 1, 2> _zero_stuff_upsampler;
+    UpSampleBrick<UpSampleMode::LINEAR, 1, 2> _linear_upsampler;
+    UpSampleBrick<UpSampleMode::CUBIC, 1, 4> _cubic_upsampler;
+};
+
+TEST_F(UpsamplerBrickBrickTest, OperationalTest)
+{
+    _zero_stuff_upsampler.render(_input, _output);
+    EXPECT_EQ(_input[0], _output[0]);
+    EXPECT_EQ(0.0f, _output[1]);
+    EXPECT_EQ(_input[1], _output[2]);
+    EXPECT_EQ(0.0f, _output[3]);
+    EXPECT_EQ(_input[2], _output[4]);
+    EXPECT_EQ(0.0f, _output[5]);
+    EXPECT_EQ(_input[3], _output[6]);
+
+    _linear_upsampler.render(_input, _output);
+    EXPECT_EQ(0.5 * _input[0], _output[0]);
+    EXPECT_EQ(_input[0], _output[1]);
+    EXPECT_EQ(0.5 * (_input[0] + _input[1]), _output[2]);
+    EXPECT_EQ(_input[1], _output[3]);
+    EXPECT_EQ(0.5 * (_input[1] + _input[2]), _output[4]);
+    EXPECT_EQ(_input[2], _output[5]);
+    EXPECT_EQ(0.5 * (_input[2] + _input[3]), _output[6]);
+    EXPECT_EQ(_input[3], _output[7]);
+
+
+    _cubic_upsampler.render(_input, _output_2);
+    EXPECT_EQ(_input[0], _output_2[8]);
+    EXPECT_EQ(_input[1], _output_2[12]);
+    EXPECT_EQ(_input[2], _output_2[16]);
+    std::cout<<std::endl;
+}
+
+class DownSamplerBrickTest : public ::testing::Test
+{
+protected:
+    DownSamplerBrickTest() {}
+
+    void SetUp()
+    {
+        make_test_sine_wave(_input);
+        _output.fill(0.0f);
+    }
+
+    AudioOsBuffer<2> _input;
+    AudioOsBuffer<1> _output;
+    DownSampleBrick<2, 1> _test_module;
+};
+
+TEST_F(DownSamplerBrickTest, OperationalTest)
+{
+    _test_module.render(_input, _output);
+}
+
 class ControlMixerBrickTest : public ::testing::Test
 {
 protected:
