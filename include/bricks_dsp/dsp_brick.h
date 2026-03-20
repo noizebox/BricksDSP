@@ -49,7 +49,7 @@ public:
 
     //virtual void render() = 0;
     /*
-     * Derived classed should implement a render callback like this for brick where inputs and outputs are well defined.
+     * Derived classed should implement a render callback like this for brick where inputs and outputs are well-defined.
      *
      * void render(float ctrl_1, float ctrl_2, float& ctrl_out, const AudioBuffer<os_factor>* input, AudioOsBuffer<os_factor>* output)
      *

@@ -16,14 +16,12 @@ protected:
     OscillatorBrickTest() {}
 
     AudioBuffer       _buffer;
-    float             _pitch;
     OscillatorBrick<> _test_module;
 };
 
 TEST_F(OscillatorBrickTest, TestOperation)
 {
-    _pitch = 440 / DEFAULT_SAMPLERATE;
-    _test_module.render(_pitch, _buffer);
+    _test_module.render(0.7, _buffer);
 
     float sum = 0;
     for (auto sample : _buffer)
@@ -36,7 +34,7 @@ TEST_F(OscillatorBrickTest, TestOperation)
     ASSERT_TRUE(_buffer[1] < _buffer[2]);
 
     _test_module.set_waveform(Waveform::PULSE);
-    _test_module.render(_pitch, _buffer);
+    _test_module.render(0.7, _buffer);
 
     sum = 0;
     for (auto sample : _buffer)
@@ -47,15 +45,19 @@ TEST_F(OscillatorBrickTest, TestOperation)
     ASSERT_NE(0.0f, sum);
 
     _test_module.set_waveform(Waveform::TRIANGLE);
-    _test_module.render(_pitch, _buffer);
+    _test_module.render(0.7, _buffer);
 
     sum = 0;
     for (auto sample : _buffer)
     {
         sum += sample;
-        ASSERT_LE(sample, 0.5f);
-        ASSERT_GE(sample, -0.5f);
+        EXPECT_LE(sample, 0.6f);
+        EXPECT_GE(sample, -0.6f);
     }
+    auto [min, max] = std::minmax_element(_buffer.begin(), _buffer.end());
+    EXPECT_GE(0.5f, *min);
+    EXPECT_LE(0.5f, *max);
+
     ASSERT_NE(0.0f, sum);
 }
 

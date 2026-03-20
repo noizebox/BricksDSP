@@ -20,7 +20,7 @@ add_library(bricks_dsp STATIC ${SOURCE_FILES})
 # Library sources can include directly, users must include from bricks_dsp/bricks.h
 target_include_directories(bricks_dsp PUBLIC include)
 target_include_directories(bricks_dsp PRIVATE include/bricks_dsp)
-target_include_directories(bricks_dsp PRIVATE src)
+target_include_directories(bricks_dsp PUBLIC src)
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
     set(EXTRA_COMPILER_FLAGS "-Wall" "/std:c++17")

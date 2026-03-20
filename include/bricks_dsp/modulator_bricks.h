@@ -33,7 +33,7 @@ public:
                 x = clamp(x, -3.0f, 3.0f);
                 audio_out[i] = tanh_approx(x);
             }
-            if constexpr (type == ClipType::HARD)
+            else if constexpr (type == ClipType::HARD)
             {
                 audio_out[i] = clamp(x, -1.0f, 1.0f);
             }

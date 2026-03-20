@@ -5,14 +5,43 @@
 #ifndef BRICKS_DSP_TEST_UTILS_H
 #define BRICKS_DSP_TEST_UTILS_H
 
+template <typename T>
+void fill_buffer(T& buffer, float value)
+{
+    for (auto& sample : buffer)
+    {
+        sample = value;
+    }
+}
 
+template <typename T>
+void make_test_sq_wave(T& buffer)
+{
+    int i = 0;
+    for (auto& sample : buffer)
+    {
+        sample = (++i > 4) - 0.5f;
+        i = i % 8;
+    }
+}
 
-void fill_buffer(bricks::AudioBuffer& buffer, float value);
+template <typename T>
+void make_test_sine_wave(T& buffer)
+{
+    float i = 0;
+    for (auto& sample : buffer)
+    {
+        sample = std::sin(++i * 0.5f);
+    }
+}
 
-void make_test_sq_wave(bricks::AudioBuffer& buffer);
-
-void make_test_sine_wave(bricks::AudioBuffer& buffer);
-
-void assert_buffer(const bricks::AudioBuffer& buffer, float value);
+template <typename T>
+void assert_buffer(const T& buffer, float value)
+{
+    for (const auto& sample : buffer)
+    {
+        EXPECT_FLOAT_EQ(value, sample);
+    }
+}
 
 #endif //BRICKS_DSP_TEST_UTILS_H

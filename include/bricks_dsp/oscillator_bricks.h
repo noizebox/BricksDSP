@@ -74,10 +74,13 @@ public:
                 int dir = _tri_dir;
                 for (auto& sample : audio_out)
                 {
-                    phase += phase_inc * dir * 2.0f;
+                    phase += phase_inc * 2.0f;
                     if (phase > 0.5)
+                    {
+                        phase -= 1;
                         dir = dir * -1;
-                    sample = phase;
+                    }
+                    sample = phase * dir;
                 }
                 _tri_dir = dir;
             }
@@ -146,10 +149,13 @@ public:
             int dir = _tri_dir;
             for (int i = 0; i < audio_out.size(); ++i)
             {
-                phase += phase_inc * 2 * dir * (1.0f + fm_mod[i]);
+                phase += phase_inc * 2.0f;
                 if (phase > 0.5)
+                {
+                    phase -= 1;
                     dir = dir * -1;
-                audio_out[i] = phase;
+                }
+                audio_out[i] = phase * dir;
             }
             _tri_dir = dir;
         }
@@ -214,7 +220,7 @@ public:
         }
         assert(*table == 0.0f);
 
-        for (int i = 0; i < PROC_BLOCK_SIZE; ++i)
+        for (int i = 0; i < PROC_BLOCK_SIZE * os_factor; ++i)
         {
             phase += phase_inc;
             if (phase > 1.0f)
