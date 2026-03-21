@@ -2,7 +2,6 @@
 #include <iostream>
 #include <chrono>
 #include <algorithm>
-#include <thread>
 
 #include <sndfile.h>
 
@@ -13,8 +12,16 @@
 constexpr int EXAMPLE_SAMPLERATE = 44100;
 constexpr char EXAMPLE_FILE_NAME[] = "./output.wav";
 constexpr int SECONDS_TO_RENDER = 10;
+constexpr int OVERSAMPLE = 4;
 
 using namespace bricks;
+
+constexpr std::array<bricks::BiquadCoefficients<float>, 4>  AA_4X_OVERSAMPLE_COEFF_44K =
+{bricks::BiquadCoefficients<float>{-1.67276810e+00,  7.25848529e-01,  1.22968334e-03,  1.07652579e-03,  1.22968334e-03,},
+ bricks::BiquadCoefficients<float>{ -1.61048977e+00,  8.24893014e-01, 1.00000000e+00, -9.05136372e-01,  1.00000000e+00},
+ bricks::BiquadCoefficients<float>{ -1.55698028e+00,  9.19905292e-01, 1.00000000e+00, -1.30406849e+00,  1.00000000e+00},
+ bricks::BiquadCoefficients<float>{ -1.54300544e+00,  9.78180180e-01, 1.00000000e+00, -1.40540566e+00,  1.00000000e+00,}};
+
 
 void print_timings(const std::vector<std::chrono::nanoseconds>& timings)
 {
@@ -26,10 +33,7 @@ void print_timings(const std::vector<std::chrono::nanoseconds>& timings)
     mean = mean / timings.size();
     auto max = *std::max_element(timings.begin(), timings.end());
     std::cout << "Mean time: " << mean << " ns, max time: " << max.count() <<std::endl;
-
-
 }
-
 
 /* Test fixture for generating audio to disk from brick */
 int main ()
@@ -48,48 +52,43 @@ int main ()
     /* Timing utilities */
     std::vector<std::chrono::nanoseconds> timing_records;
 
+    float gain = 0.7f;
+    float clip_level = 0.7f;
+    WtOscillatorBrick<OVERSAMPLE>                 osc;
+    SaturationBrick<ClipType::SOFT, OVERSAMPLE>   clipper;
+    MultiStageFilterBrick<4, OVERSAMPLE>          aa_filter;
+    DownSampleBrick<OVERSAMPLE, 1>                downsampler;
+    VcaBrick<Response::LINEAR>                    vca;
 
-    /*float pitch = 0.25f;
-    float gain = 0.0f;
-    //float pwm = 0.0;
-    WtOscillatorBrick test_brick{pitch};
-    VcaBrick gain_brick{gain, test_brick.audio_output(0)};
-    test_brick.set_samplerate(EXAMPLE_SAMPLERATE);
-    test_brick.set_waveform(WtOscillatorBrick::Waveform::PULSE   );*/
+    osc.set_samplerate(EXAMPLE_SAMPLERATE);
+    clipper.set_samplerate(EXAMPLE_SAMPLERATE);
+    aa_filter.set_samplerate(EXAMPLE_SAMPLERATE);
+    vca.set_samplerate(EXAMPLE_SAMPLERATE);
 
+    aa_filter.set_coeffs(AA_4X_OVERSAMPLE_COEFF_44K);
 
+    AudioOsBuffer<OVERSAMPLE> buffer_1;
+    AudioOsBuffer<OVERSAMPLE> buffer_2;
+    AudioOsBuffer<1>          buffer_3;
+    AudioOsBuffer<1>          buffer_4;
 
-    float _dummy = 1.0f;
-    float _pitch = 0.2;
-    float _pitch2 = 0.1;
-    float _pitch_fact = 1;
-    float _fm_mod = 0;
-    float _pwm = 0.5;
-    float _gain = 0.7f;
-    float _clip_level = 3.2f;
-    //float pwm = 0.0;
-    WtOscillatorBrick               _osc{&_pitch};
-    SaturationBrick<ClipType::SOFT> _clipper{&_clip_level, _osc.audio_output(0)};
-    VcaBrick<Response::LINEAR>      _vca{&_gain, _clipper.audio_output(0)};
-    const AudioBuffer& out =        *_vca.audio_output(0);
-
-    _osc.set_waveform(WtOscillatorBrick::Waveform::SINE);
+    osc.set_waveform(Waveform::SAW);
     int samplecount = 0;
     int max_samples = SECONDS_TO_RENDER * EXAMPLE_SAMPLERATE;
     while (samplecount < max_samples)
     {
         auto start_time = std::chrono::high_resolution_clock::now();
-        _pitch = static_cast<float_t>(samplecount) / max_samples;
+        float pitch = static_cast<float_t>(samplecount) / max_samples;
 
-        _osc.render();
-        _clipper.render();
-        _vca.render();
-
+        osc.render(pitch, buffer_1);;
+        clipper.render(clip_level, buffer_1, buffer_2);
+        aa_filter.render(buffer_2, buffer_1);
+        downsampler.render(buffer_1, buffer_3);
+        vca.render(gain, buffer_3, buffer_4);
         auto stop_time = std::chrono::high_resolution_clock::now();
         timing_records.push_back(stop_time - start_time);
-        sf_writef_float(output_file, out.data(), PROC_BLOCK_SIZE);
+        sf_writef_float(output_file, buffer_4.data(), buffer_4.size());
         samplecount += PROC_BLOCK_SIZE;
-        //std::this_thread::sleep_for(std::chrono::microseconds(500));
     }
 
     print_timings(timing_records);

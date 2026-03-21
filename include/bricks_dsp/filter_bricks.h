@@ -320,12 +320,12 @@ public:
         {
             /* With an even number of stages, first render to the buffer, then ping pong
              * between audio_out and buffer to avoid an extra copy in the end */
-            AudioBuffer buffer;
+            AudioOsBuffer<os_factor> buffer;
             render_df2_biquad<FloatType, os_factor * PROC_BLOCK_SIZE>(audio_in, buffer, _coeff[0], regs[0]);
             for (int i = 1; i < stages; ++i)
             {
-                const AudioBuffer& in = i % 2 ? buffer : audio_out;
-                AudioBuffer& out = i % 2 ? audio_out : buffer;
+                const AudioOsBuffer<os_factor>& in = i % 2 ? buffer : audio_out;
+                AudioOsBuffer<os_factor>& out = i % 2 ? audio_out : buffer;
                 render_df2_biquad<FloatType, os_factor * PROC_BLOCK_SIZE>(in, out, _coeff[i], regs[i]);
             }
         }
