@@ -2,6 +2,8 @@ Bricks DSP
 -------------------
 Cross platform (linux, MacOS and Windows) modular audio dsp block library. Intended as a prototyping tool for synthesizers and audio effects. 
 
+This library should not be confused with [Brickworks by Orastron](https://github.com/Orastron/brickworks), which is a commercial and mature toolkit for building commercial grade products, this is just me experimenting.
+
 General Concepts
 -------------------
 BricksDsp is a system for building signal chains at compile time or run time by connecting reasonably high level modules, called Bricks,
@@ -11,7 +13,7 @@ processing graph needs to be managed manually. It's intended more as a tool for 
 
 Connecting several bricks into a signal chain can be made during object instantiating by passing input connections to the brick constructor.
 Once instantiated, the brick's output ports can be used as inputs to new bricks. Bricks can also be connected to other bricks after creation.
-A nullpointer can be passed as a "dummy" placeholder to a plugin to connect some inputs during creation, but needs to be replaced with a valid 
+Null can be passed as a "dummy" placeholder to a plugin to connect some inputs during creation, but needs to be replaced with a valid 
 Control or Audio input before calling render().
 
 For efficiency and simplicity BricksDsp uses a fixed audio block size that is set at compile time. Bricks have 2 types of input and output ports:
@@ -28,6 +30,12 @@ Signals
 -------------------
 To stay with common modular concepts and for compatibility with common plugin formats control inputs are assumed to be normalised to a [0, 1] range and [-1, 1] for bipolar inputs. Clipping is done internally only on those bricks where values outside of the nominal range would break things or make filters blow up. Nominal audio levels should also be within [1, -1]
 Logarithmic pitch inputs for oscillators, filters, etc, should adhere to 0.1 per octave, essentially the 1v/oct modular standard in 1:10 scale.
+
+Current development
+------------------
+Most new development in done in the New Api branch which tests out a less stateful api model where control signals and audio buffers are passed to the render function directly and does not require (or allow) explicit connections of bricks. This makes it easier to use and is more in line with the original design goal, which was to be a backend for plugin development and not primarily a modular with runtime patching (like Reaktor).
+
+In this branch, the library is almost entirely header-only. Bricks are also templated on an oversampling factor,which makes it easy to run parts of the signal chain with higher sampling-rate. Something that is difficult to do with the master barnch api.
 
 Build instructions
 -------------------
