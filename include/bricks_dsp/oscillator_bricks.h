@@ -40,7 +40,7 @@ public:
 
     void render(float pitch, AudioOsBuffer<os_factor>& audio_out)
     {
-        float base_freq = control_to_freq(pitch);
+        float base_freq = clamp(control_to_freq(pitch), 1, 20000);
         float phase_inc = base_freq * _samplerate_inv;
         float phase = _phase;
 
@@ -114,7 +114,7 @@ public:
 
     void render(float pitch, const AudioOsBuffer<os_factor>& fm_mod, AudioOsBuffer<os_factor>& audio_out)
     {
-        float base_freq = control_to_freq(pitch);
+        float base_freq = clamp(control_to_freq(pitch), 1, 20000);
         //_pitch_lag.set(_pitch_port.value());
         float phase_inc = base_freq * _samplerate_inv;
         float phase = _phase;
@@ -172,6 +172,80 @@ private:
     int                   _tri_dir{1};
 };
 
+/* Better aa:ed oscillator with control rate pitch input */
+template <typename blep_type = PolyBlepSpline, int os_factor = 1>
+class BlepOscillatorBrick : public DspBrickImpl<os_factor, 1, 0, 0, 1>
+{
+public:
+    void set_waveform(Waveform waveform)
+    {
+        _waveform = waveform;
+    }
+
+    void set_samplerate(float samplerate) override
+    {
+        _samplerate_inv = 1.0f / (samplerate * os_factor);
+    }
+
+    void reset() override
+    {
+        _phase = 0.0f;
+        _pitch_lag.reset();
+    }
+
+    void render(float pitch, float pulsewidth, AudioOsBuffer<os_factor>& audio_out)
+    {
+        float base_freq = clamp(control_to_freq(pitch), 1, 20000);
+        pulsewidth = clamp((pulsewidth + .5f), 0.001f, 0.999f);
+        float phase_inc = base_freq * _samplerate_inv;
+        float phase = _phase;
+
+        switch (_waveform)
+        {
+            case Waveform::SAW:
+            {
+                for (auto& sample : audio_out)
+                {
+                    phase += phase_inc;
+                    if (phase > 1.0)
+                        phase -= 1;
+                    sample = phase - _blep.blep(phase, phase_inc);
+                }
+                break;
+            }
+            case Waveform::PULSE:
+            {
+                for (auto& sample : audio_out)
+                {
+                    phase += phase_inc;
+                    if (phase > 1.0)
+                        phase -= 1;
+
+                    float phase_2 = phase + pulsewidth;
+                    if (phase_2 > 1.0)
+                        phase_2 -= 1.0;
+
+                    sample = phase - _blep.blep(phase, phase_inc) - phase_2 + _blep.blep(phase_2, phase_inc);
+                }
+                break;
+            }
+            case Waveform::SINE:
+            case Waveform::TRIANGLE:
+            {
+                    break;
+            }
+        }
+        _phase = phase;
+    }
+
+private:
+    LinearLag<os_factor> _pitch_lag;
+    float                _samplerate_inv{1.0 / DEFAULT_SAMPLERATE};
+    float                _phase{0};
+    Waveform             _waveform{Waveform::PULSE};
+    int                  _tri_dir{1};
+    blep_type            _blep;
+};
 
 /* Wavetable based saw/sq/tri oscillator with control rate pitch input */
 template <size_t os_factor = 1>

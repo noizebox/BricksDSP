@@ -111,6 +111,12 @@ BENCHMARK_TEMPLATE(BrickBM, bricks::FmOscillatorBrick<>, 1, 0, 1, 1, AudioType::
 BENCHMARK_TEMPLATE(BrickBM, bricks::WtOscillatorBrick<>, 1, 0, 0, 1, AudioType::NOISE);
 BENCHMARK_TEMPLATE(BrickBM, bricks::NoiseGeneratorBrick<>, 0, 0, 0, 1, AudioType::NOISE);
 
+BENCHMARK_TEMPLATE(BrickBM, bricks::BlepOscillatorBrick<PolyBlepQuad>, 2, 0, 0, 1, AudioType::NOISE);
+BENCHMARK_TEMPLATE(BrickBM, bricks::BlepOscillatorBrick<PolyBlepSpline>, 2, 0, 0, 1, AudioType::NOISE);
+BENCHMARK_TEMPLATE(BrickBM, bricks::BlepOscillatorBrick<PolyBlepLagrange>, 2, 0, 0, 1, AudioType::NOISE);
+BENCHMARK_TEMPLATE(BrickBM, bricks::BlepOscillatorBrick<SincBlep<32,2>>, 2, 0, 0, 1, AudioType::NOISE);
+BENCHMARK_TEMPLATE(BrickBM, bricks::BlepOscillatorBrick<SincBlep<64,4>>, 2, 0, 0, 1, AudioType::NOISE);
+
 /* Analysis bricks */
 BENCHMARK_TEMPLATE(BrickBM, bricks::MeterBrick<1>, 0, 2, 1, 0, AudioType::NOISE);
 BENCHMARK_TEMPLATE(BrickBM, bricks::MeterBrick<1>, 0, 2, 1, 0, AudioType::SINE);

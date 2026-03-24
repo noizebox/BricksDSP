@@ -1,10 +1,13 @@
 #ifndef BRICKS_DSP_UTILS_H
 #define BRICKS_DSP_UTILS_H
+#include <algorithm>
 #include <cmath>
 
 #include "aligned_array.h"
 
 namespace bricks {
+
+/* ########  Control transform functions  ######## */
 
 /* Map a float in range [0, 1] to true or false */
 inline bool control_to_bool(float v)
@@ -61,6 +64,9 @@ inline float from_db_approx(float db)
 {
     return std::cbrt(db);
 }
+
+/* ############## Clipping functions ############### */
+
 
 /* clamp/clip a value between min and max. With -ffast-math this seems to
  * compile to branchless and very efficient code for use on an audio buffer
@@ -129,7 +135,9 @@ inline float clip_antiderivate(const float& x)
     return  0.5f * x * x;
 }
 
-/* Linear interpolations over N samples */
+/* #############  Interpolation  ############### */
+
+/* Linear interpolations over N samples for control signal smoothing */
 template <int length>
 class LinearInterpolator
 {
@@ -360,6 +368,8 @@ private:
     T _state{0};
 };
 
+/* #############  Circuit modelling  ############# */
+
 /* Simple class for modelling RC circuits */
 template<typename FloatType>
 class RCStage
@@ -407,6 +417,8 @@ private:
     FloatType _reg{0};
     FloatType _coeff{0};
 };
+
+/* ############ Up / down sampling ############ */
 
 /* Simple up and downsampling functions, these dont do any filtering and are
  * stateless, so don't need to be in a class */
@@ -521,6 +533,158 @@ void cubic_upsample(const AlignedArray<float, from_size>& audio_in,
     }
     prev_values = prev;
 }
+
+/* ########## Oscillator tools (blep, sinc, etc) ######### */
+
+/* Quadratic polyblep, the simplest one you could make */
+inline float quad_blep(float phase, float inc)
+{
+    if (phase < inc)
+    {
+        float p = phase / inc;
+        return -0.5f * p * p + p - 0.5f;
+    }
+    if (phase > 1.0f - inc)
+    {
+        float p = (phase - 1.0f) / inc;
+        return 0.5f * p * p + p + 0.5f;
+    }
+    return 0.0f;
+}
+
+/* 3rd order spline blep from Computationally Efficient Music Synthesis (http://lib.tkk.fi/Dipl/2007/urn009585.pdf)
+ * Slightly less aliasing that the quadratic blep above */
+inline float spline_blep (float phase, float inc)
+{
+    if (phase < inc)
+    {
+        float p = phase / inc;
+        return 3.0/14.0 *p*p*p*p - 4.0/7.0*p*p*p + 6.0/7.0*p - 1.0/2.0;
+    }
+    if (phase > 1.0f - inc)
+    {
+        float p = (phase - 1.0f) / inc;
+        return -3.0/14.0 *p*p*p*p - 4.0/7.0*p*p*p + 6.0/7.0*p + 1.0/2.0;
+    }
+    return 0.0f;
+}
+
+inline float lagrange_blep (float phase, float inc)
+{
+    if (phase < inc)
+    {
+        float p = phase / inc;
+        return 3.0/26.0 *p*p*p*p - 4.0/13.0*p*p*p - 3.0/13.0*p*p + 24.0/26.0*p - 1.0/2.0;
+    }
+    if (phase > 1.0f - inc)
+    {
+        float p = (phase - 1.0f) / inc;
+        return -3.0/26.0 *p*p*p*p - 4.0/13.0*p*p*p + 3.0/13.0*p*p + 24.0/26.0*p + 1.0/2.0;
+    }
+    return 0.0f;
+}
+
+template <int length>
+float blackman_window(float x)
+{
+    assert(x >= 0.0f && x <= length);
+    constexpr float A0 = 0.42659;
+    constexpr float A1 = 0.49656;
+    constexpr float A2 = 0.076849;
+    return A0 - A1 * std::cos(x * 2.0 * M_PI / length) + A2 * std::cos(x * 4.0 * M_PI / length);
+}
+
+/* Table for a pre-calculated blep calculated from a sinc step */
+template<int size, int lobes>
+requires (size % lobes == 0)
+class SincBlepTable
+{
+public:
+    SincBlepTable()
+    {
+        std::array<float, size * 2> data;
+        _data.fill(0.0f);
+
+        /* Sum a windowed sinc into a bandlimited step */
+        float inc =  2.0f * M_PI / (size / lobes * 2);
+        for (int i = 0; i < data.size(); ++i)
+        {
+            double point = (i != size)? sin(i * inc) / ((i - size) * inc) * blackman_window<size * 2>(i) : 1; // sinc unless i == size
+            point += i == 0? 0 : data[i - 1];
+            data[i] = point;
+        }
+
+        /* Normalise and copy half of it due to symmetry */
+        std::copy(data.rbegin() + size - 1, data.rend(), _data.begin());
+        std::for_each(_data.begin(), _data.end(), [&](auto& s){s /= (data[size] * 2.0f);});
+    }
+
+    /* Return the interpolated blep in units of 1/fs */
+    float get(float t)
+    {
+        clamp(t, 0.0f, size);
+        float sign = -1.0f;
+        if ( t < 0.0f)
+        {
+            t = -t;
+            sign = 1.0f;
+        }
+        t *= (size / ( lobes));
+        return sign * linear_int(t, _data.data());
+    }
+
+private:
+    std::array<float, size + 1> _data;
+};
+
+class PolyBlepQuad
+{
+public:
+    float blep(float phase, float phase_inc)
+    {
+        return quad_blep(phase, phase_inc);
+    }
+};
+
+class PolyBlepSpline
+{
+public:
+    float blep(float phase, float phase_inc)
+    {
+        return spline_blep(phase, phase_inc);
+    }
+};
+
+class PolyBlepLagrange
+{
+public:
+    float blep(float phase, float phase_inc)
+    {
+        return lagrange_blep(phase, phase_inc);
+    }
+};
+
+template <int size, int order>
+class SincBlep
+{
+public:
+    float blep(float phase, float phase_inc)
+    {
+        float value = 0;
+        if (phase < phase_inc * order )
+        {
+            value = _table.get(phase / phase_inc);
+        }
+        if (phase > 1.0f - order * phase_inc)
+        {
+            value += _table.get((phase - 1.0f) / phase_inc);
+        }
+        return value;
+    }
+private:
+    SincBlepTable<size, order> _table;
+};
+
 
 } // namespace bricks
 
