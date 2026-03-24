@@ -4,27 +4,26 @@ Cross platform (linux, MacOS and Windows) modular audio dsp block library. Inten
 
 General Concepts
 -------------------
-BricksDsp is a system for building signal chains at compile time or run time by connecting reasonably high level modules, called Bricks,
+BricksDsp is a system for building signal chains at compile time by connecting reasonably high level modules, called Bricks,
 together. It could be used as a backend for a dynamic modular synth like Reaktor or Softube Modular as the bricks are at a comparable 
-abstraction level to Reaktor. Some care needs to be taken to allow runtime connection in a realtime safe manner, and the 
-processing graph needs to be managed manually. It's intended more as a tool for experimenting or as a backend to fixed architecture plugins.
+abstraction level to Reaktor. Some work is needed to allow runtime connection in a realtime safe manner, and the processing graph
+needs to be managed manually. It's intended primarily as a backend to fixed architecture plugins and as a tool for experimenting.
 
-Connecting several bricks into a signal chain can be made during object instantiating by passing input connections to the brick constructor.
-Once instantiated, the brick's output ports can be used as inputs to new bricks. Bricks can also be connected to other bricks after creation.
-A nullpointer can be passed as a "dummy" placeholder to a plugin to connect some inputs during creation, but needs to be replaced with a valid 
-Control or Audio input before calling render().
-
-For efficiency and simplicity BricksDsp uses a fixed audio block size that is set at compile time. Bricks have 2 types of input and output ports:
-Audio ports are updated every sample and Control ports once for every block. The control rate therefore becomes samplerate / block size.
-Heavy calculations such as exponentials or trigonometric functions for filters are usually done at control rate but the results are 
+BricksDsp is with a few exception fully contained in header files and all brick implementations are assumed to be inlined.
+Each brick implements a render function that takes single float arguments for control signals that are updated once per block
+and audio buffers for input and output. Heavy calculations such as exponentials or trigonometric functions for filters are usually done at control rate but the results are
 linearly interpolated at sample rate to avoid volume jumps and glitches.
-Currently all inputs of a block have to be connected, if an input is not to be used, it must still be connected to a "dummy" source with a fixed value.
 
-The general philosophy in Bricks DSP is to enable setting as many options as possible at compile time rather than at runtime to give
-the compiler the best freedom to optimise by inlining and unrolling. Therefore many Bricks have templated options and simple
-control-rate Bricks have their render functions in header files for efficient inlining.
+For efficiency and simplicity BricksDsp uses a fixed audio block size that is set at compile time.
+All bricks have a os_factor template parameter that enables that brick to run at x times the block size for oversampled processing. 
+Specific bricks can be used as adaptors between oversampled and not oversampled bricks.
 
+The general philosophy in Bricks DSP is to set as many options as possible at compile time rather than at runtime to give
+the compiler the best freedom to optimise by inlining and unrolling. Therefore many Bricks have templated options.
 Signals
+
+Not to be confused with Brickworks by Orastron, which is a commersial and mature toolkit for building commercial grade stuff, this is just me experimenting. 
+
 -------------------
 To stay with common modular concepts and for compatibility with common plugin formats control inputs are assumed to be normalised to a [0, 1] range and [-1, 1] for bipolar inputs. Clipping is done internally only on those bricks where values outside of the nominal range would break things or make filters blow up. Nominal audio levels should also be within [1, -1]
 Logarithmic pitch inputs for oscillators, filters, etc, should adhere to 0.1 per octave, essentially the 1v/oct modular standard in 1:10 scale.
