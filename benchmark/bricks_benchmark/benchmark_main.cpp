@@ -109,6 +109,8 @@ BENCHMARK_TEMPLATE(BrickBM, bricks::SampleRateReducerBrick<>, 1, 0, 1, 1, AudioT
 BENCHMARK_TEMPLATE(BrickBM, bricks::OscillatorBrick<>, 1, 0, 0, 1, AudioType::NOISE);
 BENCHMARK_TEMPLATE(BrickBM, bricks::FmOscillatorBrick<>, 1, 0, 1, 1, AudioType::NOISE);
 BENCHMARK_TEMPLATE(BrickBM, bricks::WtOscillatorBrick<>, 1, 0, 0, 1, AudioType::NOISE);
+BENCHMARK_TEMPLATE(BrickBM, bricks::WtOscillatorBrick<CRCubicInterpolation<float>>, 1, 0, 0, 1, AudioType::NOISE);
+BENCHMARK_TEMPLATE(BrickBM, bricks::WtOscillatorBrick<Optimal4PInterpolation<float>>, 1, 0, 0, 1, AudioType::NOISE);
 BENCHMARK_TEMPLATE(BrickBM, bricks::NoiseGeneratorBrick<>, 0, 0, 0, 1, AudioType::NOISE);
 
 BENCHMARK_TEMPLATE(BrickBM, bricks::BlepOscillatorBrick<PolyBlepQuad>, 2, 0, 0, 1, AudioType::NOISE);

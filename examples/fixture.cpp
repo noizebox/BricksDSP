@@ -91,14 +91,22 @@ int main ()
 
     float gain = 0.3f;
     float clip_level = 2.7f;
-    BlepOscillatorBrick<SincBlep<32,2>, OVERSAMPLE>                 osc;
+    //BlepOscillatorBrick<PolyBlepLagrange   , OVERSAMPLE>                 osc;
+    WtOscillatorBrick<CubicInterpolation<float>, OVERSAMPLE>                 osc;
     SaturationBrick<ClipType::SOFT, OVERSAMPLE>   clipper;
     PipelinedFilterBrick<4, OVERSAMPLE>          aa_filter;
     DownSampleBrick<OVERSAMPLE, 1>                downsampler;
     VcaBrick<Response::LINEAR>                    vca;
     LfoBrick                                      lfo;
 
+    auto now = std::chrono::high_resolution_clock::now();
+
+    auto WT = create_wavetable(Waveform::SAW, 4096);
+    auto wt_done = std::chrono::high_resolution_clock::now();
+    std::cout << "Wavetable created: " << (wt_done - now).count() / 1000000.0 << "ms" << std::endl;
+
     osc.set_samplerate(EXAMPLE_SAMPLERATE);
+    osc.set_wavetable(&WT);
     clipper.set_samplerate(EXAMPLE_SAMPLERATE);
     aa_filter.set_samplerate(EXAMPLE_SAMPLERATE);
     vca.set_samplerate(EXAMPLE_SAMPLERATE);
@@ -120,7 +128,8 @@ int main ()
         float lfo_out;
         lfo.render(0.3, lfo_out);
 
-        osc.render(pitch, lfo_out * 0.8, buffer_1);
+        //osc.render(pitch, lfo_out * 0.8, buffer_1);
+        osc.render(pitch, buffer_1);
         //clipper.render(clip_level, buffer_1, buffer_2);
         aa_filter.render(buffer_1, buffer_2);
         downsampler.render(buffer_1, buffer_3);

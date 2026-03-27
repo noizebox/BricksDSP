@@ -9,8 +9,8 @@ option(BRICKS_DSP_BUILD_BENCHMARKS "Build performance benchmarks" OFF)
 set(BRICKS_BLOCK_SIZE 32 CACHE STRING "Internal processing block size")
 
 # Source Files
-set(SOURCE_FILES
-        src/random_device.cpp)
+set(SOURCE_FILES    src/random_device.cpp
+                    src/wavetable_generation.cpp)
 
 set(SOURCE_FILES "${SOURCE_FILES}")
 

@@ -120,10 +120,17 @@ class WtOscillatorBrickTest : public ::testing::Test
 {
 protected:
     WtOscillatorBrickTest() {}
+    void SetUp() override
+    {
+        _table = create_wavetable(Waveform::SAW);
+        _test_module.set_samplerate(TEST_SAMPLERATE);
+        _test_module.set_wavetable(&_table);
+    }
 
     AudioBuffer         _output;
     float               _pitch;
     WtOscillatorBrick<> _test_module;
+    WaveTable           _table;
 };
 
 

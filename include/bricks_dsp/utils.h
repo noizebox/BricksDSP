@@ -237,10 +237,11 @@ inline T linear_int(T pos, const T* data)
     return d1 + frac * (d2 - d1);
 }
 
-/* Normal cubic interpolation */
+/* Normal cubic interpolation, quite noisy */
 template <typename T>
 inline T cubic_int(T pos, const T* data)
 {
+    assert(pos >= 0);
     auto first = static_cast<int>(pos);
     T frac = pos - std::floor(pos);
 
@@ -251,14 +252,14 @@ inline T cubic_int(T pos, const T* data)
 
     T f2 = frac * frac;
     T a0 = d3 - d2 - d0 + d1;
-    T a1 = d0 - d1 - a0;
+    T a1 = 2.0f * d0 - 2.0f * d1 + d2 - d3; //d0 - d1 - a0;
     T a2 = d2 - d0;
     T a3 = d1;
 
-    return(a0 * frac * f2 + a1 * f2 + a2 * frac + a3);
+    return a0 * frac * f2 + a1 * f2 + a2 * frac + a3;
 }
 
-/* Catmull-Rom splines, aka Hermite interpolation (Second order) */
+/* Catmull-Rom splines, aka Hermite interpolation (Second order) Better than the cubic above */
 template <typename T>
 inline T catmull_rom_cubic_int(T pos, const T* data)
 {
@@ -276,8 +277,46 @@ inline T catmull_rom_cubic_int(T pos, const T* data)
     T a2 = -0.5f * d0 + 0.5f * d2;
     T a3 = d1;
 
-    return(a0 * frac * f2 + a1 * f2 + a2 * frac + a3);
+    return a0 * frac * f2 + a1 * f2 + a2 * frac + a3;
 }
+
+/* / Optimal 2x (4-point, 4th-order) (z-form) from Olli Niemitalo. By far the best 4 point interpolation */
+template <typename T>
+inline T optimal_4p_4ord(T pos, const T* data)
+{
+    auto first = static_cast<int>(pos);
+    T frac = pos - std::floor(pos);
+
+    T z = frac - 1/2.0;
+    T even1 = data[first + 1] + data[first];
+    T odd1 = data[first + 1] - data[first];
+    T even2 = data[first + 2] + data[first - 1];
+    T odd2 = data[first + 2] - data[first - 1];
+    T c0 = even1*0.45645918406487612 + even2*0.04354173901996461;
+    T c1 = odd1*0.47236675362442071 + odd2*0.17686613581136501;
+    T c2 = even1*-0.253674794204558521 + even2*0.25371918651882464;
+    T c3 = odd1*-0.37917091811631082 + odd2*0.11952965967158000;
+    T c4 = even1*0.04252164479749607 + even2*-0.04289144034653719;
+    return (((c4*z+c3)*z+c2)*z+c1)*z+c0;
+}
+
+/* Optimal 2x (2-point, 3rd-order) (z-form) from Olli Niemitalo. Much noiser than normal linear interpolation for some reason */
+template <typename T>
+inline T optimal_2_p_3ord(T pos, const T* data)
+{
+    auto first = static_cast<int>(pos);
+    T frac = pos - std::floor(pos);
+
+    //
+    T z = frac - 1/2.0;
+    T even1 = data[first + 1]+data[first], odd1 = data[first + 1]-data[first];
+    T c0 = even1*0.50013034073688023;
+    T c1 = odd1*1.09617817497678520;
+    T c2 = even1*-0.001564088842561871;
+    T c3 = odd1*-1.32598918957298410;
+    return ((c3*z+c2)*z+c1)*z+c0;
+}
+
 
 /* Cosine interpolation, good for smooth transitions */
 template <typename T>
@@ -334,6 +373,26 @@ public:
     inline T interpolate(T pos, const T* data)
     {
         return catmull_rom_cubic_int<T>(pos, data);
+    }
+};
+
+template <typename T = float>
+class Optimal2PInterpolation
+{
+public:
+    inline T interpolate(T pos, const T* data)
+    {
+        return optimal_2_p_3ord<T>(pos, data);
+    }
+};
+
+template <typename T = float>
+class Optimal4PInterpolation
+{
+public:
+    inline T interpolate(T pos, const T* data)
+    {
+        return optimal_4p_4ord<T>(pos, data);
     }
 };
 

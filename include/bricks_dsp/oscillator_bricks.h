@@ -3,7 +3,6 @@
 
 #include <cassert>
 
-#include "data/wavetables_x4.h"
 #include "dsp_brick.h"
 #include "random_device.h"
 
@@ -242,19 +241,56 @@ private:
     LinearLag<os_factor> _pitch_lag;
     float                _samplerate_inv{1.0 / DEFAULT_SAMPLERATE};
     float                _phase{0};
-    Waveform             _waveform{Waveform::PULSE};
+    Waveform             _waveform{Waveform::SAW};
     int                  _tri_dir{1};
     blep_type            _blep;
 };
 
+
+class WaveTable
+{
+public:
+    WaveTable() = default;
+    struct Slot
+    {
+        const int size;
+        const float* table;
+    };
+    Slot table_at(int octave) const
+    {
+        assert(octave >= 0 && octave < OCTAVES);
+        return {_sizes[octave], _tables[octave]};
+    }
+
+private:
+    static constexpr int OCTAVES = 10;
+    std::array<int, OCTAVES>            _sizes;
+    std::array<const float*, OCTAVES>   _tables;
+    std::unique_ptr<float[]>            _data;
+
+    friend WaveTable create_wavetable(Waveform, int, int);
+    friend WaveTable* create_default_wavetable();
+};
+
+WaveTable create_wavetable(Waveform, int initial_table_length = 8192, int shortest_table_length = 16);
+WaveTable* create_default_wavetable();
+
 /* Wavetable based saw/sq/tri oscillator with control rate pitch input */
-template <size_t os_factor = 1>
+template <typename Interpolator = LinearInterpolation<float>, size_t os_factor = 1>
 class WtOscillatorBrick : public DspBrickImpl<os_factor, 1, 0, 0, 1>
 {
 public:
-    WtOscillatorBrick() = default;
+    WtOscillatorBrick()
+    {
+        _table = create_default_wavetable();
+    }
 
     void set_waveform(Waveform waveform) {_waveform = waveform;}
+
+    void set_wavetable(const WaveTable* table)
+    {
+        _table = table;
+    }
 
     void set_samplerate(float samplerate) override
     {
@@ -274,24 +310,11 @@ public:
         float phase = _phase;
 
         int oct = std::max(0, std::min(9, static_cast<int>(pitch * 10) + wt_shift));
-        float table_len = wavetables::lengths[oct];
-        const float* table{nullptr};
+        auto slot = _table->table_at(oct);
 
-        switch (_waveform)
-        {
-        case Waveform::SAW:
-            table = wavetables::saw + wavetables::offsets[oct];
-            break;
-        case Waveform::PULSE:
-            table = wavetables::square + wavetables::offsets[oct];
-            break;
-        case Waveform::TRIANGLE:
-            table = wavetables::triangle + wavetables::offsets[oct];
-            break;
-        case Waveform::SINE:
-            table = wavetables::sine + wavetables::offsets[oct];
-            break;
-        }
+        float table_len = slot.size;
+        const float* table = slot.table;
+
         assert(*table == 0.0f);
 
         for (int i = 0; i < PROC_BLOCK_SIZE * os_factor; ++i)
@@ -300,17 +323,19 @@ public:
             if (phase > 1.0f)
                 phase -= 1.0f;
             float pos = phase * table_len;
-            float sample = linear_int(pos, table);
+            float sample = _interpolator.interpolate(pos, table);
             audio_out[i] = sample;
         }
         _phase = phase;
     }
 
 private:
-    float           _samplerate{DEFAULT_SAMPLERATE};
-    float           _samplerate_inv{1.0 / DEFAULT_SAMPLERATE};
-    float           _phase{0};
-    Waveform        _waveform{Waveform::SAW};
+    float               _samplerate{DEFAULT_SAMPLERATE};
+    float               _samplerate_inv{1.0 / DEFAULT_SAMPLERATE};
+    float               _phase{0};
+    Waveform            _waveform{Waveform::SAW};
+    Interpolator         _interpolator;
+    const WaveTable*    _table;
 };
 
 /* Noise generator with 3 levels of lp filtering */
