@@ -252,7 +252,7 @@ inline T cubic_int(T pos, const T* data)
 
     T f2 = frac * frac;
     T a0 = d3 - d2 - d0 + d1;
-    T a1 = 2.0f * d0 - 2.0f * d1 + d2 - d3; //d0 - d1 - a0;
+    T a1 = d0 - d1 - a0;
     T a2 = d2 - d0;
     T a3 = d1;
 
@@ -287,16 +287,16 @@ inline T optimal_4p_4ord(T pos, const T* data)
     auto first = static_cast<int>(pos);
     T frac = pos - std::floor(pos);
 
-    T z = frac - 1/2.0;
+    T z = frac - 1.0f/2.0f;
     T even1 = data[first + 1] + data[first];
     T odd1 = data[first + 1] - data[first];
     T even2 = data[first + 2] + data[first - 1];
     T odd2 = data[first + 2] - data[first - 1];
-    T c0 = even1*0.45645918406487612 + even2*0.04354173901996461;
-    T c1 = odd1*0.47236675362442071 + odd2*0.17686613581136501;
-    T c2 = even1*-0.253674794204558521 + even2*0.25371918651882464;
-    T c3 = odd1*-0.37917091811631082 + odd2*0.11952965967158000;
-    T c4 = even1*0.04252164479749607 + even2*-0.04289144034653719;
+    T c0 = even1*0.45645918406487612f + even2*0.04354173901996461f;
+    T c1 = odd1*0.47236675362442071f + odd2*0.17686613581136501f;
+    T c2 = even1*-0.253674794204558521f + even2*0.25371918651882464f;
+    T c3 = odd1*-0.37917091811631082f + odd2*0.11952965967158000f;
+    T c4 = even1*0.04252164479749607f + even2*-0.04289144034653719f;
     return (((c4*z+c3)*z+c2)*z+c1)*z+c0;
 }
 
