@@ -22,7 +22,7 @@ target_include_directories(bricks_dsp PRIVATE include/bricks_dsp)
 target_include_directories(bricks_dsp PUBLIC src)
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-    set(EXTRA_COMPILER_FLAGS "-Wall" "/std:c++17")
+    set(EXTRA_COMPILER_FLAGS "-Wall")
     target_compile_definitions(bricks_dsp PUBLIC /D WINDOWS /D _USE_MATH_DEFINES NOMINMAX)
 else()
     set(EXTRA_COMPILER_FLAGS -Wall -fno-rtti -ffast-math -march=native -fpic)
