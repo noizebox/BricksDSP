@@ -246,6 +246,7 @@ private:
     blep_type            _blep;
 };
 
+static constexpr int WT_OCTAVES = 10;
 
 class WaveTable
 {
@@ -258,21 +259,22 @@ public:
     };
     Slot table_at(int octave) const
     {
-        assert(octave >= 0 && octave < OCTAVES);
+        assert(octave >= 0 && octave < WT_OCTAVES);
         return {_sizes[octave], _tables[octave]};
     }
 
 private:
-    static constexpr int OCTAVES = 10;
-    std::array<int, OCTAVES>            _sizes;
-    std::array<const float*, OCTAVES>   _tables;
+    std::array<int, WT_OCTAVES>            _sizes;
+    std::array<const float*, WT_OCTAVES>   _tables;
     std::unique_ptr<float[]>            _data;
 
-    friend WaveTable create_wavetable(Waveform, int, int);
+    friend WaveTable create_wavetable(Waveform, const std::array<int, WT_OCTAVES>&);
     friend WaveTable* create_default_wavetable();
 };
 
 WaveTable create_wavetable(Waveform, int initial_table_length = 8192, int shortest_table_length = 16);
+WaveTable create_wavetable(Waveform waveform, const std::array<int, WT_OCTAVES>& table_sizes);
+
 WaveTable* create_default_wavetable();
 
 /* Wavetable based saw/sq/tri oscillator with control rate pitch input */

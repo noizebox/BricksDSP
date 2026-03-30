@@ -92,7 +92,7 @@ int main ()
     float gain = 0.3f;
     float clip_level = 2.7f;
     //BlepOscillatorBrick<PolyBlepLagrange   , OVERSAMPLE>                 osc;
-    WtOscillatorBrick<CubicInterpolation<float>, OVERSAMPLE>                 osc;
+    WtOscillatorBrick<CRCubicInterpolation<float>, OVERSAMPLE>                 osc;
     SaturationBrick<ClipType::SOFT, OVERSAMPLE>   clipper;
     PipelinedFilterBrick<4, OVERSAMPLE>          aa_filter;
     DownSampleBrick<OVERSAMPLE, 1>                downsampler;
@@ -101,7 +101,8 @@ int main ()
 
     auto now = std::chrono::high_resolution_clock::now();
 
-    auto WT = create_wavetable(Waveform::SAW, 4096);
+    //auto WT = create_wavetable(Waveform::SAW, 4096);
+    auto WT = create_wavetable(Waveform::SAW, {256,256,256,128,64,64,64,32,16,16});
     auto wt_done = std::chrono::high_resolution_clock::now();
     std::cout << "Wavetable created: " << (wt_done - now).count() / 1000000.0 << "ms" << std::endl;
 

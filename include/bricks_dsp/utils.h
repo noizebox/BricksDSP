@@ -215,8 +215,8 @@ static constexpr float COEFF_B0 = 1.0f - COEFF_A0;
 /* Interpolation functions, these assume that data points to a continuous
  * buffer and will interpolate a position in the buffer.
  *
- * The first order functions need to access data[pos] and data[pos + 1]
- * The second order functions access data[pos - 1] to data[pos + 2]
+ * 2 point interpolation functions need to access data[pos] and data[pos + 1]
+ * 4 point functions access data[pos - 1] to data[pos + 2]
  * These data accesses must not result in an out of bounds error */
 
 /* 0:th order hold 'interpolation' (no interpolation) */

@@ -23,21 +23,31 @@ static void add_harmonic(float* buffer, int size, int harmonic, float level)
 
 WaveTable create_wavetable(Waveform waveform, int initial_table_length, int shortest_table_length)
 {
-    constexpr int OCTAVES = 10;
+    std::array<int, 10> sizes;
+    int table_len = initial_table_length;
+    for (int i = 0; i < sizes.size(); ++i)
+    {
+        sizes[i] = table_len;
+        table_len = std::max(table_len / 2, shortest_table_length);
+    }
+    return create_wavetable(waveform, sizes);
+}
+
+/* For better control of the sizes, call this function direcly */
+WaveTable create_wavetable(Waveform waveform, const std::array<int,WT_OCTAVES>& table_sizes)
+{
     constexpr int PRE_PADDING = 1;
     constexpr int POST_PADDING = 2;
 
     WaveTable wt;
 
     // First pass: compute sizes and total memory needed
-    int table_len = initial_table_length;
     int total_samples = 0;
 
-    for (int i = 0; i < OCTAVES; ++i)
+    for (int i = 0; i < table_sizes.size(); ++i)
     {
-        wt._sizes[i] = table_len;
-        total_samples += table_len + PRE_PADDING + POST_PADDING;
-        table_len = std::max(table_len / 2, shortest_table_length);
+        wt._sizes[i] = table_sizes[i];
+        total_samples += wt._sizes[i] + PRE_PADDING + POST_PADDING;
     }
     total_samples += PRE_PADDING + POST_PADDING;
     wt._data = std::make_unique<float[]>(total_samples);
@@ -47,10 +57,10 @@ WaveTable create_wavetable(Waveform waveform, int initial_table_length, int shor
     /* Generate 10 octaves spanning 20Hz to 20 kHz. The base frequency
      * of the first table is 20 hz, thus we need 1000 harmonics */
     int harmonics = 1000.0f;
-    for (int oct = 0; oct < OCTAVES; ++oct)
+    for (int oct = 0; oct < WT_OCTAVES; ++oct)
     {
         wt._tables[oct] = data;
-        table_len = wt._sizes[oct];
+        int table_len = wt._sizes[oct];
 
         int max_h = static_cast<int>(std::round(harmonics));
 
