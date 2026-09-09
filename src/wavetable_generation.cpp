@@ -10,8 +10,7 @@
 namespace bricks
 {
 
-// Helper: add harmonic (in-place)
-static void add_harmonic(float* buffer, int size, int harmonic, float level)
+inline void add_harmonic(float* buffer, int size, int harmonic, float level)
 {
     const float two_pi = 2.0f * static_cast<float>(M_PI);
 
@@ -33,7 +32,7 @@ WaveTable create_wavetable(Waveform waveform, int initial_table_length, int shor
     return create_wavetable(waveform, sizes);
 }
 
-/* For better control of the sizes, call this function direcly */
+/* For better control of the sizes, call this function directly */
 WaveTable create_wavetable(Waveform waveform, const std::array<int,WT_OCTAVES>& table_sizes)
 {
     constexpr int PRE_PADDING = 1;

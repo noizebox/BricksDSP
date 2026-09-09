@@ -400,7 +400,7 @@ public:
     void render(float time, const AudioOsBuffer<os_factor>& audio_in, AudioOsBuffer<os_factor>& audio_out)
     {
         this->_copy_audio_in(audio_in);
-        auto read_index = _get_read_index();
+        DelayIndex read_index = _get_read_index();
         auto inter = _interpolator;
 
         for (int i = 0; i < audio_out.size(); ++i)
@@ -417,7 +417,7 @@ private:
 
     DelayIndex _get_read_index()
     {
-        auto pos = this->_write_index - _delay - PROC_BLOCK_SIZE * os_factor;
+        DelayIndex pos = this->_write_index - _delay - static_cast<int>(PROC_BLOCK_SIZE * os_factor);
         return pos >= 0? pos : this->_max_samples + pos;
     }
 
