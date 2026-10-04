@@ -21,6 +21,14 @@ inline int control_to_range(float v, int min_range, int max_range)
     return std::round(v * (max_range - min_range) + min_range);
 }
 
+/* Map a float in range [0, 1] to a given, linear, floating point range */
+template <typename T>
+inline T control_to_continous_range(T v, T min_range, T max_range)
+{
+    static_assert(std::is_floating_point<T>::value);
+    return v * (max_range - min_range) + min_range;
+}
+
 /* Map a midi note number to a float in the range [0, 1] where 0.0 is
  * 20 hz and scales with 0.1 / octave */
 inline constexpr float note_to_control(int midi_note)

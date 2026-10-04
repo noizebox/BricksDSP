@@ -5,6 +5,7 @@
 #include "bricks_dsp/utils.h"
 #include "random_device.cpp"
 #include "test_utils.h"
+#include "../gtest/googletest/include/gtest/gtest.h"
 
 using namespace bricks;
 
@@ -39,6 +40,14 @@ TEST(ControlToRange, TestOperation)
     EXPECT_EQ(5, control_to_range(1.0f, -5, 5));
     EXPECT_EQ(-10, control_to_range(0.0f, -10, 100));
     EXPECT_EQ(-50, control_to_range(0.25, -75, 25));
+}
+
+TEST(ControlToContinousRange, TestOperation)
+{
+    EXPECT_FLOAT_EQ(5.0f, control_to_continous_range(0.5f, 0.0f, 10.0f));
+    EXPECT_FLOAT_EQ(5.0, control_to_continous_range(0.5, 0.0, 10.0));
+    EXPECT_FLOAT_EQ(2.0f, control_to_continous_range(0.25f, 1.0f, 5.0f));
+    EXPECT_FLOAT_EQ(0.0, control_to_continous_range(0.75, -7.5, 2.5));
 }
 
 TEST(ControlToFreq, TestOperation)
