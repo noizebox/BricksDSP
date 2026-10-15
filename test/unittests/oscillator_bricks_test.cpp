@@ -216,3 +216,26 @@ TEST_F(NoiseGeneratorBrickTest, TestOperation)
     }
     ASSERT_NE(0.0f, sum);
 }
+
+class VelvetNoiseBrickTest : public ::testing::Test
+{
+protected:
+    VelvetNoiseBrickTest() {}
+
+    VelvetNoiseBrick<>    _test_module;
+};
+
+TEST_F(VelvetNoiseBrickTest, TestOperation)
+{
+    AudioBuffer output;
+    _test_module.set_samplerate(TEST_SAMPLERATE);
+
+    /* Test that the impulse density increases as the density parameter increase */
+    _test_module.render(0.2, 0.0f, output);
+    float sum = std::accumulate(output.begin(), output.end(), 0.0f, [](auto a, auto b) -> auto {return a + std::abs(b);});
+    ASSERT_GT(sum, 0.0f);
+
+    _test_module.render(0.5, 0.0f, output);
+    float sum_2 = std::accumulate(output.begin(), output.end(), 0.0f, [](auto a, auto b) -> auto {return a + std::abs(b);});
+    ASSERT_GT(sum_2, sum);
+}

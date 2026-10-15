@@ -406,6 +406,38 @@ private:
     RandomDevice        _rand_device;
 };
 
+/* Crushed velvet noise, i.e. noise with only -1 and 1 amplitude */
+template <size_t os_factor = 1>
+class VelvetNoiseBrick : public DspBrickImpl<os_factor, 2, 0, 0, 1>
+{
+public:
+    VelvetNoiseBrick() = default;
+
+    void render(float density, float polarity, AudioOsBuffer<os_factor>& audio_out)
+    {
+        constexpr float MAX_DENSITY = 0.5f;
+        constexpr float MAX_POLARITY = 0.5f;
+
+        int density_samples = static_cast<int>(density * density * MAX_DENSITY * RandomDevice::FLOAT_MAX - RandomDevice::FLOAT_MIN);
+        int polarity_samples = static_cast<int>(MAX_POLARITY * (polarity + 1.0f) * RandomDevice::FLOAT_MAX);
+
+        for (auto& s : audio_out)
+        {
+            if (_rand_device.get() < density_samples)
+            {
+                s = _rand_device.get() < polarity_samples ? 1.0f : -1.0;
+            }
+            else
+            {
+                s = 0.0f;
+            }
+        }
+    }
+
+private:
+    RandomDevice _rand_device;
+};
+
 }// namespace bricks
 
 #endif //BRICKS_DSP_OSCILLATORS_H
